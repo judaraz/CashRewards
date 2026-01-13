@@ -172,7 +172,7 @@
         let telegramAdsController = null;
         let isTelegramWebApp = false;
         let taddySDKLoading = false;
-        let taddyPreloadStarted = false; // Track if preload started
+        let taddyPreloadStarted = false;
 
         const loader = document.getElementById('loader');
         const backButtonContainer = document.getElementById('back-button-container');
@@ -181,35 +181,20 @@
             lucide.createIcons();
             setupEventListeners();
             showMainPage('auth-section');
-            initializeTelegramWebApp(); // Initialize Telegram first
-            initializeRichAds(); // Always initialize Richads
-            
-            // ✅ PRE-LOAD TADDY.PRO SDK IMMEDIATELY
-            preloadTaddySDK();
-            
+            initializeTelegramWebApp();
+            initializeRichAds(); // Initialize Richads FIRST
+            preloadTaddySDK(); // Pre-load Taddy in background
             onAuthStateChanged(auth, handleAuthStateChange);
         };
         
         // ===== TELEGRAM MINI APP INITIALIZATION =====
         function initializeTelegramWebApp() {
-            // Check if we're in Telegram WebApp environment
             if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
                 isTelegramWebApp = true;
                 const tg = window.Telegram.WebApp;
-                
-                // Initialize Telegram WebApp
                 tg.ready();
-                tg.expand(); // Expand to full screen
-                
+                tg.expand();
                 console.log("✅ Telegram WebApp initialized");
-                console.log("📱 Platform:", tg.platform);
-                console.log("👤 User:", tg.initDataUnsafe?.user);
-                
-                // Set theme colors from Telegram
-                if (tg.colorScheme === 'dark') {
-                    document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color || '#1a1a1a');
-                }
-                
                 return true;
             } else {
                 console.log("⚠️ Not running in Telegram WebApp - using web mode");
@@ -218,9 +203,9 @@
             }
         }
         
-        // ===== RICHADS INITIALIZATION (ALWAYS LOAD) =====
+        // ===== RICHADS INITIALIZATION (ALWAYS FIRST) =====
         function initializeRichAds() {
-            console.log("🎯 Initializing Richads (Always loaded)...");
+            console.log("🎯 Initializing Richads (Primary)...");
             
             if (isTelegramWebApp && typeof TelegramAdsController !== 'undefined') {
                 try {
@@ -232,13 +217,16 @@
                     richAdsLoaded = true;
                     console.log("✅ RichAds initialized successfully");
                     updateAdStatus('richads');
+                    return true;
                 } catch (error) {
                     console.log("❌ RichAds initialization error:", error);
                     updateAdStatus('mock');
+                    return false;
                 }
             } else {
                 console.log("⚠️ RichAds requires Telegram environment");
                 updateAdStatus('mock');
+                return false;
             }
         }
         
@@ -246,36 +234,23 @@
         function preloadTaddySDK() {
             if (taddyPreloadStarted || taddyLoaded) return;
             
-            console.log("⚡ PRE-LOADING Taddy.pro SDK in background...");
+            console.log("⚡ Pre-loading Taddy.pro SDK in background...");
             taddyPreloadStarted = true;
             
-            // Create script element
             const script = document.createElement('script');
             script.src = 'https://sdk.taddy.pro/web/taddy.min.js?1317';
             script.setAttribute('data-pub-id', '6ca0ab17ec8eee8a7ba810ef4f686359');
-            script.async = true; // Use async for non-blocking load
+            script.async = true;
             
-            // Load in the background
             script.onload = () => {
-                console.log("✅ Taddy SDK pre-loaded successfully");
-                // Initialize when loaded
-                if (typeof window.Taddy !== 'undefined') {
-                    initializeTaddy();
-                } else {
-                    // Try again after delay
-                    setTimeout(() => {
-                        if (typeof window.Taddy !== 'undefined') {
-                            initializeTaddy();
-                        }
-                    }, 500);
-                }
+                console.log("✅ Taddy SDK pre-loaded");
+                setTimeout(initializeTaddy, 100);
             };
             
             script.onerror = (error) => {
-                console.log("⚠️ Taddy pre-load failed, will lazy load when needed:", error);
+                console.log("⚠️ Taddy pre-load failed:", error);
             };
             
-            // Append to head to start loading
             document.head.appendChild(script);
         }
         
@@ -283,42 +258,31 @@
             try {
                 console.log("🚀 Initializing Taddy.pro...");
                 
-                // Taddy auto-initializes with data-pub-id attribute
-                if (typeof window.Taddy.init === 'function') {
-                    window.Taddy.init({
-                        pubId: "6ca0ab17ec8eee8a7ba810ef4f686359",
-                        platform: "web"
-                    });
-                    console.log("✅ Taddy.init() called");
-                }
-                
-                // Check if ads service is available
-                if (typeof window.Taddy.ads === 'function') {
-                    taddyAdsService = window.Taddy.ads();
-                    
-                    if (typeof taddyAdsService.interstitial === 'function') {
-                        taddyLoaded = true;
-                        console.log("✅ Taddy.pro ads service loaded");
-                        updateAdStatus('taddy');
-                    } else {
-                        console.log("❌ Taddy.ads().interstitial method not available");
+                if (typeof window.Taddy !== 'undefined') {
+                    if (typeof window.Taddy.init === 'function') {
+                        window.Taddy.init({
+                            pubId: "6ca0ab17ec8eee8a7ba810ef4f686359",
+                            platform: "web"
+                        });
                     }
-                } else {
-                    console.log("❌ Taddy.ads() function not available");
+                    
+                    if (typeof window.Taddy.ads === 'function') {
+                        taddyAdsService = window.Taddy.ads();
+                        if (typeof taddyAdsService.interstitial === 'function') {
+                            taddyLoaded = true;
+                            console.log("✅ Taddy.pro ads service ready");
+                            if (!richAdsLoaded) updateAdStatus('taddy');
+                        }
+                    }
                 }
-                
             } catch (error) {
                 console.log("❌ Taddy.pro initialization error:", error);
             }
         }
         
-        // ===== OPTIMIZED TADDY LOADING =====
         async function ensureTaddyLoaded() {
-            if (taddyLoaded) {
-                return true;
-            }
+            if (taddyLoaded) return true;
             
-            // If already loading, wait for it
             if (taddySDKLoading) {
                 return new Promise((resolve) => {
                     const checkInterval = setInterval(() => {
@@ -327,8 +291,6 @@
                             resolve(true);
                         }
                     }, 100);
-                    
-                    // Timeout after 3 seconds
                     setTimeout(() => {
                         clearInterval(checkInterval);
                         resolve(false);
@@ -336,7 +298,6 @@
                 });
             }
             
-            // If preload didn't complete, load now
             if (typeof window.Taddy === 'undefined') {
                 console.log("🔄 Loading Taddy SDK on demand...");
                 taddySDKLoading = true;
@@ -348,14 +309,9 @@
                 return new Promise((resolve) => {
                     script.onload = () => {
                         setTimeout(() => {
-                            if (typeof window.Taddy !== 'undefined') {
-                                initializeTaddy();
-                                taddySDKLoading = false;
-                                resolve(true);
-                            } else {
-                                taddySDKLoading = false;
-                                resolve(false);
-                            }
+                            initializeTaddy();
+                            taddySDKLoading = false;
+                            resolve(taddyLoaded);
                         }, 800);
                     };
                     
@@ -368,7 +324,7 @@
                 });
             }
             
-            return true;
+            return taddyLoaded;
         }
         
         function updateAdStatus(type) {
@@ -377,7 +333,6 @@
             
             if (!adStatusElement) return;
             
-            // Show which ad network is active
             if (type === 'richads' && richAdsLoaded) {
                 adStatusElement.className = 'ad-status richads';
                 adStatusText.textContent = 'RichAds Ready';
@@ -395,7 +350,7 @@
             adStatusElement.style.display = 'flex';
         }
         
-        // ===== AD SHOWING FUNCTIONS =====
+        // ===== OPTIMIZED AD SHOWING (RICHADS FIRST, TADDY FALLBACK) =====
         async function showRichAds() {
             if (richAdsLoaded && telegramAdsController) {
                 console.log("🎯 Showing RichAds...");
@@ -403,7 +358,7 @@
                     try {
                         telegramAdsController.showAd();
                         setTimeout(() => {
-                            console.log("✅ RichAds ad completed");
+                            console.log("✅ RichAds completed");
                             resolve(true);
                         }, 5000);
                     } catch (error) {
@@ -425,22 +380,15 @@
                             console.log("✅ Taddy.pro ad closed");
                             resolve(true);
                         },
-                        onViewThrough: function(id) {
-                            console.log("📊 Taddy ad viewed through, ID:", id);
-                        },
                         onError: function(error) {
                             console.log("❌ Taddy.pro ad error:", error);
                             reject(error);
                         }
                     })
                     .then((success) => {
-                        if (!success) {
-                            console.log("❌ Taddy.pro interstitial returned false");
-                            reject("Taddy ad failed to show");
-                        }
+                        if (!success) reject("Taddy ad failed to show");
                     })
                     .catch((error) => {
-                        console.log("❌ Taddy.pro interstitial promise error:", error);
                         reject(error);
                     });
                 });
@@ -449,52 +397,72 @@
             }
         }
         
-        // ===== OPTIMIZED AD SHOWING =====
-        async function showAds(useTaddy = false) {
-            console.log("🎯 Showing ads (useTaddy:", useTaddy, ")");
+        // ===== MAIN AD SHOW FUNCTION (RICHADS FIRST ALWAYS) =====
+        async function showAds() {
+            console.log("🎯 Showing ads (Richads first always)...");
             
-            // Try Taddy first for Watch & Earn
-            if (useTaddy) {
-                console.log("🎯 Attempting Taddy.pro ad...");
-                const taddyReady = await ensureTaddyLoaded();
-                
-                if (taddyReady && taddyAdsService && typeof taddyAdsService.interstitial === 'function') {
-                    try {
-                        return await showTaddyAds();
-                    } catch (taddyError) {
-                        console.log("❌ Taddy failed, falling back to Richads:", taddyError);
-                        // Continue to Richads fallback
-                    }
-                } else {
-                    console.log("⚠️ Taddy not ready, using Richads");
+            // ALWAYS try Richads first if available
+            if (richAdsLoaded) {
+                console.log("🎯 Attempting Richads (Primary)...");
+                try {
+                    await showRichAds();
+                    return true;
+                } catch (richadsError) {
+                    console.log("❌ Richads failed, trying Taddy...:", richadsError);
+                    // Continue to Taddy fallback
                 }
+            } else {
+                console.log("⚠️ Richads not available, trying Taddy...");
             }
             
-            // Use Richads for other cases
-            console.log("🎯 Attempting Richads...");
-            try {
-                await showRichAds();
-                return true;
-            } catch (richadsError) {
-                console.log("❌ Richads failed:", richadsError);
-                
-                // Fallback to Taddy if Richads fails and we haven't tried it yet
-                if (!useTaddy) {
-                    console.log("🔄 Richads failed, trying Taddy...");
-                    const taddyReady = await ensureTaddyLoaded();
-                    
-                    if (taddyReady && taddyAdsService && typeof taddyAdsService.interstitial === 'function') {
-                        try {
-                            return await showTaddyAds();
-                        } catch (taddyError2) {
-                            console.log("❌ Both ad providers failed");
-                            throw new Error("No ads available");
-                        }
-                    }
+            // Fallback to Taddy if Richads fails or not available
+            console.log("🔄 Attempting Taddy (Fallback)...");
+            const taddyReady = await ensureTaddyLoaded();
+            
+            if (taddyReady && taddyAdsService && typeof taddyAdsService.interstitial === 'function') {
+                try {
+                    await showTaddyAds();
+                    return true;
+                } catch (taddyError) {
+                    console.log("❌ Taddy also failed:", taddyError);
+                    throw new Error("No ads available");
                 }
-                
+            } else {
                 throw new Error("No ads available");
             }
+        }
+        
+        // ===== GAME PAGE SPECIFIC (FORCE TADDY FOR "WATCH & EARN") =====
+        async function showGameAds() {
+            console.log("🎮 Showing game ads (Taddy preferred)...");
+            
+            // First try Taddy for game pages
+            const taddyReady = await ensureTaddyLoaded();
+            
+            if (taddyReady && taddyAdsService && typeof taddyAdsService.interstitial === 'function') {
+                console.log("🎯 Attempting Taddy (Game page preferred)...");
+                try {
+                    await showTaddyAds();
+                    return true;
+                } catch (taddyError) {
+                    console.log("❌ Taddy failed for game, falling back to Richads...:", taddyError);
+                    // Fall back to Richads
+                }
+            }
+            
+            // Fallback to Richads
+            if (richAdsLoaded) {
+                console.log("🔄 Attempting Richads (Game fallback)...");
+                try {
+                    await showRichAds();
+                    return true;
+                } catch (richadsError) {
+                    console.log("❌ Both ad providers failed");
+                    throw new Error("No ads available");
+                }
+            }
+            
+            throw new Error("No ads available");
         }
         
         async function handleAuthStateChange(user) {
@@ -671,9 +639,9 @@
             updateAllUI();
         }
 
-        // ===== WATCH & EARN (USES TADDY.PRO) =====
+        // ===== WATCH & EARN (USES GAME ADS - TADDY PREFERRED) =====
         window.claimReward = async function() {
-            console.log("🎯 Watch & Earn clicked - using Taddy.pro");
+            console.log("🎮 Watch & Earn clicked - Taddy preferred");
             const newCount = (userData.dailyAdCount || 0) + 1;
             await updateDoc(doc(db, "users", currentUser.uid), { dailyAdCount: newCount });
             userData.dailyAdCount = newCount;
@@ -683,8 +651,8 @@
                 document.getElementById('special-ad-popup').classList.remove('hidden');
             } else {
                 try {
-                    // Force Taddy for Watch & Earn button
-                    await showAds(true); // true = use Taddy first
+                    // Use game ads for Watch & Earn
+                    await showGameAds();
                     await updateBalance(appConfig.adWatchReward || 10);
                     showAlert(`Congratulations! You earned ${appConfig.adWatchReward || 10} coins.`);
                 } catch (error) {
@@ -693,12 +661,12 @@
             }
         }
         
-        // ===== COLOR GAME CLAIM (USES RICHADS) =====
+        // ===== COLOR GAME CLAIM (USES REGULAR ADS - RICHADS FIRST) =====
         async function claimColorGameReward() {
             document.getElementById('color-game-popup').classList.add('hidden');
             try {
-                // Use Richads for Color Game (no Taddy flag)
-                await showAds(false); // false = use Richads first
+                // Regular ads for Color Game (Richads first)
+                await showAds();
                 await updateBalance(appConfig.colorGameReward || 10);
                 showAlert(`Congratulations! You earned ${appConfig.colorGameReward || 10} coins.`);
                 startGame();
@@ -707,14 +675,14 @@
             }
         }
         
-        // ===== OTHER AD FUNCTIONS (USE RICHADS) =====
+        // ===== OTHER AD FUNCTIONS (USE REGULAR ADS - RICHADS FIRST) =====
         async function handleWebsiteVisit(e) {
             const button = e.target;
             const { link, reward, timer } = button.dataset;
             button.disabled = true;
             try {
-                // Use Richads for website visits
-                await showAds(false); // false = use Richads first
+                // Regular ads for website visits
+                await showAds();
                 window.open(link, '_blank');
                 let seconds = parseInt(timer);
                 button.textContent = `Wait ${seconds}s`;
@@ -744,8 +712,8 @@
             const { link, reward } = button.dataset;
             button.disabled = true;
             try {
-                // Use Richads for social tasks
-                await showAds(false); // false = use Richads first
+                // Regular ads for social tasks
+                await showAds();
                 window.open(link, '_blank');
                 await updateBalance(parseInt(reward));
                 const completed = [...(userData.completedSocialTasks || []), link];
@@ -804,8 +772,8 @@
             showAdBtn.classList.add('hidden');
             adStatus.textContent = "Waiting for you to click on the ad...";
 
-            // Use Richads for special ads
-            showAds(false).catch(err => {
+            // Use regular ads for special ads
+            showAds().catch(err => {
                 showAlert(err);
                 showAdBtn.classList.remove('hidden');
                 adStatus.textContent = "";
