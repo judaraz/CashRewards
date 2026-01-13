@@ -68,9 +68,62 @@
         .ad-status.taddy { background: rgba(155, 89, 182, 0.8); }
         .ad-status.mock { background: rgba(149, 165, 166, 0.8); }
         .ad-status.loading { background: rgba(241, 196, 15, 0.8); }
+        
+        /* Country Block Modal */
+        .country-block-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+        }
+        .country-block-content {
+            background: #2c2c2c;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            text-align: center;
+            border: 2px solid #facc15;
+        }
+        .country-block-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #facc15;
+        }
+        .country-block-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #ffffff;
+        }
+        .country-block-message {
+            color: #a1a1aa;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body class="max-w-md mx-auto">
+
+    <!-- Country Block Modal -->
+    <div id="country-block-modal" class="country-block-modal hidden">
+        <div class="country-block-content">
+            <div class="country-block-icon">🌍</div>
+            <div class="country-block-title">Access Restricted</div>
+            <div class="country-block-message" id="country-block-message">
+                This application is not available in your country.
+            </div>
+            <button onclick="location.reload()" class="bg-gray-600 text-white px-6 py-2 rounded-full">
+                Try Again
+            </button>
+        </div>
+    </div>
 
     <!-- Loader -->
     <div id="loader" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"><div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-yellow-400"></div></div>
@@ -164,6 +217,7 @@
         let userData = null;
         let appConfig = {};
         let sliderInterval;
+        let userCountry = null; // Store user's country
         
         // ===== ADS SDK VARIABLES =====
         let richAdsLoaded = false;
@@ -180,12 +234,166 @@
         window.onload = () => {
             lucide.createIcons();
             setupEventListeners();
-            showMainPage('auth-section');
             initializeTelegramWebApp();
             initializeRichAds(); // Initialize Richads FIRST
             preloadTaddySDK(); // Pre-load Taddy in background
-            onAuthStateChanged(auth, handleAuthStateChange);
+            
+            // Detect user's country before anything else
+            detectUserCountry().then(country => {
+                userCountry = country;
+                console.log(`🌍 User detected country: ${userCountry}`);
+                
+                // Check country restrictions
+                checkCountryRestrictions().then(isAllowed => {
+                    if (isAllowed) {
+                        // Country is allowed, proceed with app
+                        showMainPage('auth-section');
+                        onAuthStateChanged(auth, handleAuthStateChange);
+                    } else {
+                        // Country is blocked, show block message
+                        showCountryBlockMessage();
+                    }
+                });
+            }).catch(error => {
+                console.error('Error detecting country:', error);
+                // If country detection fails, still allow access
+                showMainPage('auth-section');
+                onAuthStateChanged(auth, handleAuthStateChange);
+            });
         };
+        
+        // ===== COUNTRY DETECTION FUNCTIONS =====
+        async function detectUserCountry() {
+            try {
+                // Try multiple IP geolocation services for better reliability
+                const services = [
+                    'https://ipapi.co/json/',
+                    'https://ipinfo.io/json?token=test', // Free tier
+                    'https://api.ipgeolocation.io/ipgeo?apiKey=test'
+                ];
+                
+                for (const serviceUrl of services) {
+                    try {
+                        const response = await fetch(serviceUrl, {
+                            signal: AbortSignal.timeout(3000) // 3 second timeout
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            const countryCode = data.country_code || data.country || data.countryCode;
+                            if (countryCode) {
+                                return countryCode.toLowerCase();
+                            }
+                        }
+                    } catch (error) {
+                        console.log(`Country detection service failed: ${serviceUrl}`, error);
+                        continue; // Try next service
+                    }
+                }
+                
+                // If all services fail, try Telegram WebApp data
+                if (isTelegramWebApp && window.Telegram?.WebApp?.initDataUnsafe?.user) {
+                    const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+                    if (tgUser.language_code) {
+                        // Extract country from language code (e.g., "en-US" -> "us")
+                        const langParts = tgUser.language_code.split('-');
+                        if (langParts.length > 1) {
+                            return langParts[1].toLowerCase();
+                        }
+                    }
+                }
+                
+                // Fallback to browser language
+                const browserLang = navigator.language || navigator.userLanguage;
+                if (browserLang.includes('-')) {
+                    return browserLang.split('-')[1].toLowerCase();
+                }
+                
+                return 'unknown';
+            } catch (error) {
+                console.error('Country detection error:', error);
+                return 'unknown';
+            }
+        }
+        
+        async function checkCountryRestrictions() {
+            try {
+                const configRef = doc(db, "config", "main");
+                const configSnap = await getDoc(configRef);
+                
+                if (configSnap.exists()) {
+                    const config = configSnap.data();
+                    const allowedCountries = config.allowedCountries || [];
+                    
+                    // If allowedCountries is empty, all countries are allowed
+                    if (allowedCountries.length === 0) {
+                        console.log('✅ No country restrictions - all countries allowed');
+                        return true;
+                    }
+                    
+                    // Check if user's country is in allowed list
+                    const userCountryLower = userCountry ? userCountry.toLowerCase() : 'unknown';
+                    const isAllowed = allowedCountries.some(country => 
+                        country.toLowerCase() === userCountryLower
+                    );
+                    
+                    if (isAllowed) {
+                        console.log(`✅ Country ${userCountry} is allowed`);
+                        return true;
+                    } else {
+                        console.log(`❌ Country ${userCountry} is not allowed`);
+                        
+                        // Get blocked message from config
+                        const blockedMessage = config.blockedCountryMessage || 
+                            'Sorry, this app is not available in your country.';
+                        
+                        // Store blocked message for display
+                        document.getElementById('country-block-message').textContent = blockedMessage;
+                        return false;
+                    }
+                }
+                
+                // If no config found, allow all countries
+                return true;
+            } catch (error) {
+                console.error('Error checking country restrictions:', error);
+                return true; // Allow access if there's an error
+            }
+        }
+        
+        function showCountryBlockMessage() {
+            // Hide all other content
+            document.getElementById('auth-section').style.display = 'none';
+            document.getElementById('app-container').style.display = 'none';
+            
+            // Show country block modal
+            document.getElementById('country-block-modal').classList.remove('hidden');
+        }
+        
+        // ===== COUNTRY RECORDING FUNCTION =====
+        async function recordPointHistory(userId, taskType, points, details) {
+            try {
+                // Get user data first
+                const userRef = doc(db, "users", userId);
+                const userSnap = await getDoc(userRef);
+                const userData = userSnap.data();
+                
+                // Create point history record with country
+                await addDoc(collection(db, "pointHistory"), {
+                    userId: userId,
+                    userName: userData.name || 'Unknown',
+                    userEmail: userData.email || '',
+                    taskType: taskType,
+                    points: points,
+                    details: details,
+                    timestamp: serverTimestamp(),
+                    country: userCountry || 'unknown'
+                });
+                
+                console.log(`📝 Point history recorded for ${taskType}: ${points} points from ${userCountry}`);
+            } catch (error) {
+                console.error('Error recording point history:', error);
+            }
+        }
         
         // ===== TELEGRAM MINI APP INITIALIZATION =====
         function initializeTelegramWebApp() {
@@ -471,6 +679,12 @@
                 currentUser = user;
                 await fetchAppConfig();
                 await fetchUserData();
+                
+                // Update user's country in database if not already set
+                if (userCountry && userCountry !== 'unknown') {
+                    await updateUserCountry(user.uid, userCountry);
+                }
+                
                 if (userData.isBlocked) {
                     showAlert("Your account has been blocked.");
                     await signOut(auth);
@@ -488,6 +702,24 @@
             }
             loader.style.display = 'none';
         }
+        
+        async function updateUserCountry(userId, country) {
+            try {
+                const userRef = doc(db, "users", userId);
+                const userSnap = await getDoc(userRef);
+                
+                if (userSnap.exists() && !userSnap.data().country) {
+                    // Only update if country is not already set
+                    await updateDoc(userRef, {
+                        country: country,
+                        countryDetectedAt: serverTimestamp()
+                    });
+                    console.log(`🌍 Updated user country to: ${country}`);
+                }
+            } catch (error) {
+                console.error('Error updating user country:', error);
+            }
+        }
 
         function populateAllPages() {
             document.getElementById('color-game-popup').innerHTML = `<div class="card-bg rounded-lg p-6 w-full max-w-sm text-center space-y-4"><h3 class="text-xl font-bold">Correct Answer!</h3><p>Bravo! Watch an ad to claim ${appConfig.colorGameReward || 10} coins.</p><div class="flex justify-center space-x-4"><button id="claim-color-reward-btn" class="btn-accent px-6 py-2">Claim</button><button onclick="document.getElementById('color-game-popup').classList.add('hidden'); startGame()" class="bg-gray-600 text-white px-6 py-2 rounded-full">Later</button></div></div>`;
@@ -504,10 +736,31 @@
             if (!currentUser) return;
             const userRef = doc(db, "users", currentUser.uid);
             const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) { userData = userSnap.data(); } 
+            if (userSnap.exists()) { 
+                userData = userSnap.data(); 
+                // Update local userCountry from database if available
+                if (!userCountry && userData.country) {
+                    userCountry = userData.country;
+                }
+            } 
             else {
                 const ownReferralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-                const defaultUserData = { uid: currentUser.uid, name: currentUser.displayName || currentUser.email.split('@')[0], email: currentUser.email, balance: 50, referralCode: ownReferralCode, referredBy: null, createdAt: serverTimestamp(), isBlocked: false, dailyAdCount: 0, lastAdWatchDate: '1970-01-01', visitedWebsitesToday: [], lastWebsiteVisitDate: '1970-01-01', completedSocialTasks: [] };
+                const defaultUserData = { 
+                    uid: currentUser.uid, 
+                    name: currentUser.displayName || currentUser.email.split('@')[0], 
+                    email: currentUser.email, 
+                    balance: 50, 
+                    referralCode: ownReferralCode, 
+                    referredBy: null, 
+                    createdAt: serverTimestamp(), 
+                    isBlocked: false, 
+                    dailyAdCount: 0, 
+                    lastAdWatchDate: '1970-01-01', 
+                    visitedWebsitesToday: [], 
+                    lastWebsiteVisitDate: '1970-01-01', 
+                    completedSocialTasks: [],
+                    country: userCountry || 'unknown'
+                };
                 await setDoc(doc(db, "users", currentUser.uid), defaultUserData);
                 userData = defaultUserData;
             }
@@ -631,11 +884,17 @@
             finally { loader.style.display = 'none'; }
         }
         
-        async function updateBalance(amount) {
+        async function updateBalance(amount, taskType = 'unknown', details = '') {
             if (!currentUser || amount === 0) return;
             const newBalance = (userData.balance || 0) + amount;
             await updateDoc(doc(db, "users", currentUser.uid), { balance: newBalance });
             userData.balance = newBalance;
+            
+            // Record point history with country
+            if (amount !== 0) {
+                await recordPointHistory(currentUser.uid, taskType, amount, details);
+            }
+            
             updateAllUI();
         }
 
@@ -653,7 +912,7 @@
                 try {
                     // Use game ads for Watch & Earn
                     await showGameAds();
-                    await updateBalance(appConfig.adWatchReward || 10);
+                    await updateBalance(appConfig.adWatchReward || 10, 'ad_watch', 'Watched ad for coins');
                     showAlert(`Congratulations! You earned ${appConfig.adWatchReward || 10} coins.`);
                 } catch (error) {
                     showAlert("Ad service not available. Please try again.");
@@ -667,7 +926,7 @@
             try {
                 // Regular ads for Color Game (Richads first)
                 await showAds();
-                await updateBalance(appConfig.colorGameReward || 10);
+                await updateBalance(appConfig.colorGameReward || 10, 'color_game', 'Won color game');
                 showAlert(`Congratulations! You earned ${appConfig.colorGameReward || 10} coins.`);
                 startGame();
             } catch(error) { 
@@ -679,6 +938,7 @@
         async function handleWebsiteVisit(e) {
             const button = e.target;
             const { link, reward, timer } = button.dataset;
+            const siteName = button.closest('.card-bg').querySelector('h3').textContent;
             button.disabled = true;
             try {
                 // Regular ads for website visits
@@ -691,7 +951,7 @@
                     button.textContent = `Wait ${seconds}s`;
                     if (seconds <= 0) {
                         clearInterval(interval);
-                        await updateBalance(parseInt(reward));
+                        await updateBalance(parseInt(reward), 'website_visit', `Visited website: ${siteName}`);
                         const visited = [...(userData.visitedWebsitesToday || []), link];
                         await updateDoc(doc(db, "users", currentUser.uid), { visitedWebsitesToday: visited });
                         userData.visitedWebsitesToday = visited;
@@ -710,12 +970,13 @@
         async function handleSocialFollow(e) {
             const button = e.target;
             const { link, reward } = button.dataset;
+            const taskName = button.closest('.card-bg').querySelector('h3').textContent;
             button.disabled = true;
             try {
                 // Regular ads for social tasks
                 await showAds();
                 window.open(link, '_blank');
-                await updateBalance(parseInt(reward));
+                await updateBalance(parseInt(reward), 'social_task', `Completed social task: ${taskName}`);
                 const completed = [...(userData.completedSocialTasks || []), link];
                 await updateDoc(doc(db, "users", currentUser.uid), { completedSocialTasks: completed });
                 userData.completedSocialTasks = completed;
@@ -812,7 +1073,7 @@
 
         async function finalizeSpecialAd() {
             const reward = appConfig.watchAdSpecialTaskReward || 100;
-            await updateBalance(reward);
+            await updateBalance(reward, 'special_ad_task', 'Completed special ad task');
             showAlert(`Congratulations! You earned a special bonus of ${reward} coins.`);
             document.getElementById('special-ad-popup').classList.add('hidden');
             document.getElementById('show-special-ad-btn').classList.remove('hidden');
@@ -872,9 +1133,10 @@
                 if (!querySnapshot.empty) {
                     const referrerDoc = querySnapshot.docs[0];
                     const bonus = appConfig.referralBonus || 100;
+                    await updateBalance(bonus, 'referral', `Applied referral code: ${code}`);
                     await updateDoc(referrerDoc.ref, { balance: (referrerDoc.data().balance || 0) + bonus });
-                    await updateDoc(doc(db, "users", currentUser.uid), { balance: (userData.balance || 0) + bonus, referredBy: code });
-                    userData.balance += bonus; userData.referredBy = code;
+                    await updateDoc(doc(db, "users", currentUser.uid), { referredBy: code });
+                    userData.referredBy = code;
                     updateAllUI();
                     showAlert(`Code applied successfully! You received ${bonus} coins.`);
                 } else { showAlert("Invalid referral code."); }
@@ -929,11 +1191,24 @@
             if (!paymentDetail) return showAlert("Please enter payment details.");
             loader.style.display = 'flex';
             try {
-                await updateBalance(-amount);
-                await addDoc(collection(db, "withdrawals"), { userId: currentUser.uid, userName: userData.name, amount, method, paymentDetail, status: "pending", requestedAt: serverTimestamp() });
+                await updateBalance(-amount, 'withdrawal', `Requested withdrawal of ${amount} coins via ${method}`);
+                await addDoc(collection(db, "withdrawals"), { 
+                    userId: currentUser.uid, 
+                    userName: userData.name, 
+                    amount, 
+                    method, 
+                    paymentDetail, 
+                    status: "pending", 
+                    requestedAt: serverTimestamp(),
+                    country: userCountry || 'unknown'
+                });
                 showAlert("Withdrawal request submitted successfully!");
                 loadWalletPage();
-            } catch (error) { showAlert("Error submitting request: " + error.message); await updateBalance(amount); }
+            } catch (error) { 
+                showAlert("Error submitting request: " + error.message); 
+                // Refund the deducted amount if withdrawal fails
+                await updateBalance(amount, 'refund', `Refund for failed withdrawal`);
+            }
             finally { loader.style.display = 'none'; }
         }
         
