@@ -5,11 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CashReward App</title>
     
+    <!-- Telegram WebApp SDK (MUST BE FIRST) -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
     <!-- RichPartners SDK (Primary for Telegram Mini Apps) -->
     <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
     
-    <!-- Taddy.pro SDK (Primary for Web, Fallback for Telegram) -->
-    <script src="https://sdk.taddy.pro/web/taddy.min.js" data-pub-id="6ca0ab17ec8eee8a7ba810ef4f686359"></script>
+    <!-- Taddy.pro SDK (Fallback) -->
+    <script src="https://sdk.taddy.pro/web/taddy.min.js?1317" data-pub-id="6ca0ab17ec8eee8a7ba810ef4f686359"></script>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -96,8 +99,8 @@
     <!-- Main App -->
     <div id="app-container" class="min-h-screen flex-col main-page main-bg">
         <!-- Ad Status Indicator -->
-        <div id="adStatusDisplay" class="ad-status taddy">
-            <i data-lucide="ad" class="w-3 h-3"></i> <span id="adStatusText">Taddy.pro</span>
+        <div id="adStatusDisplay" class="ad-status richads">
+            <i data-lucide="ad" class="w-3 h-3"></i> <span id="adStatusText">RichAds</span>
         </div>
         
         <header class="p-4 flex items-center justify-between"><div class="flex items-center space-x-3"><img src="https://placehold.co/50x50/facc15/1a1a1a?text=A" id="profile-picture" class="rounded-full border-2 border-yellow-400"><div><h2 class="font-semibold text-lg leading-tight" id="header-profile-name">Hi, Anonymously</h2><p class="text-gray-400 text-sm leading-tight">Welcome</p></div></div><div class="accent-yellow-bg text-black px-4 py-2 rounded-full font-bold flex items-center space-x-2"><span id="header-coin-balance">0</span><i data-lucide="coins" class="w-5 h-5"></i></div></header>
@@ -162,11 +165,12 @@
         let appConfig = {};
         let sliderInterval;
         
-        // ===== ADS SDK INITIALIZATION =====
+        // ===== ADS SDK VARIABLES =====
         let richAdsLoaded = false;
         let taddyLoaded = false;
-        let taddyAds = null;
+        let taddyAdsService = null;
         let telegramAdsController = null;
+        let isTelegramWebApp = false;
 
         const loader = document.getElementById('loader');
         const backButtonContainer = document.getElementById('back-button-container');
@@ -174,59 +178,109 @@
         window.onload = () => {
             lucide.createIcons();
             setupEventListeners();
-            showMainPage('auth-section'); // Start with auth page
-            initializeAdSDKs(); // Initialize ads
+            showMainPage('auth-section');
+            initializeTelegramWebApp(); // Initialize Telegram first
+            initializeAdSDKs(); // Then initialize ads
             onAuthStateChanged(auth, handleAuthStateChange);
         };
         
-        // Initialize ad SDKs - FIXED VERSION
-        function initializeAdSDKs() {
-            console.log("🎯 Initializing Advertising SDKs...");
-            
-            // Use Taddy.pro as Primary for Web (works everywhere)
-            if (typeof window.Taddy !== 'undefined' && window.Taddy) {
-                try {
-                    console.log("🔄 Initializing Taddy.pro as Primary...");
-                    if (typeof window.Taddy.ready === 'function') {
-                        window.Taddy.ready();
-                        console.log("✅ Taddy.ready() called");
-                    }
-                    if (typeof window.Taddy.ads === 'function') {
-                        taddyAds = window.Taddy.ads();
-                        taddyLoaded = true;
-                        console.log("✅ Taddy.pro ads service loaded");
-                        updateAdStatus('taddy');
-                    }
-                } catch (error) {
-                    console.log("❌ Taddy.pro initialization error:", error);
+        // ===== TELEGRAM MINI APP INITIALIZATION =====
+        function initializeTelegramWebApp() {
+            // Check if we're in Telegram WebApp environment
+            if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+                isTelegramWebApp = true;
+                const tg = window.Telegram.WebApp;
+                
+                // Initialize Telegram WebApp
+                tg.ready();
+                tg.expand(); // Expand to full screen
+                
+                console.log("✅ Telegram WebApp initialized");
+                console.log("📱 Platform:", tg.platform);
+                console.log("👤 User:", tg.initDataUnsafe?.user);
+                
+                // Set theme colors from Telegram
+                if (tg.colorScheme === 'dark') {
+                    document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color || '#1a1a1a');
                 }
+                
+                return true;
+            } else {
+                console.log("⚠️ Not running in Telegram WebApp - using web mode");
+                isTelegramWebApp = false;
+                return false;
             }
+        }
+        
+        // ===== ADS SDK INITIALIZATION FOR TELEGRAM MINI APP =====
+        function initializeAdSDKs() {
+            console.log("🎯 Initializing Ads for Telegram Mini App...");
+            console.log("📱 Environment:", isTelegramWebApp ? "Telegram WebApp" : "Regular Browser");
             
-            // Initialize Richads ONLY if we are inside Telegram Mini App environment
-            // This checks for the Telegram WebApp environment
-            if (typeof window.Telegram !== 'undefined' && 
-                window.Telegram.WebApp && 
-                typeof TelegramAdsController !== 'undefined') {
+            // 1. Initialize Richads (Primary for Telegram Mini Apps)
+            if (isTelegramWebApp && typeof TelegramAdsController !== 'undefined') {
                 try {
                     telegramAdsController = new TelegramAdsController();
                     telegramAdsController.initialize({
-                        pubId: "956231",
-                        appId: "5596", // Corrected from "5584"
+                        pubId: "956231",     // Your Richads Publisher ID
+                        appId: "5596",       // Your Richads App ID (corrected from earlier)
                     });
                     richAdsLoaded = true;
-                    console.log("✅ RichAds initialized in Telegram");
+                    console.log("✅ RichAds initialized successfully for Telegram Mini App");
                     updateAdStatus('richads');
                 } catch (error) {
                     console.log("❌ RichAds initialization error:", error);
                 }
+            } else if (!isTelegramWebApp) {
+                console.log("⚠️ Not in Telegram - RichAds requires Telegram environment");
             } else {
-                console.log("⚠️ Not in Telegram environment. RichAds will not work.");
+                console.log("❌ TelegramAdsController not available");
             }
             
+            // 2. Initialize Taddy.pro (Fallback for both Telegram and Web)
+            if (typeof window.Taddy !== 'undefined' && window.Taddy) {
+                try {
+                    console.log("🔄 Initializing Taddy.pro...");
+                    
+                    // Taddy auto-initializes with data-pub-id, but call ready()
+                    if (typeof window.Taddy.ready === 'function') {
+                        window.Taddy.ready();
+                        console.log("✅ Taddy.ready() called");
+                    }
+                    
+                    // Get ads service
+                    if (typeof window.Taddy.ads === 'function') {
+                        taddyAdsService = window.Taddy.ads();
+                        taddyLoaded = true;
+                        console.log("✅ Taddy.pro ads service loaded");
+                        
+                        // Only show Taddy status if Richads failed
+                        if (!richAdsLoaded) {
+                            updateAdStatus('taddy');
+                        }
+                    } else {
+                        console.log("❌ Taddy.ads() not available");
+                    }
+                    
+                } catch (error) {
+                    console.log("❌ Taddy.pro initialization error:", error);
+                }
+            } else {
+                console.log("❌ Taddy SDK not loaded");
+            }
+            
+            // 3. Fallback to mock ads if nothing works
             if (!richAdsLoaded && !taddyLoaded) {
                 console.log("⚠️ No ad SDKs loaded. Will use mock ads.");
                 updateAdStatus('mock');
             }
+            
+            console.log("📊 Ads Status:", {
+                "Telegram Environment": isTelegramWebApp,
+                "RichAds Loaded": richAdsLoaded,
+                "Taddy Loaded": taddyLoaded,
+                "Current Provider": richAdsLoaded ? "RichAds" : taddyLoaded ? "Taddy" : "Mock"
+            });
         }
         
         function updateAdStatus(type) {
@@ -237,7 +291,7 @@
             
             if (type === 'richads') {
                 adStatusElement.className = 'ad-status richads';
-                adStatusText.textContent = 'RichAds';
+                adStatusText.textContent = 'RichAds (Telegram)';
             } else if (type === 'taddy') {
                 adStatusElement.className = 'ad-status taddy';
                 adStatusText.textContent = 'Taddy.pro';
@@ -304,7 +358,7 @@
                 referralRules: ["Your friend must sign up.", "Bonus is credited after they apply the code."],
                 referralShareText: "Join CashReward and earn money! Use my code {CODE} to get a bonus. App link: {APP_LINK}",
                 watchAdSpecialTaskCount: 10, watchAdSpecialTaskReward: 100, watchAdSpecialTaskTimer: 60, 
-                paymentMethods: ["UPI", "Paytm", "PayPal"] // Simplified to one list
+                paymentMethods: ["UPI", "Paytm", "PayPal"]
             };
         }
         
@@ -423,50 +477,59 @@
             updateAllUI();
         }
 
-        // ===== AD SYSTEM - FIXED VERSION =====
+        // ===== AD SYSTEM FOR TELEGRAM MINI APP =====
         async function showAds() {
-            console.log("🎯 Attempting to show ads...");
-            console.log("Taddy loaded:", taddyLoaded);
-            console.log("RichAds loaded:", richAdsLoaded);
+            console.log("🎯 Showing ads in Telegram Mini App...");
+            console.log("📱 Environment:", isTelegramWebApp ? "Telegram" : "Web");
+            console.log("📊 Available:", {
+                "RichAds": richAdsLoaded,
+                "Taddy": taddyLoaded,
+                "TelegramAdsController": telegramAdsController
+            });
             
-            // STRATEGY 1: Use Taddy.pro first (works everywhere)
-            if (taddyLoaded && taddyAds && typeof taddyAds.interstitial === 'function') {
-                console.log("🎯 Showing Taddy.pro...");
-                return new Promise((resolve, reject) => {
-                    taddyAds.interstitial({
-                        onClosed: function() {
-                            console.log("✅ Taddy.pro ad closed");
-                            resolve(true);
-                        }
-                    })
-                    .then((success) => {
-                        if (!success) {
-                            console.log("❌ Taddy.pro ad failed to show");
-                            reject("Taddy.pro ad failed to show");
-                        }
-                    })
-                    .catch((error) => {
-                        console.log("❌ Taddy.pro interstitial ad error:", error);
-                        reject(error);
-                    });
-                });
-            } 
-            
-            // STRATEGY 2: Try Richads ONLY if in Telegram and loaded
-            else if (richAdsLoaded && telegramAdsController) {
+            // STRATEGY 1: Use Richads (Primary for Telegram Mini Apps)
+            if (richAdsLoaded && telegramAdsController) {
                 console.log("🎯 Showing RichAds in Telegram...");
                 return new Promise((resolve, reject) => {
                     try {
                         telegramAdsController.showAd();
-                        // Assume ad completes after a reasonable time
+                        
+                        // Richads doesn't have callbacks, so we assume completion after timeout
                         setTimeout(() => {
-                            console.log("✅ RichAds completed");
+                            console.log("✅ RichAds ad completed");
                             resolve(true);
-                        }, 5000);
+                        }, 5000); // Assume ad completes in 5 seconds
+                        
                     } catch (error) {
                         console.log("❌ RichAds error:", error);
                         reject(error);
                     }
+                });
+            } 
+            
+            // STRATEGY 2: Use Taddy.pro (Fallback)
+            else if (taddyLoaded && taddyAdsService && typeof taddyAdsService.interstitial === 'function') {
+                console.log("🎯 Showing Taddy.pro (Fallback)...");
+                return new Promise((resolve, reject) => {
+                    taddyAdsService.interstitial({
+                        onClosed: function() {
+                            console.log("✅ Taddy.pro ad closed");
+                            resolve(true);
+                        },
+                        onViewThrough: function(id) {
+                            console.log("✅ Taddy.pro ad viewed through, ID:", id);
+                        }
+                    })
+                    .then((success) => {
+                        if (!success) {
+                            console.log("❌ Taddy.pro interstitial failed (success=false)");
+                            reject("Taddy ad failed to load");
+                        }
+                    })
+                    .catch((error) => {
+                        console.log("❌ Taddy.pro interstitial error:", error);
+                        reject(error);
+                    });
                 });
             }
             
@@ -767,6 +830,7 @@
             } catch (error) { showAlert("Error submitting request: " + error.message); await updateBalance(amount); }
             finally { loader.style.display = 'none'; }
         }
+        
         async function loadWithdrawalHistory() {
             const listEl = document.getElementById('withdrawal-history-list');
             listEl.innerHTML = `<p class="text-gray-400">Loading...</p>`;
