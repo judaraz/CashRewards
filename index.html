@@ -16,6 +16,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #1a1a1a; color: #ffffff; }
         .main-bg { background-color: #1a1a1a; }
@@ -67,6 +68,231 @@
         .ad-status.richads { background: rgba(52, 152, 219, 0.8); }
         .ad-status.taddy { background: rgba(155, 89, 182, 0.8); }
         .ad-status.mock { background: rgba(149, 165, 166, 0.8); }
+        
+        /* Ludo Game Styles */
+        .ludo-container {
+            background: linear-gradient(135deg, #2c3e50, #1a1a1a);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 16px 0;
+            border: 2px solid #facc15;
+        }
+        
+        .ludo-board {
+            width: 100%;
+            max-width: 300px;
+            height: 300px;
+            background: white;
+            border-radius: 16px;
+            border: 6px solid #2c3e50;
+            position: relative;
+            transform: rotate(45deg);
+            margin: 20px auto;
+            overflow: hidden;
+        }
+        
+        .quadrant {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+        }
+        
+        .quadrant-1 { top: 0; left: 0; background: #ff6b6b; border-bottom-right-radius: 100%; }
+        .quadrant-2 { top: 0; right: 0; background: #4ecdc4; border-bottom-left-radius: 100%; }
+        .quadrant-3 { bottom: 0; left: 0; background: #ffd93d; border-top-right-radius: 100%; }
+        .quadrant-4 { bottom: 0; right: 0; background: #6c5ce7; border-top-left-radius: 100%; }
+        
+        .board-center {
+            position: absolute;
+            width: 40%;
+            height: 40%;
+            background: white;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 3px solid #2c3e50;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .board-center span {
+            transform: rotate(-45deg);
+            font-weight: 800;
+            color: #2c3e50;
+            font-size: 24px;
+        }
+        
+        .dice {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 10px;
+            border: 4px solid #2c3e50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 900;
+            color: #2c3e50;
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .dice.rolling {
+            animation: rollDice 0.5s infinite;
+        }
+        
+        @keyframes rollDice {
+            0% { transform: translate(-50%, -50%) rotate(-45deg) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(-45deg) rotate(360deg); }
+        }
+        
+        .bet-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+        
+        .bet-amount {
+            background: #3f3f46;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .bet-amount.active {
+            background: #facc15;
+            color: #1a1a1a;
+            border-color: #ca8a04;
+            font-weight: bold;
+        }
+        
+        .bet-amount:hover {
+            transform: translateY(-2px);
+        }
+        
+        .dice-result-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 16px;
+        }
+        
+        .dice-popup-content {
+            background: white;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 320px;
+            padding: 30px;
+            text-align: center;
+            animation: popIn 0.3s;
+        }
+        
+        @keyframes popIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        .dice-faces {
+            font-size: 60px;
+            margin: 20px 0;
+        }
+        
+        .win-amount {
+            font-size: 36px;
+            font-weight: 800;
+            color: #34c759;
+            margin: 20px 0;
+        }
+        
+        .dice-popup-btn {
+            width: 100%;
+            background: #facc15;
+            color: #1a1a1a;
+            border: none;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .dice-popup-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .game-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 12px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: #facc15;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            margin-top: 4px;
+        }
+        
+        .roll-dice-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #ff6b6b, #ff3838);
+            color: white;
+            border: none;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .roll-dice-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .roll-dice-btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
     </style>
 </head>
 <body class="max-w-md mx-auto">
@@ -140,6 +366,20 @@
     </div>
     <div id="color-game-popup" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"></div>
     <div id="special-ad-popup" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"></div>
+    
+    <!-- Ludo Game Result Popup -->
+    <div id="dice-result-popup" class="dice-result-popup">
+        <div class="dice-popup-content">
+            <h2 class="text-2xl font-bold text-gray-800">🎲 Dice Result!</h2>
+            <div class="dice-faces" id="dice-result-face">⚅</div>
+            <div class="text-lg text-gray-600">You rolled: <span id="dice-result-number" class="font-bold">6</span></div>
+            <div class="win-amount" id="dice-win-amount">+600 Coins</div>
+            <button id="claim-dice-win-btn" class="dice-popup-btn">
+                <i class="fas fa-gift"></i> Claim Your Win
+            </button>
+            <p class="text-sm text-gray-500 mt-4">Watch an ad to claim your reward!</p>
+        </div>
+    </div>
 
     <script type="module">
         const firebaseConfig = {
@@ -171,7 +411,13 @@
         let telegramAdsController = null;
         let isTelegramWebApp = false;
         let taddySDKLoading = false;
-        let useTaddyForCurrentAd = false; // Flag to determine which ad to show
+
+        // ===== LUDO GAME VARIABLES =====
+        let selectedBetAmount = 100;
+        let isRolling = false;
+        let currentDiceResult = 1;
+        let diceWinAmount = 0;
+        let diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 
         const loader = document.getElementById('loader');
         const backButtonContainer = document.getElementById('back-button-container');
@@ -473,7 +719,7 @@
             document.getElementById('color-game-popup').innerHTML = `<div class="card-bg rounded-lg p-6 w-full max-w-sm text-center space-y-4"><h3 class="text-xl font-bold">Correct Answer!</h3><p>Bravo! Watch an ad to claim ${appConfig.colorGameReward || 10} coins.</p><div class="flex justify-center space-x-4"><button id="claim-color-reward-btn" class="btn-accent px-6 py-2">Claim</button><button onclick="document.getElementById('color-game-popup').classList.add('hidden'); startGame()" class="bg-gray-600 text-white px-6 py-2 rounded-full">Later</button></div></div>`;
             document.getElementById('special-ad-popup').innerHTML = `<div class="card-bg rounded-lg p-6 w-full max-w-sm text-center space-y-4"><h3 class="text-xl font-bold accent-yellow">Special Bonus!</h3><div class="text-left space-y-2"><p>1. Click 'Watch Ad'.</p><p>2. **Click** on the ad that appears.</p><p>3. Wait for <span id="special-ad-timer-total">60</span> seconds on the website.</p><p>4. Come back to claim your coins.</p></div><div id="special-ad-status" class="text-center font-semibold my-2"></div><button id="show-special-ad-btn" class="btn-accent w-full p-3">Watch Ad</button><div id="special-ad-timer-container" class="hidden"><p class="text-lg">Waiting... <span id="special-ad-timer">60</span>s</p></div><button id="claim-special-ad-final-btn" class="hidden btn-accent w-full p-3">Claim Bonus</button></div>`;
             document.getElementById('color-game-page').innerHTML = `<h2 class="text-2xl font-bold">Guess the Color!</h2><p class="text-gray-400">Pick the box with the matching color.</p><div class="card-bg p-4 rounded-lg"><p>Find this color:</p><div id="target-color-box" class="w-24 h-12 mx-auto rounded-lg my-2 border-2 border-white"></div><p id="target-color-rgb" class="font-mono"></p></div><div id="color-options-grid" class="grid grid-cols-3 gap-4 max-w-sm mx-auto"></div>`;
-            document.getElementById('visit-earn-page').innerHTML = `<h2 class="text-2xl font-bold text-center">Visit & Earn</h2><div id="website-list" class="space-y-3 mt-4"></div>`;
+            document.getElementById('visit-earn-page').innerHTML = `<h2 class="text-2xl font-bold text-center mb-4">🎮 Ludo Dice Game</h2><div class="ludo-container"><div class="game-stats"><div class="stat-item"><div class="stat-value" id="ludo-balance">${userData?.balance || 0}</div><div class="stat-label">Your Coins</div></div><div class="stat-item"><div class="stat-value">x1-x6</div><div class="stat-label">Multiplier</div></div></div><div class="ludo-board"><div class="quadrant quadrant-1"></div><div class="quadrant quadrant-2"></div><div class="quadrant quadrant-3"></div><div class="quadrant quadrant-4"></div><div class="board-center"><span>LUDO</span></div><div class="dice" id="ludo-dice">1</div></div><div class="text-center mb-4"><h3 class="text-lg font-bold accent-yellow">Select Bet Amount</h3><p class="text-sm text-gray-400">Win = Dice Number × Bet Amount</p></div><div class="bet-controls"><div class="bet-amount active" data-bet="50">50 Coins</div><div class="bet-amount" data-bet="100">100 Coins</div><div class="bet-amount" data-bet="200">200 Coins</div><div class="bet-amount" data-bet="500">500 Coins</div><div class="bet-amount" data-bet="1000">1000 Coins</div><div class="bet-amount" data-bet="2000">2000 Coins</div></div><button id="roll-dice-btn" class="roll-dice-btn"><i class="fas fa-dice"></i> ROLL DICE & WIN</button><p class="text-sm text-gray-400 text-center mt-4">🎯 Watch an ad after winning to claim your reward!</p></div><div class="card-bg p-4 rounded-lg mt-6"><h3 class="text-lg font-bold text-center mb-3">Game Rules</h3><ul class="text-sm text-gray-300 space-y-2 list-disc list-inside"><li>Select your bet amount (50-2000 coins)</li><li>Click "ROLL DICE & WIN" to roll the dice</li><li>If you roll 1-6, win = dice number × bet amount</li><li>Example: Bet 100 coins, roll 4 → Win 400 coins</li><li>Watch an ad to claim your winnings</li><li>No ad = no reward!</li></ul></div>`;
             document.getElementById('social-tasks-page').innerHTML = `<h2 class="text-2xl font-bold text-center">Social Tasks</h2><div id="social-tasks-list" class="space-y-3 mt-4"></div>`;
             document.getElementById('wallet-page').innerHTML = `<h2 class="text-xl font-bold text-center">My Wallet</h2><div class="card-bg p-4 rounded-lg"><p class="text-sm text-gray-400 mb-1">Balance: <span class="font-bold accent-yellow" id="wallet-coin-balance">0</span> Coins</p><p class="text-sm text-gray-400 mb-4" id="coin-value-info"></p><input id="withdraw-amount" type="number" placeholder="Coin amount" class="w-full p-3 rounded-lg input-field mb-3"><select id="withdraw-method" class="w-full p-3 rounded-lg input-field mb-3"></select><div id="payment-details-container"></div><button id="withdraw-btn" class="w-full p-3 btn-accent mt-3">Request Withdrawal</button></div><div><h3 class="text-lg font-semibold my-3">Withdrawal History</h3><div id="withdrawal-history-list" class="space-y-3"></div></div>`;
             document.getElementById('refer-page').innerHTML = `<h2 class="text-xl font-bold text-center">Refer & Earn</h2><div class="card-bg p-6 rounded-lg text-center mt-4"><p id="referral-bonus-info" class="text-lg mb-4"></p><p class="text-gray-400 mb-2">Your Referral Code</p><div class="bg-gray-800 p-3 rounded-lg flex items-center justify-center mb-4"><span id="referral-code" class="text-2xl font-bold tracking-widest">...</span><button id="copy-code-btn" class="ml-4"><i data-lucide="copy" class="w-6 h-6 text-gray-400"></i></button></div><div id="referral-rules-container" class="mt-4 text-left"></div></div><button id="share-btn" class="w-full p-3 btn-accent mt-4">Share Code</button><div class="card-bg p-4 rounded-lg mt-6"><h3 class="font-semibold mb-3 text-center">Have a code? Enter it here.</h3><input id="enter-referral-code" type="text" placeholder="Enter code here" class="w-full p-3 rounded-lg input-field mb-3"><button id="apply-referral-btn" class="w-full p-3 bg-gray-600 text-white rounded-full">Apply Code</button></div>`;
@@ -487,7 +733,7 @@
             if (userSnap.exists()) { userData = userSnap.data(); } 
             else {
                 const ownReferralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-                const defaultUserData = { uid: currentUser.uid, name: currentUser.displayName || currentUser.email.split('@')[0], email: currentUser.email, balance: 50, referralCode: ownReferralCode, referredBy: null, createdAt: serverTimestamp(), isBlocked: false, dailyAdCount: 0, lastAdWatchDate: '1970-01-01', visitedWebsitesToday: [], lastWebsiteVisitDate: '1970-01-01', completedSocialTasks: [] };
+                const defaultUserData = { uid: currentUser.uid, name: currentUser.displayName || currentUser.email.split('@')[0], email: currentUser.email, balance: 1000, referralCode: ownReferralCode, referredBy: null, createdAt: serverTimestamp(), isBlocked: false, dailyAdCount: 0, lastAdWatchDate: '1970-01-01', visitedWebsitesToday: [], lastWebsiteVisitDate: '1970-01-01', completedSocialTasks: [] };
                 await setDoc(doc(db, "users", currentUser.uid), defaultUserData);
                 userData = defaultUserData;
             }
@@ -565,7 +811,7 @@
             document.querySelectorAll('.nav-link').forEach(link => link.classList.toggle('active', link.dataset.page === pageId));
             backButtonContainer.style.display = (pageId !== 'home-page') ? 'block' : 'none';
             if (pageId === 'color-game-page') startGame();
-            if (pageId === 'visit-earn-page') populateWebsiteList();
+            if (pageId === 'visit-earn-page') initLudoGame();
             if (pageId === 'social-tasks-page') populateSocialTasks();
             if (pageId === 'wallet-page') loadWalletPage();
             if (pageId === 'refer-page') loadReferPage();
@@ -588,6 +834,7 @@
                 if (e.target.id === 'share-btn') shareReferralCode();
                 if (e.target.id === 'withdraw-btn') handleWithdrawal();
                 if (e.target.id === 'logout-btn') { signOut(auth); }
+                if (e.target.id === 'claim-dice-win-btn') claimDiceWin();
             });
         }
         
@@ -617,8 +864,140 @@
             await updateDoc(doc(db, "users", currentUser.uid), { balance: newBalance });
             userData.balance = newBalance;
             updateAllUI();
+            updateLudoBalance();
         }
 
+        // ===== LUDO DICE GAME FUNCTIONS =====
+        function initLudoGame() {
+            if (!document.getElementById('visit-earn-page').classList.contains('active')) return;
+            
+            updateLudoBalance();
+            
+            // Set up bet amount selection
+            document.querySelectorAll('.bet-amount').forEach(bet => {
+                bet.addEventListener('click', function() {
+                    const betAmount = parseInt(this.dataset.bet);
+                    
+                    // Check if user has enough balance
+                    if (betAmount > userData.balance) {
+                        showAlert(`Insufficient balance! You have ${userData.balance} coins, need ${betAmount} coins.`);
+                        return;
+                    }
+                    
+                    selectedBetAmount = betAmount;
+                    
+                    // Update UI
+                    document.querySelectorAll('.bet-amount').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Update roll button text
+                    document.getElementById('roll-dice-btn').innerHTML = `<i class="fas fa-dice"></i> ROLL DICE - BET ${betAmount} COINS`;
+                });
+            });
+            
+            // Set up roll dice button
+            const rollBtn = document.getElementById('roll-dice-btn');
+            if (rollBtn) {
+                rollBtn.onclick = rollLudoDice;
+                rollBtn.innerHTML = `<i class="fas fa-dice"></i> ROLL DICE - BET ${selectedBetAmount} COINS`;
+            }
+            
+            // Set up dice result popup close on overlay click
+            document.getElementById('dice-result-popup').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                }
+            });
+        }
+        
+        function updateLudoBalance() {
+            const ludoBalance = document.getElementById('ludo-balance');
+            if (ludoBalance && userData) {
+                ludoBalance.textContent = userData.balance;
+            }
+        }
+        
+        async function rollLudoDice() {
+            if (isRolling) return;
+            
+            // Verify user has enough balance
+            if (selectedBetAmount > userData.balance) {
+                showAlert(`Insufficient balance! You have ${userData.balance} coins, need ${selectedBetAmount} coins.`);
+                return;
+            }
+            
+            isRolling = true;
+            const rollBtn = document.getElementById('roll-dice-btn');
+            const dice = document.getElementById('ludo-dice');
+            
+            rollBtn.disabled = true;
+            dice.classList.add('rolling');
+            
+            // Start dice rolling animation
+            let rollCount = 0;
+            const totalRolls = 15;
+            
+            function animateRoll() {
+                if (rollCount < totalRolls) {
+                    currentDiceResult = Math.floor(Math.random() * 6) + 1;
+                    dice.textContent = currentDiceResult;
+                    rollCount++;
+                    setTimeout(animateRoll, 100);
+                } else {
+                    // Final roll
+                    currentDiceResult = Math.floor(Math.random() * 6) + 1;
+                    diceWinAmount = currentDiceResult * selectedBetAmount;
+                    dice.textContent = currentDiceResult;
+                    dice.classList.remove('rolling');
+                    
+                    // Deduct bet amount from balance
+                    updateBalance(-selectedBetAmount);
+                    
+                    // Show result popup
+                    setTimeout(showDiceResult, 500);
+                    isRolling = false;
+                    rollBtn.disabled = false;
+                }
+            }
+            
+            animateRoll();
+        }
+        
+        function showDiceResult() {
+            const popup = document.getElementById('dice-result-popup');
+            const diceFace = document.getElementById('dice-result-face');
+            const diceNumber = document.getElementById('dice-result-number');
+            const winAmount = document.getElementById('dice-win-amount');
+            
+            diceFace.textContent = diceFaces[currentDiceResult - 1];
+            diceNumber.textContent = currentDiceResult;
+            winAmount.textContent = `+${diceWinAmount} Coins`;
+            
+            popup.style.display = 'flex';
+        }
+        
+        async function claimDiceWin() {
+            const popup = document.getElementById('dice-result-popup');
+            
+            try {
+                // Show ad to claim the win (use Richads first for games)
+                await showAds(false);
+                
+                // Add winnings to balance
+                await updateBalance(diceWinAmount);
+                
+                // Show success message
+                showAlert(`🎉 Congratulations! You won ${diceWinAmount} coins!`);
+                
+                // Close popup
+                popup.style.display = 'none';
+                
+            } catch (error) {
+                showAlert("Failed to show ad. Reward not claimed. Please try again.");
+                // Don't give reward if ad fails
+            }
+        }
+        
         // ===== WATCH & EARN (USES TADDY.PRO) =====
         window.claimReward = async function() {
             console.log("🎯 Watch & Earn clicked - will try Taddy.pro first");
@@ -652,58 +1031,6 @@
                 startGame();
             } catch(error) { 
                 showAlert("Ad service not available. Please try again."); 
-            }
-        }
-        
-        // ===== OTHER AD FUNCTIONS (USE RICHADS) =====
-        async function handleWebsiteVisit(e) {
-            const button = e.target;
-            const { link, reward, timer } = button.dataset;
-            button.disabled = true;
-            try {
-                // Use Richads for website visits
-                await showAds(false); // false = use Richads first
-                window.open(link, '_blank');
-                let seconds = parseInt(timer);
-                button.textContent = `Wait ${seconds}s`;
-                const interval = setInterval(async () => {
-                    seconds--;
-                    button.textContent = `Wait ${seconds}s`;
-                    if (seconds <= 0) {
-                        clearInterval(interval);
-                        await updateBalance(parseInt(reward));
-                        const visited = [...(userData.visitedWebsitesToday || []), link];
-                        await updateDoc(doc(db, "users", currentUser.uid), { visitedWebsitesToday: visited });
-                        userData.visitedWebsitesToday = visited;
-                        showAlert(`Congratulations! You earned ${reward} coins for visiting the site.`);
-                        button.textContent = 'Visited';
-                        button.classList.remove('btn-accent');
-                        button.classList.add('bg-gray-500');
-                    }
-                }, 1000);
-            } catch (error) {
-                showAlert("Ad service not available. Please try again.");
-                button.disabled = false;
-            }
-        }
-        
-        async function handleSocialFollow(e) {
-            const button = e.target;
-            const { link, reward } = button.dataset;
-            button.disabled = true;
-            try {
-                // Use Richads for social tasks
-                await showAds(false); // false = use Richads first
-                window.open(link, '_blank');
-                await updateBalance(parseInt(reward));
-                const completed = [...(userData.completedSocialTasks || []), link];
-                await updateDoc(doc(db, "users", currentUser.uid), { completedSocialTasks: completed });
-                userData.completedSocialTasks = completed;
-                showAlert(`Thank you! You have earned ${reward} coins.`);
-                populateSocialTasks();
-            } catch (error) {
-                showAlert("Ad service not available. Please try again.");
-                button.disabled = false;
             }
         }
         
@@ -800,19 +1127,27 @@
             document.getElementById('special-ad-status').textContent = "";
         }
         
-        function populateWebsiteList() {
-            const listEl = document.getElementById('website-list');
-            listEl.innerHTML = '';
-            const websites = appConfig.websitesToVisit || [];
-            if (websites.length === 0) { listEl.innerHTML = `<p class="text-center text-gray-400">No websites available for today.</p>`; return; }
-            websites.forEach(site => {
-                const isVisited = userData.visitedWebsitesToday?.includes(site.link);
-                listEl.innerHTML += `<div class="card-bg p-4 rounded-lg flex justify-between items-center"><div class="flex items-center"><i data-lucide="globe" class="w-8 h-8 mr-4 accent-yellow"></i><div><h3 class="font-semibold">${site.name}</h3><p class="text-sm accent-yellow">Get ${site.reward} Coins</p></div></div><button data-link="${site.link}" data-reward="${site.reward}" data-timer="${site.timer}" class="visit-btn ${isVisited ? 'bg-gray-500' : 'btn-accent'} px-4 py-2 text-sm" ${isVisited ? 'disabled' : ''}>${isVisited ? 'Visited' : 'Visit'}</button></div>`;
-            });
-            lucide.createIcons();
-            document.querySelectorAll('.visit-btn:not([disabled])').forEach(btn => btn.addEventListener('click', handleWebsiteVisit));
+        // ===== SOCIAL TASKS FUNCTIONS =====
+        async function handleSocialFollow(e) {
+            const button = e.target;
+            const { link, reward } = button.dataset;
+            button.disabled = true;
+            try {
+                // Use Richads for social tasks
+                await showAds(false); // false = use Richads first
+                window.open(link, '_blank');
+                await updateBalance(parseInt(reward));
+                const completed = [...(userData.completedSocialTasks || []), link];
+                await updateDoc(doc(db, "users", currentUser.uid), { completedSocialTasks: completed });
+                userData.completedSocialTasks = completed;
+                showAlert(`Thank you! You have earned ${reward} coins.`);
+                populateSocialTasks();
+            } catch (error) {
+                showAlert("Ad service not available. Please try again.");
+                button.disabled = false;
+            }
         }
-
+        
         function populateSocialTasks() {
             const listEl = document.getElementById('social-tasks-list');
             listEl.innerHTML = '';
