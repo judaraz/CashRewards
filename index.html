@@ -818,7 +818,7 @@
             </div>
             <div class="ad-loading-title">Loading Ad</div>
             <div class="ad-loading-message" id="ad-loading-message">Please wait while we load the advertisement...</div>
-            <div class="ad-loading-ad-provider" id="ad-loading-provider">AdsGram</div>
+            
         </div>
     </div>
 
@@ -2074,7 +2074,7 @@
             
             if (taddyReady && taddyAdsService && typeof taddyAdsService.interstitial === 'function') {
                 console.log("🎯 Attempting Taddy (Game page preferred)...");
-                showAdLoadingPopup("Loading Taddy ads...", "Taddy.pro");
+                showAdLoadingPopup("Loading Taddy ads...");
                 try {
                     await showTaddyAds();
                     hideAdLoadingPopup();
