@@ -873,9 +873,27 @@
                         <p class="text-sm text-gray-300 mt-1">Visit websites</p>
                     </div>
                     
-                    <!-- Removed Social Tasks Card -->
+                    <!-- Add Social Tasks Card -->
+                    <div onclick="navigateTo('social-tasks-page')" class="feature-btn">
+                        <div class="mb-3">
+                            <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                <i class="fas fa-tasks text-2xl text-black"></i>
+                            </div>
+                        </div>
+                        <span class="text-lg gold-text">Social Tasks</span>
+                        <p class="text-sm text-gray-300 mt-1">Earn from social media</p>
+                    </div>
                     
-                    <!-- Removed My Wallet Card -->
+                    <!-- Add My Wallet Card -->
+                    <div onclick="navigateTo('wallet-page')" class="feature-btn">
+                        <div class="mb-3">
+                            <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                <i class="fas fa-wallet text-2xl text-black"></i>
+                            </div>
+                        </div>
+                        <span class="text-lg gold-text">My Wallet</span>
+                        <p class="text-sm text-gray-300 mt-1">Withdraw earnings</p>
+                    </div>
                 </div>
                 
                 <!-- Premium Stats -->
@@ -946,6 +964,8 @@
             <!-- Other Pages -->
             <div id="color-game-page" class="p-5 space-y-4 text-center sub-page"></div>
             <div id="visit-earn-page" class="p-5 space-y-4 sub-page"></div>
+            <div id="social-tasks-page" class="p-5 space-y-4 sub-page"></div>
+            <div id="wallet-page" class="p-5 space-y-6 sub-page"></div>
             <div id="refer-page" class="p-5 space-y-6 sub-page"></div>
             <div id="profile-page" class="p-5 space-y-6 sub-page"></div>
         </main>
@@ -2001,9 +2021,9 @@
                     { name: "Facebook", link: "https://www.facebook.com", reward: 20, timer: 60 }
                 ],
                 socialTasks: [
-                    { name: "Follow on Instagram", link: "https://www.instagram.com", reward: 25, icon: "instagram" },
-                    { name: "Like on Facebook", link: "https://www.facebook.com", reward: 20, icon: "facebook" },
-                    { name: "Subscribe on YouTube", link: "https://www.youtube.com", reward: 30, icon: "youtube" }
+                    { name: "Follow on Instagram", link: "https://www.instagram.com", reward: 25, icon: "https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png" },
+                    { name: "Like on Facebook", link: "https://www.facebook.com", reward: 20, icon: "https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg" },
+                    { name: "Subscribe on YouTube", link: "https://www.youtube.com", reward: 30, icon: "https://upload.wikimedia.org/wikipedia/commons/4/42/YouTube_icon_%282013-2017%29.png" }
                 ],
                 minWithdrawal: 1000,
                 coinValueCoins: 1000,
@@ -2099,6 +2119,8 @@
             if (pageId === 'color-game-page') startGame();
             if (pageId === 'ludo-game-page') initLudoGame();
             if (pageId === 'visit-earn-page') populateWebsiteList();
+            if (pageId === 'social-tasks-page') populateSocialTasks();
+            if (pageId === 'wallet-page') loadWalletPage();
             if (pageId === 'refer-page') loadReferPage();
             if (pageId === 'profile-page') loadProfilePage();
             
@@ -2271,6 +2293,28 @@
                 <p class="text-center text-gray-300 mb-6">Visit websites and earn coins</p>
                 <div id="website-list" class="space-y-4"></div>`;
                 
+            // ===== SOCIAL TASKS PAGE =====
+            document.getElementById('social-tasks-page').innerHTML = `
+                <h2 class="text-3xl font-bold text-center mb-2 gold-text">Social Tasks</h2>
+                <p class="text-center text-gray-300 mb-6">Complete social media tasks and earn coins</p>
+                <div id="social-tasks-list" class="space-y-4"></div>`;
+                
+            // ===== WALLET PAGE =====
+            document.getElementById('wallet-page').innerHTML = `
+                <h2 class="text-3xl font-bold text-center mb-2 gold-text">My Wallet</h2>
+                <div class="premium-card p-6 rounded-2xl">
+                    <p class="text-sm text-gray-400 mb-1">Balance: <span class="font-bold gold-text text-xl" id="wallet-coin-balance">0</span> Coins</p>
+                    <p class="text-sm text-gray-400 mb-4" id="coin-value-info"></p>
+                    <input id="withdraw-amount" type="number" placeholder="Coin amount" class="w-full p-4 rounded-xl input-field mb-4 text-lg">
+                    <select id="withdraw-method" class="w-full p-4 rounded-xl input-field mb-4 text-lg"></select>
+                    <div id="payment-details-container"></div>
+                    <button id="withdraw-btn" class="w-full p-4 btn-accent mt-4 text-lg font-bold">Request Withdrawal</button>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold my-4 gold-text">Withdrawal History</h3>
+                    <div id="withdrawal-history-list" class="space-y-4"></div>
+                </div>`;
+                
             document.getElementById('refer-page').innerHTML = `
                 <h2 class="text-3xl font-bold text-center mb-2 gold-text">Refer & Earn</h2>
                 <div class="premium-card p-8 rounded-2xl text-center mt-4">
@@ -2395,6 +2439,69 @@
             document.querySelectorAll('.visit-btn:not([disabled])').forEach(btn => btn.addEventListener('click', handleWebsiteVisit));
         }
 
+        // ===== SOCIAL TASKS FUNCTIONS =====
+        async function handleSocialFollow(e) {
+            const button = e.target;
+            const { link, reward } = button.dataset;
+            const taskName = button.closest('.premium-card').querySelector('h3').textContent;
+            button.disabled = true;
+            try {
+                // Show ad before social task
+                await showAds();
+                window.open(link, '_blank');
+                await updateBalance(parseInt(reward), 'social_task', `Completed social task: ${taskName}`);
+                const completed = [...(userData.completedSocialTasks || []), link];
+                await updateDoc(doc(db, "users", currentUser.uid), { completedSocialTasks: completed });
+                userData.completedSocialTasks = completed;
+                showAlert(`🎉 Thank you! You have earned ${reward} coins.`);
+                populateSocialTasks();
+            } catch (error) {
+                showAlert("⚠️ Ad service not available. Please try again.");
+                button.disabled = false;
+            }
+        }
+
+        function populateSocialTasks() {
+            const listEl = document.getElementById('social-tasks-list');
+            listEl.innerHTML = '';
+            const tasks = appConfig.socialTasks || [];
+            if (tasks.length === 0) { 
+                listEl.innerHTML = `<div class="premium-card p-6 rounded-2xl text-center">
+                    <i class="fas fa-tasks text-4xl accent-yellow mb-4"></i>
+                    <p class="text-gray-400">No social tasks available right now.</p>
+                </div>`; 
+                return; 
+            }
+            
+            tasks.forEach(task => {
+                const isCompleted = userData.completedSocialTasks?.includes(task.link);
+                let iconHtml = '';
+                const iconValue = task.icon || 'thumbs-up';
+                if (iconValue.startsWith('http')) {
+                    iconHtml = `<img src="${iconValue}" class="w-12 h-12 mr-4 rounded-md object-cover">`;
+                } else {
+                    iconHtml = `<i class="fas fa-${iconValue} text-2xl mr-4 accent-yellow"></i>`;
+                }
+                listEl.innerHTML += `
+                    <div class="premium-card p-6 rounded-2xl flex justify-between items-center">
+                        <div class="flex items-center">
+                            ${iconHtml}
+                            <div>
+                                <h3 class="font-semibold text-lg">${task.name}</h3>
+                                <p class="text-sm gold-text">Get ${task.reward} Coins</p>
+                            </div>
+                        </div>
+                        <button data-link="${task.link}" data-reward="${task.reward}" 
+                                class="follow-btn ${isCompleted ? 'bg-gray-500' : 'btn-accent'} px-6 py-3 rounded-xl font-bold" 
+                                ${isCompleted ? 'disabled' : ''}>
+                            ${isCompleted ? 'Completed' : 'Follow'}
+                        </button>
+                    </div>`;
+            });
+            
+            document.querySelectorAll('.follow-btn:not([disabled])').forEach(btn => btn.addEventListener('click', handleSocialFollow));
+        }
+
         // ===== SPECIAL AD FUNCTIONS =====
         function showSpecialAd() {
             const adStatus = document.getElementById('special-ad-status');
@@ -2450,38 +2557,209 @@
             document.getElementById('special-ad-status').textContent = "";
         }
 
+        // ===== WALLET FUNCTIONS =====
+        function loadWalletPage() {
+            if (!userData) return;
+            
+            document.getElementById('wallet-coin-balance').textContent = userData.balance || 0;
+            document.getElementById('coin-value-info').textContent = `${appConfig.coinValueCoins || 1000} Coins = ₹${appConfig.coinValueInr || 10}`;
+            
+            const methodSelect = document.getElementById('withdraw-method');
+            const paymentMethods = appConfig.paymentMethods || ["UPI", "Paytm"];
+            
+            methodSelect.innerHTML = paymentMethods.map(m => `<option value="${m}">${m}</option>`).join('');
+            
+            const paymentDetailsContainer = document.getElementById('payment-details-container');
+            const updatePaymentDetails = () => {
+                const selectedMethod = methodSelect.value.toLowerCase();
+                let placeholder = "Enter Details";
+                if (selectedMethod.includes('upi')) placeholder = "Enter your UPI ID";
+                if (selectedMethod.includes('paytm')) placeholder = "Enter your Paytm Number";
+                if (selectedMethod.includes('paypal')) placeholder = "Enter your PayPal Email";
+                paymentDetailsContainer.innerHTML = `<input type="text" placeholder="${placeholder}" class="w-full p-4 rounded-xl input-field text-lg">`;
+            };
+            
+            methodSelect.addEventListener('change', updatePaymentDetails);
+            updatePaymentDetails();
+
+            loadWithdrawalHistory();
+        }
+
+        async function handleWithdrawal() {
+            if (!currentUser || !userData) return;
+            
+            const amount = parseInt(document.getElementById('withdraw-amount').value);
+            const method = document.getElementById('withdraw-method').value;
+            const paymentDetail = document.querySelector('#payment-details-container input')?.value.trim();
+            
+            if (isNaN(amount) || amount < (appConfig.minWithdrawal || 1000)) {
+                showAlert(`❌ Minimum withdrawal is ${appConfig.minWithdrawal || 1000} coins.`);
+                return;
+            }
+            
+            if (amount > userData.balance) {
+                showAlert("❌ Insufficient balance.");
+                return;
+            }
+            
+            if (!paymentDetail) {
+                showAlert("❌ Please enter payment details.");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                // Deduct balance
+                await updateBalance(-amount, 'withdrawal', `Requested withdrawal of ${amount} coins via ${method}`);
+                
+                // Create withdrawal request
+                await addDoc(collection(db, "withdrawals"), { 
+                    userId: currentUser.uid, 
+                    userName: userData.name, 
+                    amount, 
+                    method, 
+                    paymentDetail, 
+                    status: "pending", 
+                    requestedAt: serverTimestamp(),
+                    country: userCountry || 'unknown'
+                });
+                
+                showAlert("✅ Withdrawal request submitted successfully!");
+                loadWalletPage();
+            } catch (error) { 
+                console.error("Withdrawal error:", error);
+                showAlert("❌ Error submitting request: " + error.message); 
+                
+                // Refund the deducted amount if withdrawal fails
+                await updateBalance(amount, 'refund', `Refund for failed withdrawal`);
+            } finally { 
+                loader.style.display = 'none'; 
+            }
+        }
+        
+        async function loadWithdrawalHistory() {
+            if (!currentUser) return;
+            
+            const listEl = document.getElementById('withdrawal-history-list');
+            listEl.innerHTML = `<div class="premium-card p-6 rounded-2xl text-center">
+                <i class="fas fa-spinner fa-spin text-2xl accent-yellow mb-2"></i>
+                <p class="text-gray-400">Loading...</p>
+            </div>`;
+            
+            try {
+                const q = query(collection(db, "withdrawals"), where("userId", "==", currentUser.uid));
+                const querySnapshot = await getDocs(q);
+                const history = [];
+                
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    history.push({
+                        ...data,
+                        id: doc.id,
+                        requestedAt: data.requestedAt?.toDate() || new Date()
+                    });
+                });
+                
+                history.sort((a,b) => b.requestedAt - a.requestedAt);
+                
+                if(history.length === 0) { 
+                    listEl.innerHTML = `<div class="premium-card p-6 rounded-2xl text-center">
+                        <i class="fas fa-history text-2xl accent-yellow mb-2"></i>
+                        <p class="text-gray-400">No withdrawal history yet.</p>
+                    </div>`; 
+                    return; 
+                }
+                
+                listEl.innerHTML = history.map(req => {
+                    const statusColors = { 
+                        pending: 'text-yellow-400', 
+                        approved: 'text-green-400', 
+                        rejected: 'text-red-400'
+                    };
+                    
+                    const date = req.requestedAt.toLocaleDateString();
+                    
+                    return `<div class="premium-card p-4 rounded-2xl flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-lg">${req.amount} Coins</p>
+                            <p class="text-sm text-gray-400">${req.method}</p>
+                            <p class="text-xs text-gray-500">${date}</p>
+                        </div>
+                        <p class="font-bold ${statusColors[req.status] || 'text-gray-400'} capitalize">${req.status}</p>
+                    </div>`;
+                }).join('');
+                
+            } catch (error) {
+                console.error("Error loading withdrawal history:", error);
+                listEl.innerHTML = `<div class="premium-card p-6 rounded-2xl text-center">
+                    <i class="fas fa-exclamation-triangle text-2xl text-red-400 mb-2"></i>
+                    <p class="text-gray-400">Error loading history</p>
+                </div>`;
+            }
+        }
+
         // ===== REFERRAL PAGE FUNCTIONS =====
         function loadReferPage() {
+            if (!userData) return;
+            
             document.getElementById('referral-bonus-info').textContent = `Refer a friend and you both get ${appConfig.referralBonus || 100} coins!`;
             document.getElementById('referral-code').textContent = userData.referralCode;
+            
             const rulesContainer = document.getElementById('referral-rules-container');
             const rules = appConfig.referralRules || [];
             rulesContainer.innerHTML = `<h3 class="font-semibold mb-3 text-lg">Referral Rules:</h3><ul class="list-disc list-inside text-gray-300 space-y-2">${rules.map(rule => `<li>${rule}</li>`).join('')}</ul>`;
         }
 
         async function handleApplyReferralCode() {
-            if (userData.referredBy) return showAlert("You have already used a referral code.");
+            if (!currentUser || !userData) return;
+            
+            if (userData.referredBy) {
+                showAlert("❌ You have already used a referral code.");
+                return;
+            }
+            
             const code = document.getElementById('enter-referral-code').value.trim().toUpperCase();
-            if (!code || code === userData.referralCode) return showAlert("Please enter a valid code.");
+            if (!code || code === userData.referralCode) {
+                showAlert("❌ Please enter a valid code.");
+                return;
+            }
+            
             loader.style.display = 'flex';
             const q = query(collection(db, "users"), where("referralCode", "==", code));
+            
             try {
                 const querySnapshot = await getDocs(q);
                 if (!querySnapshot.empty) {
                     const referrerDoc = querySnapshot.docs[0];
                     const bonus = appConfig.referralBonus || 100;
+                    
+                    // Give bonus to current user
                     await updateBalance(bonus, 'referral', `Applied referral code: ${code}`);
-                    await updateDoc(referrerDoc.ref, { balance: (referrerDoc.data().balance || 0) + bonus });
+                    
+                    // Give bonus to referrer
+                    await updateDoc(referrerDoc.ref, { 
+                        balance: (referrerDoc.data().balance || 0) + bonus 
+                    });
+                    
+                    // Mark current user as referred
                     await updateDoc(doc(db, "users", currentUser.uid), { referredBy: code });
                     userData.referredBy = code;
+                    
                     updateAllUI();
                     showAlert(`🎉 Code applied successfully! You received ${bonus} coins.`);
-                } else { showAlert("❌ Invalid referral code."); }
-            } catch(error) { showAlert("❌ Error applying code."); }
-            finally { loader.style.display = 'none'; }
+                } else { 
+                    showAlert("❌ Invalid referral code."); 
+                }
+            } catch(error) { 
+                showAlert("❌ Error applying code."); 
+            } finally { 
+                loader.style.display = 'none'; 
+            }
         }
 
         function copyReferralCode() { 
+            if (!userData) return;
+            
             navigator.clipboard.writeText(userData.referralCode).then(() => 
                 showAlert("✅ Code copied to clipboard!"), 
                 () => showAlert("❌ Failed to copy code.")
@@ -2489,6 +2767,8 @@
         }
         
         function shareReferralCode() {
+            if (!userData) return;
+            
             const shareTemplate = appConfig.referralShareText || "Use my code {CODE} to get a bonus. App link: {APP_LINK}";
             const shareText = shareTemplate
                 .replace('{CODE}', userData.referralCode)
@@ -2566,6 +2846,32 @@
                 showAlert("❌ Wrong Answer! Try again."); 
                 setTimeout(startGame, 1500);
             }
+        }
+        
+        // ===== PROFILE PAGE FUNCTIONS =====
+        function loadProfilePage() {
+            if (!userData) return;
+            
+            const name = userData.name || 'Anonymous User';
+            document.getElementById('profile-page-name').textContent = name;
+            document.getElementById('profile-page-email').textContent = userData.email;
+            
+            // Use Telegram profile picture if available
+            if (telegramUser && telegramUser.photo_url) {
+                document.getElementById('profile-page-picture').src = telegramUser.photo_url;
+            } else if (userData.profilePicture) {
+                document.getElementById('profile-page-picture').src = userData.profilePicture;
+            } else {
+                document.getElementById('profile-page-picture').src = `https://placehold.co/100x100/1e1e1e/facc15?text=${name.charAt(0).toUpperCase()}`;
+            }
+            
+            // Member since date
+            const memberSince = userData.createdAt ? 
+                new Date(userData.createdAt.seconds * 1000).toLocaleDateString() : 'Today';
+            document.getElementById('member-since').textContent = memberSince;
+            
+            // Total earned
+            document.getElementById('total-earned').textContent = userData.totalEarned || 0;
         }
         
         // Initialize pages on first load
