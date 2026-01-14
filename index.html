@@ -729,6 +729,64 @@
             opacity: 0.7;
             pointer-events: none;
         }
+        
+        /* Ad Loading Popup */
+        .ad-loading-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+        }
+        
+        .ad-loading-content {
+            background: linear-gradient(145deg, rgba(20, 20, 40, 0.95), rgba(10, 10, 30, 0.95));
+            border-radius: 25px;
+            padding: 40px 30px;
+            max-width: 400px;
+            text-align: center;
+            border: 2px solid rgba(250, 204, 21, 0.3);
+            box-shadow: 0 20px 50px rgba(250, 204, 21, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .ad-loading-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: #facc15;
+            animation: spin 2s linear infinite;
+        }
+        
+        .ad-loading-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #ffffff;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .ad-loading-message {
+            color: #a1a1aa;
+            margin-bottom: 10px;
+            line-height: 1.5;
+            font-size: 16px;
+        }
+        
+        .ad-loading-ad-provider {
+            color: #facc15;
+            font-weight: bold;
+            margin-top: 10px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body class="max-w-md mx-auto">
@@ -750,6 +808,18 @@
     <!-- Loader -->
     <div id="loader" class="hidden fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
         <div class="premium-loader"></div>
+    </div>
+
+    <!-- Ad Loading Popup -->
+    <div id="ad-loading-popup" class="ad-loading-popup">
+        <div class="ad-loading-content">
+            <div class="ad-loading-icon">
+                <i class="fas fa-spinner"></i>
+            </div>
+            <div class="ad-loading-title">Loading Ad</div>
+            <div class="ad-loading-message" id="ad-loading-message">Please wait while we load the advertisement...</div>
+            <div class="ad-loading-ad-provider" id="ad-loading-provider">AdsGram</div>
+        </div>
     </div>
 
     <!-- Dice Result Popup -->
@@ -855,7 +925,7 @@
                     <div onclick="claimReward()" class="feature-btn watch-earn-card" id="watch-earn-card">
                         <div class="mb-3">
                             <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                <i class="fas fa-play-circle text-2xl text-black"></i>
+                                <i class="fas fa-play-circle text-2xl text-black"></i> <!-- Changed from dice icon -->
                             </div>
                         </div>
                         <span class="text-lg gold-text">Watch & Earn</span>
@@ -1058,6 +1128,11 @@
         let watchEarnCountdownSeconds = 0;
         let ludoButtonDisabled = false;
         let watchEarnDisabled = false;
+        
+        // ===== AD LOADING POPUP VARIABLES =====
+        let adLoadingPopup = null;
+        let adLoadingMessage = null;
+        let adLoadingProvider = null;
 
         const loader = document.getElementById('loader');
         const backButtonContainer = document.getElementById('back-button-container');
@@ -1080,6 +1155,11 @@
             preloadTaddySDK();
             initializeAdsGram();
             
+            // Initialize ad loading popup elements
+            adLoadingPopup = document.getElementById('ad-loading-popup');
+            adLoadingMessage = document.getElementById('ad-loading-message');
+            adLoadingProvider = document.getElementById('ad-loading-provider');
+            
             // Detect user's country
             detectUserCountry().then(country => {
                 userCountry = country;
@@ -1101,6 +1181,23 @@
                 startApp();
             });
         };
+        
+        // ===== AD LOADING POPUP FUNCTIONS =====
+        function showAdLoadingPopup(message, provider) {
+            if (adLoadingMessage && adLoadingProvider) {
+                adLoadingMessage.textContent = message || 'Please wait while we load the advertisement...';
+                adLoadingProvider.textContent = provider || 'Ads';
+            }
+            if (adLoadingPopup) {
+                adLoadingPopup.style.display = 'flex';
+            }
+        }
+        
+        function hideAdLoadingPopup() {
+            if (adLoadingPopup) {
+                adLoadingPopup.style.display = 'none';
+            }
+        }
         
         // ===== ADSGRAM SDK INITIALIZATION - FIXED =====
         function initializeAdsGram() {
@@ -1332,7 +1429,7 @@
             document.getElementById('dice-result-face').textContent = diceFaces[currentLudoDice - 1];
             document.getElementById('dice-win-amount').textContent = `${currentLudoWin} POINTS`;
             
-            // Show AdsGram container and info
+            // Show AdsGram container and info (ONLY FOR LUDO GAME)
             adsgramContainer.classList.remove('hidden');
             adsgramLoading.classList.remove('hidden');
             adsgramRewardInfo.classList.remove('hidden');
@@ -1344,12 +1441,13 @@
             // Show popup
             diceResultPopup.style.display = 'flex';
             
-            // Try to show AdsGram interstitial
+            // Try to show AdsGram interstitial (ONLY FOR LUDO GAME)
             let adShown = false;
             let adBonus = 0;
             
             try {
-                console.log("🎯 Trying AdsGram interstitial...");
+                console.log("🎯 Trying AdsGram interstitial for Ludo game...");
+                showAdLoadingPopup("Loading ad for dice bonus...", "AdsGram");
                 await showAdsGramInterstitial();
                 adShown = true;
                 adBonus = 5;
@@ -1364,6 +1462,8 @@
                 // Refund points since ad didn't show
                 await updateBalance(10, 'refund', 'Ludo dice game refund - ad not shown');
                 showAlert("⚠️ Ad not available. Your 10 points have been refunded.");
+            } finally {
+                hideAdLoadingPopup();
             }
             
             // Update win amount if ad was shown
@@ -1934,11 +2034,14 @@
             
             if (richAdsLoaded) {
                 console.log("🎯 Attempting Richads (Primary)...");
+                showAdLoadingPopup("Loading RichAds...", "RichAds");
                 try {
                     await showRichAds();
+                    hideAdLoadingPopup();
                     return true;
                 } catch (richadsError) {
                     console.log("❌ Richads failed, trying Taddy...:", richadsError);
+                    hideAdLoadingPopup();
                 }
             } else {
                 console.log("⚠️ Richads not available, trying Taddy...");
@@ -1948,14 +2051,18 @@
             const taddyReady = await ensureTaddyLoaded();
             
             if (taddyReady && taddyAdsService && typeof taddyAdsService.interstitial === 'function') {
+                showAdLoadingPopup("Loading Taddy ads...", "Taddy.pro");
                 try {
                     await showTaddyAds();
+                    hideAdLoadingPopup();
                     return true;
                 } catch (taddyError) {
                     console.log("❌ Taddy also failed:", taddyError);
+                    hideAdLoadingPopup();
                     throw new Error("No ads available");
                 }
             } else {
+                hideAdLoadingPopup();
                 throw new Error("No ads available");
             }
         }
@@ -1967,21 +2074,27 @@
             
             if (taddyReady && taddyAdsService && typeof taddyAdsService.interstitial === 'function') {
                 console.log("🎯 Attempting Taddy (Game page preferred)...");
+                showAdLoadingPopup("Loading Taddy ads...", "Taddy.pro");
                 try {
                     await showTaddyAds();
+                    hideAdLoadingPopup();
                     return true;
                 } catch (taddyError) {
                     console.log("❌ Taddy failed for game, falling back to Richads...:", taddyError);
+                    hideAdLoadingPopup();
                 }
             }
             
             if (richAdsLoaded) {
                 console.log("🔄 Attempting Richads (Game fallback)...");
+                showAdLoadingPopup("Loading RichAds...", "RichAds");
                 try {
                     await showRichAds();
+                    hideAdLoadingPopup();
                     return true;
                 } catch (richadsError) {
                     console.log("❌ Both ad providers failed");
+                    hideAdLoadingPopup();
                     throw new Error("No ads available");
                 }
             }
@@ -2221,30 +2334,56 @@
                 document.getElementById('special-ad-popup').classList.remove('hidden');
             } else {
                 try {
-                    // Show AdsGram reward video for Watch & Earn
-                    await showAdsGramRewardVideo();
-                    const reward = appConfig.adWatchReward || 50;
-                    await updateBalance(reward, 'ad_watch', 'Watched ad for coins');
-                    showAlert(`🎉 Congratulations! You earned ${reward} coins.`);
+                    // Show loading popup for Watch & Earn
+                    showAdLoadingPopup("Loading ad for Watch & Earn...", "RichAds/Taddy");
                     
-                    // Disable card for random time
-                    disableWatchEarnCardRandomly();
+                    // Try Richads first, then Taddy as fallback
+                    if (richAdsLoaded) {
+                        console.log("🎯 Attempting Richads for Watch & Earn...");
+                        try {
+                            await showRichAds();
+                            const reward = appConfig.adWatchReward || 50;
+                            await updateBalance(reward, 'ad_watch', 'Watched ad for coins');
+                            hideAdLoadingPopup();
+                            showAlert(`🎉 Congratulations! You earned ${reward} coins.`);
+                            
+                            // Disable card for random time
+                            disableWatchEarnCardRandomly();
+                            return;
+                            
+                        } catch (richadsError) {
+                            console.log("❌ Richads failed, trying Taddy...:", richadsError);
+                        }
+                    }
+                    
+                    // If Richads failed or not available, try Taddy
+                    console.log("🔄 Attempting Taddy for Watch & Earn...");
+                    const taddyReady = await ensureTaddyLoaded();
+                    
+                    if (taddyReady && taddyAdsService) {
+                        try {
+                            await showTaddyAds();
+                            const reward = appConfig.adWatchReward || 50;
+                            await updateBalance(reward, 'ad_watch', 'Watched ad for coins (Taddy)');
+                            hideAdLoadingPopup();
+                            showAlert(`🎉 Congratulations! You earned ${reward} coins.`);
+                            
+                            // Disable card for random time
+                            disableWatchEarnCardRandomly();
+                            return;
+                            
+                        } catch (taddyError) {
+                            console.log("❌ Taddy also failed:", taddyError);
+                        }
+                    }
+                    
+                    hideAdLoadingPopup();
+                    showAlert("⚠️ Ad service not available. Please try again.");
                     
                 } catch (error) {
-                    console.log("❌ AdsGram reward failed, trying regular ads...:", error);
-                    
-                    try {
-                        await showGameAds();
-                        const reward = appConfig.adWatchReward || 50;
-                        await updateBalance(reward, 'ad_watch', 'Watched ad for coins');
-                        showAlert(`🎉 Congratulations! You earned ${reward} coins.`);
-                        
-                        // Disable card for random time
-                        disableWatchEarnCardRandomly();
-                        
-                    } catch (adError) {
-                        showAlert("⚠️ Ad service not available. Please try again.");
-                    }
+                    hideAdLoadingPopup();
+                    console.log("❌ Watch & Earn ad failed:", error);
+                    showAlert("⚠️ Ad service not available. Please try again.");
                 }
             }
         }
@@ -2252,13 +2391,19 @@
         // ===== COLOR GAME =====
         async function claimColorGameReward() {
             document.getElementById('color-game-popup').classList.add('hidden');
+            
             try {
-                await showAds();
+                // Show loading popup for Color Game
+                showAdLoadingPopup("Loading ad for color game reward...", "RichAds/Taddy");
+                
+                await showAds(); // This will show Richads first, then Taddy as fallback
                 const reward = appConfig.colorGameReward || 100;
                 await updateBalance(reward, 'color_game', 'Won color game');
+                hideAdLoadingPopup();
                 showAlert(`🏆 Congratulations! You earned ${reward} coins.`);
                 startGame();
             } catch(error) { 
+                hideAdLoadingPopup();
                 showAlert("⚠️ Ad service not available. Please try again."); 
             }
         }
@@ -2376,8 +2521,11 @@
             const siteName = button.closest('.premium-card').querySelector('h3').textContent;
             button.disabled = true;
             try {
+                // Show loading popup before website visit
+                showAdLoadingPopup("Loading ad before website visit...", "RichAds/Taddy");
                 // Show ad before website visit
                 await showAds();
+                hideAdLoadingPopup();
                 window.open(link, '_blank');
                 let seconds = parseInt(timer);
                 button.textContent = `Wait ${seconds}s`;
@@ -2397,6 +2545,7 @@
                     }
                 }, 1000);
             } catch (error) {
+                hideAdLoadingPopup();
                 showAlert("⚠️ Ad service not available. Please try again.");
                 button.disabled = false;
             }
@@ -2446,8 +2595,11 @@
             const taskName = button.closest('.premium-card').querySelector('h3').textContent;
             button.disabled = true;
             try {
+                // Show loading popup before social task
+                showAdLoadingPopup("Loading ad before social task...", "RichAds/Taddy");
                 // Show ad before social task
                 await showAds();
+                hideAdLoadingPopup();
                 window.open(link, '_blank');
                 await updateBalance(parseInt(reward), 'social_task', `Completed social task: ${taskName}`);
                 const completed = [...(userData.completedSocialTasks || []), link];
@@ -2456,6 +2608,7 @@
                 showAlert(`🎉 Thank you! You have earned ${reward} coins.`);
                 populateSocialTasks();
             } catch (error) {
+                hideAdLoadingPopup();
                 showAlert("⚠️ Ad service not available. Please try again.");
                 button.disabled = false;
             }
@@ -2509,8 +2662,14 @@
             showAdBtn.classList.add('hidden');
             adStatus.textContent = "Waiting for you to click on the ad...";
 
+            // Show loading popup for special ad
+            showAdLoadingPopup("Loading special ad...", "RichAds/Taddy");
+            
             // Use regular ads for special ads
-            showAds().catch(err => {
+            showAds().then(() => {
+                hideAdLoadingPopup();
+            }).catch(err => {
+                hideAdLoadingPopup();
                 showAlert(err);
                 showAdBtn.classList.remove('hidden');
                 adStatus.textContent = "";
