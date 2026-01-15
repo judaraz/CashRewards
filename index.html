@@ -1089,72 +1089,7 @@
                 
                 <!-- Premium Features Grid -->
                 <div id="features-grid" class="grid grid-cols-2 gap-6">
-                    <!-- Color Game -->
-                    <div onclick="navigateTo('color-game-page')" class="feature-btn pulse-animation">
-                        <div class="mb-3">
-                            <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                <i class="fas fa-palette text-2xl text-black"></i>
-                            </div>
-                        </div>
-                        <span class="text-lg gold-text">Color Game</span>
-                        <p class="text-sm text-gray-300 mt-1">Win up to 100 coins</p>
-                    </div>
-                    
-                    <!-- Watch & Earn -->
-                    <div onclick="claimReward()" class="feature-btn watch-earn-card" id="watch-earn-card">
-                        <div class="mb-3">
-                            <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                <i class="fas fa-play-circle text-2xl text-black"></i>
-                            </div>
-                        </div>
-                        <span class="text-lg gold-text">Watch & Earn</span>
-                        <p class="text-sm text-gray-300 mt-1">Instant 50 coins</p>
-                        <div id="watch-earn-countdown" class="countdown-timer hidden"></div>
-                    </div>
-                    
-                    <!-- Ludo Dice -->
-                    <div onclick="navigateTo('ludo-game-page')" class="feature-btn pulse-animation">
-                        <div class="mb-3">
-                            <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                <i class="fas fa-dice text-2xl text-black"></i>
-                            </div>
-                        </div>
-                        <span class="text-lg gold-text">Ludo Dice</span>
-                        <p class="text-sm text-gray-300 mt-1">Play for 10 points</p>
-                    </div>
-                    
-                    <!-- Visit & Earn -->
-                    <div onclick="navigateTo('visit-earn-page')" class="feature-btn">
-                        <div class="mb-3">
-                            <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                <i class="fas fa-globe text-2xl text-black"></i>
-                            </div>
-                        </div>
-                        <span class="text-lg gold-text">Visit & Earn</span>
-                        <p class="text-sm text-gray-300 mt-1">Visit websites</p>
-                    </div>
-                    
-                    <!-- Social Tasks -->
-                    <div onclick="navigateTo('social-tasks-page')" class="feature-btn">
-                        <div class="mb-3">
-                            <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                <i class="fas fa-tasks text-2xl text-black"></i>
-                            </div>
-                        </div>
-                        <span class="text-lg gold-text">Social Tasks</span>
-                        <p class="text-sm text-gray-300 mt-1">Earn from social media</p>
-                    </div>
-                    
-                    <!-- My Wallet -->
-                    <div onclick="navigateTo('wallet-page')" class="feature-btn">
-                        <div class="mb-3">
-                            <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                                <i class="fas fa-wallet text-2xl text-black"></i>
-                            </div>
-                        </div>
-                        <span class="text-lg gold-text">My Wallet</span>
-                        <p class="text-sm text-gray-300 mt-1">Withdraw earnings</p>
-                    </div>
+                    <!-- Games will be dynamically populated -->
                 </div>
                 
                 <!-- Special Task Notification for Watch Video -->
@@ -1190,14 +1125,18 @@
             <!-- Ludo Game Page -->
             <div id="ludo-game-page" class="p-5 space-y-4 sub-page">
                 <h2 class="text-3xl font-bold text-center mb-2 gold-text">🎲 Ludo Dice Game</h2>
-                <p class="text-center text-gray-300 mb-6">Roll dice, win points, get rewards!</p>
+                <p class="text-center text-gray-300 mb-6" id="ludo-game-description">Roll dice, win points, get rewards!</p>
                 
                 <div class="ludo-game-container">
+                    <div id="ludo-game-status" class="game-status game-status-visible">VISIBLE</div>
+                    
                     <div class="text-center mb-6">
                         <div class="text-sm text-gray-300 mb-2">GAME COST</div>
                         <div class="text-2xl font-bold gold-text" id="ludo-game-cost">10 Points</div>
                         <p class="text-sm text-gray-400 mt-1">After ad watch: +5 points bonus</p>
+                        <div class="text-xs text-gray-500 mt-2" id="ludo-game-limits"></div>
                         <div class="text-xs text-green-400 mt-1" id="ludo-play-count-display"></div>
+                        <div class="text-xs text-purple-400 mt-1" id="ludo-special-task-info"></div>
                     </div>
                     
                     <div class="ludo-board">
@@ -1247,14 +1186,17 @@
             <!-- Color Game Page -->
             <div id="color-game-page" class="p-5 space-y-4 text-center sub-page">
                 <h2 class="text-3xl font-bold text-center mb-2 gold-text">🎨 Color Game</h2>
-                <p class="text-center text-gray-300 mb-6">Match colors to win coins!</p>
+                <p class="text-center text-gray-300 mb-6" id="color-game-description">Match colors to win coins!</p>
                 
                 <div class="premium-card p-6 rounded-2xl mb-8">
+                    <div id="color-game-status" class="game-status game-status-visible">VISIBLE</div>
                     <p class="text-center mb-4 text-gray-300">Find this color:</p>
                     <div id="target-color-box" class="w-32 h-16 mx-auto rounded-xl my-4 border-3 border-white shadow-lg"></div>
                     <p id="target-color-rgb" class="font-mono text-center text-xl font-bold"></p>
                     <div class="text-sm text-gray-500 mt-4" id="color-game-reward-display">Win up to 100 coins</div>
+                    <div class="text-xs text-gray-500 mt-2" id="color-game-limits"></div>
                     <div class="text-xs text-green-400 mt-1" id="color-play-count-display"></div>
+                    <div class="text-xs text-purple-400 mt-1" id="color-special-task-info"></div>
                 </div>
                 <div id="color-options-grid" class="grid grid-cols-3 gap-4 max-w-sm mx-auto"></div>
                 
@@ -1272,7 +1214,7 @@
             <!-- Visit & Earn Page -->
             <div id="visit-earn-page" class="p-5 space-y-4 sub-page">
                 <h2 class="text-3xl font-bold text-center mb-2 gold-text">Visit & Earn</h2>
-                <p class="text-center text-gray-300 mb-6">Visit websites and earn coins</p>
+                <p class="text-center text-gray-300 mb-6" id="visit-earn-description">Visit websites and earn coins</p>
                 <div id="website-list" class="space-y-4">
                     <!-- Websites will be populated here -->
                 </div>
@@ -1281,7 +1223,7 @@
             <!-- Social Tasks Page -->
             <div id="social-tasks-page" class="p-5 space-y-4 sub-page">
                 <h2 class="text-3xl font-bold text-center mb-2 gold-text">Social Tasks</h2>
-                <p class="text-center text-gray-300 mb-6">Complete social media tasks and earn coins</p>
+                <p class="text-center text-gray-300 mb-6" id="social-tasks-description">Complete social media tasks and earn coins</p>
                 <div id="social-tasks-list" class="space-y-4">
                     <!-- Social tasks will be populated here -->
                 </div>
@@ -1331,15 +1273,7 @@
                             <i class="fas fa-copy text-2xl text-gray-300 hover:text-yellow-400"></i>
                         </button>
                     </div>
-                    <div id="referral-rules-container" class="mt-6 text-left">
-                        <h3 class="font-semibold mb-3 text-lg">Referral Rules:</h3>
-                        <ul class="list-disc list-inside text-gray-300 space-y-2">
-                            <li>Your friend must sign up using your referral code</li>
-                            <li>Bonus is credited after they apply the code</li>
-                            <li>Both you and your friend get 100 coins</li>
-                            <li>You can refer unlimited friends</li>
-                        </ul>
-                    </div>
+                    <div id="referral-rules-container" class="mt-6 text-left"></div>
                 </div>
                 <button id="share-btn" class="w-full p-4 btn-accent mt-6 text-lg font-bold">
                     <i class="fas fa-share-alt mr-3"></i>Share Code
@@ -1460,8 +1394,10 @@
         let currentUser = null;
         let userData = null;
         let appConfig = {};
+        let sliderInterval;
         let userCountry = null;
         let telegramUser = null;
+        let gamesConfig = {};
         
         // Ad SDK Variables
         let richAdsLoaded = false;
@@ -1469,16 +1405,16 @@
         let taddyAdsService = null;
         let telegramAdsController = null;
         let isTelegramWebApp = false;
+        let taddySDKLoading = false;
+        let taddyPreloadStarted = false;
         
         // Special Task Variables
         let currentSpecialTask = null;
         let specialTaskTimer = null;
         let specialTaskCountdownSeconds = 0;
         let specialTaskProgressInterval = null;
-        let specialTaskClickCheckTimeout = null;
-        let adClickDetected = false;
         
-        // Game Variables
+        // Ludo Game Variables
         let isLudoRolling = false;
         let currentLudoDice = 6;
         let currentLudoWin = 0;
@@ -1488,7 +1424,7 @@
         let watchEarnTimer = null;
         let watchEarnCountdownSeconds = 0;
         let watchEarnDisabled = false;
-        
+
         // ===== DOM ELEMENTS =====
         const loader = document.getElementById('loader');
         const specialTaskModal = document.getElementById('special-task-modal');
@@ -1523,6 +1459,452 @@
                 startApp();
             });
         };
+
+        // ===== ADMIN PANEL INTEGRATION FUNCTIONS =====
+        async function loadGameConfigurations() {
+            try {
+                const gamesRef = doc(db, "config", "games");
+                const gamesSnap = await getDoc(gamesRef);
+                
+                if (gamesSnap.exists()) {
+                    gamesConfig = gamesSnap.data();
+                    console.log("✅ Loaded game configurations from admin panel");
+                    
+                    updateGamesDisplay();
+                    updateAdminConnectionStatus(true);
+                    
+                    return gamesConfig;
+                } else {
+                    console.log("⚠️ No game configurations found in admin panel");
+                    updateAdminConnectionStatus(false);
+                    return {};
+                }
+            } catch (error) {
+                console.error("Error loading game configurations:", error);
+                updateAdminConnectionStatus(false);
+                return {};
+            }
+        }
+        
+        function setupGameConfigListener() {
+            const gamesRef = doc(db, "config", "games");
+            
+            onSnapshot(gamesRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    gamesConfig = snapshot.data();
+                    console.log("🔄 Game configurations updated from admin panel");
+                    
+                    updateGamesDisplay();
+                    updateAdminConnectionStatus(true);
+                    
+                    // Update game limits display
+                    updateGameLimitsDisplay();
+                    updatePlayCountDisplay();
+                }
+            }, (error) => {
+                console.error("Error listening to game config updates:", error);
+                updateAdminConnectionStatus(false);
+            });
+        }
+        
+        function setupAppConfigListener() {
+            const configRef = doc(db, "config", "main");
+            
+            onSnapshot(configRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const newConfig = snapshot.data();
+                    appConfig = { ...appConfig, ...newConfig };
+                    console.log("🔄 App configurations updated from admin panel");
+                    
+                    // Update special task info
+                    updateSpecialTaskInfoDisplay();
+                    
+                    if (newConfig.websitesToVisit) {
+                        console.log("🔄 Website list updated:", newConfig.websitesToVisit.length, "websites");
+                        if (document.getElementById('visit-earn-page').classList.contains('active')) {
+                            populateWebsiteList();
+                        }
+                    }
+                    
+                    if (newConfig.socialTasks) {
+                        console.log("🔄 Social tasks updated:", newConfig.socialTasks.length, "tasks");
+                        if (document.getElementById('social-tasks-page').classList.contains('active')) {
+                            populateSocialTasks();
+                        }
+                    }
+                    
+                    if (newConfig.sliderBanners) {
+                        console.log("🔄 Slider banners updated");
+                        initSlider();
+                    }
+                    
+                    updateAdminConnectionStatus(true);
+                }
+            }, (error) => {
+                console.error("Error listening to app config updates:", error);
+            });
+        }
+        
+        function updateGamesDisplay() {
+            const featuresGrid = document.getElementById('features-grid');
+            if (!featuresGrid) return;
+            
+            featuresGrid.innerHTML = '';
+            
+            const gamesList = [
+                { id: 'colorGame', name: 'Color Game', icon: 'fa-palette', description: 'Match colors to win' },
+                { id: 'watchVideo', name: 'Watch & Earn', icon: 'fa-play-circle', description: 'Watch ads for coins' },
+                { id: 'ludoDice', name: 'Ludo Dice', icon: 'fa-dice', description: 'Roll & win points' },
+                { id: 'visitWebsites', name: 'Visit & Earn', icon: 'fa-globe', description: 'Visit websites' },
+                { id: 'socialTasks', name: 'Social Tasks', icon: 'fa-tasks', description: 'Complete tasks' },
+                { id: 'wallet', name: 'My Wallet', icon: 'fa-wallet', description: 'Withdraw earnings' }
+            ];
+            
+            gamesList.forEach(game => {
+                const gameConfig = gamesConfig[game.id] || {};
+                const isVisible = gameConfig.visible !== false;
+                
+                if (isVisible || game.id === 'wallet') {
+                    const reward = gameConfig.rewardPerPlay || 0;
+                    const order = gameConfig.order || 1;
+                    
+                    let html = '';
+                    
+                    if (game.id === 'colorGame') {
+                        html = `
+                            <div onclick="navigateTo('color-game-page')" class="feature-btn pulse-animation" style="order: ${order}">
+                                <div class="mb-3">
+                                    <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                        <i class="fas ${game.icon} text-2xl text-black"></i>
+                                    </div>
+                                </div>
+                                <span class="text-lg gold-text">${game.name}</span>
+                                <p class="text-sm text-gray-300 mt-1">Win up to ${reward} coins</p>
+                                ${gameConfig.dailyPlayLimit ? `<p class="text-xs text-green-400 mt-1">${gameConfig.dailyPlayLimit} plays/day</p>` : ''}
+                            </div>
+                        `;
+                    } else if (game.id === 'watchVideo') {
+                        const watchEarnReward = gameConfig.rewardPerPlay || appConfig.adWatchReward || 50;
+                        html = `
+                            <div onclick="claimReward()" class="feature-btn watch-earn-card" id="watch-earn-card" style="order: ${order}">
+                                <div class="mb-3">
+                                    <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                        <i class="fas ${game.icon} text-2xl text-black"></i>
+                                    </div>
+                                </div>
+                                <span class="text-lg gold-text">${game.name}</span>
+                                <p class="text-sm text-gray-300 mt-1">Instant ${watchEarnReward} coins</p>
+                                ${gameConfig.dailyPlayLimit ? `<p class="text-xs text-green-400 mt-1">${gameConfig.dailyPlayLimit} plays/day</p>` : ''}
+                                <div id="watch-earn-countdown" class="countdown-timer hidden"></div>
+                            </div>
+                        `;
+                    } else if (game.id === 'ludoDice') {
+                        const gameCost = gameConfig.gameCost || 10;
+                        html = `
+                            <div onclick="navigateTo('ludo-game-page')" class="feature-btn pulse-animation" style="order: ${order}">
+                                <div class="mb-3">
+                                    <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                        <i class="fas ${game.icon} text-2xl text-black"></i>
+                                    </div>
+                                </div>
+                                <span class="text-lg gold-text">${game.name}</span>
+                                <p class="text-sm text-gray-300 mt-1">Play for ${gameCost} points</p>
+                                ${gameConfig.dailyPlayLimit ? `<p class="text-xs text-green-400 mt-1">${gameConfig.dailyPlayLimit} plays/day</p>` : ''}
+                            </div>
+                        `;
+                    } else if (game.id === 'visitWebsites') {
+                        html = `
+                            <div onclick="navigateTo('visit-earn-page')" class="feature-btn" style="order: ${order}">
+                                <div class="mb-3">
+                                    <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                        <i class="fas ${game.icon} text-2xl text-black"></i>
+                                    </div>
+                                </div>
+                                <span class="text-lg gold-text">${game.name}</span>
+                                <p class="text-sm text-gray-300 mt-1">Visit websites</p>
+                            </div>
+                        `;
+                    } else if (game.id === 'socialTasks') {
+                        html = `
+                            <div onclick="navigateTo('social-tasks-page')" class="feature-btn" style="order: ${order}">
+                                <div class="mb-3">
+                                    <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                        <i class="fas ${game.icon} text-2xl text-black"></i>
+                                    </div>
+                                </div>
+                                <span class="text-lg gold-text">${game.name}</span>
+                                <p class="text-sm text-gray-300 mt-1">Earn from social media</p>
+                            </div>
+                        `;
+                    } else if (game.id === 'wallet') {
+                        html = `
+                            <div onclick="navigateTo('wallet-page')" class="feature-btn" style="order: ${order}">
+                                <div class="mb-3">
+                                    <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                        <i class="fas ${game.icon} text-2xl text-black"></i>
+                                    </div>
+                                </div>
+                                <span class="text-lg gold-text">${game.name}</span>
+                                <p class="text-sm text-gray-300 mt-1">Withdraw earnings</p>
+                            </div>
+                        `;
+                    }
+                    
+                    featuresGrid.innerHTML += html;
+                }
+            });
+            
+            updateGamePageDisplays();
+            updateGameLimitsDisplay();
+            updatePlayCountDisplay();
+            updateSpecialTaskInfoDisplay();
+            
+            setTimeout(() => {
+                const watchEarnCardEl = document.getElementById('watch-earn-card');
+                if (watchEarnCardEl) {
+                    watchEarnCardEl.classList.add('watch-earn-card');
+                    checkWatchEarnStatus();
+                }
+            }, 100);
+        }
+        
+        function updateGameLimitsDisplay() {
+            // Update Ludo Game Limits
+            const ludoConfig = gamesConfig.ludoDice || {};
+            const ludoDailyLimit = ludoConfig.dailyPlayLimit || 0;
+            const ludoTimeLimit = ludoConfig.dailyTimeLimit || 0;
+            
+            let ludoLimitsText = '';
+            if (ludoDailyLimit > 0) ludoLimitsText += `Daily plays: ${ludoDailyLimit}`;
+            if (ludoTimeLimit > 0) ludoLimitsText += ` | Time: ${ludoTimeLimit} min`;
+            
+            const ludoLimitsEl = document.getElementById('ludo-game-limits');
+            if (ludoLimitsEl) {
+                ludoLimitsEl.textContent = ludoLimitsText;
+                ludoLimitsEl.style.display = ludoLimitsText ? 'block' : 'none';
+            }
+            
+            // Update Color Game Limits
+            const colorConfig = gamesConfig.colorGame || {};
+            const colorDailyLimit = colorConfig.dailyPlayLimit || 0;
+            const colorTimeLimit = colorConfig.dailyTimeLimit || 0;
+            
+            let colorLimitsText = '';
+            if (colorDailyLimit > 0) colorLimitsText += `Daily plays: ${colorDailyLimit}`;
+            if (colorTimeLimit > 0) colorLimitsText += ` | Time: ${colorTimeLimit} min`;
+            
+            const colorLimitsEl = document.getElementById('color-game-limits');
+            if (colorLimitsEl) {
+                colorLimitsEl.textContent = colorLimitsText;
+                colorLimitsEl.style.display = colorLimitsText ? 'block' : 'none';
+            }
+            
+            // Update Watch & Earn Limits
+            const videoConfig = gamesConfig.watchVideo || {};
+            const videoDailyLimit = videoConfig.dailyPlayLimit || 0;
+            
+            if (videoDailyLimit > 0) {
+                const watchEarnCard = document.getElementById('watch-earn-card');
+                if (watchEarnCard) {
+                    const existingText = watchEarnCard.querySelector('.text-sm').textContent;
+                    watchEarnCard.querySelector('.text-sm').textContent = 
+                        `Instant ${videoConfig.rewardPerPlay || 50} coins | ${videoDailyLimit} plays/day`;
+                }
+            }
+        }
+        
+        function updatePlayCountDisplay() {
+            if (!currentUser) return;
+            
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Ludo play count
+            const ludoPlayCountKey = `ludoDice_playCount_${currentUser.uid}_${today}`;
+            const ludoPlayCount = parseInt(localStorage.getItem(ludoPlayCountKey) || '0');
+            const ludoConfig = gamesConfig.ludoDice || {};
+            const ludoLimit = ludoConfig.dailyPlayLimit || 0;
+            
+            const ludoDisplayEl = document.getElementById('ludo-play-count-display');
+            if (ludoDisplayEl && ludoLimit > 0) {
+                ludoDisplayEl.textContent = `Today: ${ludoPlayCount}/${ludoLimit} plays`;
+                ludoDisplayEl.style.display = 'block';
+            }
+            
+            // Color game play count
+            const colorPlayCountKey = `colorGame_playCount_${currentUser.uid}_${today}`;
+            const colorPlayCount = parseInt(localStorage.getItem(colorPlayCountKey) || '0');
+            const colorConfig = gamesConfig.colorGame || {};
+            const colorLimit = colorConfig.dailyPlayLimit || 0;
+            
+            const colorDisplayEl = document.getElementById('color-play-count-display');
+            if (colorDisplayEl && colorLimit > 0) {
+                colorDisplayEl.textContent = `Today: ${colorPlayCount}/${colorLimit} plays`;
+                colorDisplayEl.style.display = 'block';
+            }
+        }
+        
+        function updateGamePageDisplays() {
+            // Update Ludo Game Page
+            const ludoConfig = gamesConfig.ludoDice || {};
+            if (ludoConfig.visible === false) {
+                document.getElementById('ludo-game-page').style.display = 'none';
+            } else {
+                document.getElementById('ludo-game-page').style.display = 'block';
+                const gameCost = ludoConfig.gameCost || 10;
+                const winMultiplier = ludoConfig.winMultiplier || 10;
+                const rewardPerPlay = ludoConfig.rewardPerPlay || 10;
+                
+                document.getElementById('ludo-game-cost').textContent = `${gameCost} Points`;
+                document.getElementById('roll-btn-text').textContent = `ROLL DICE - ${gameCost} POINTS`;
+                document.getElementById('ludo-win-multiplier').textContent = `Win multiplier: Dice result × ${winMultiplier}`;
+                
+                const statusEl = document.getElementById('ludo-game-status');
+                if (statusEl) {
+                    statusEl.className = `game-status ${ludoConfig.visible === false ? 'game-status-hidden' : 'game-status-visible'}`;
+                    statusEl.textContent = ludoConfig.visible === false ? 'HIDDEN' : 'VISIBLE';
+                }
+                
+                if (!document.getElementById('ludo-game-page').classList.contains('active')) {
+                    document.getElementById('ludo-game-page').style.display = 'none';
+                }
+            }
+            
+            // Update Color Game Page
+            const colorConfig = gamesConfig.colorGame || {};
+            if (colorConfig.visible === false) {
+                document.getElementById('color-game-page').style.display = 'none';
+            } else {
+                document.getElementById('color-game-page').style.display = 'block';
+                const rewardPerPlay = colorConfig.rewardPerPlay || 100;
+                
+                document.getElementById('color-game-reward-display').textContent = `Win up to ${rewardPerPlay} coins`;
+                
+                const statusEl = document.getElementById('color-game-status');
+                if (statusEl) {
+                    statusEl.className = `game-status ${colorConfig.visible === false ? 'game-status-hidden' : 'game-status-visible'}`;
+                    statusEl.textContent = colorConfig.visible === false ? 'HIDDEN' : 'VISIBLE';
+                }
+                
+                if (!document.getElementById('color-game-page').classList.contains('active')) {
+                    document.getElementById('color-game-page').style.display = 'none';
+                }
+            }
+            
+            // Update Watch & Earn card
+            const videoConfig = gamesConfig.watchVideo || {};
+            if (videoConfig.visible === false) {
+                const watchEarnCard = document.getElementById('watch-earn-card');
+                if (watchEarnCard) watchEarnCard.style.display = 'none';
+            } else {
+                const watchEarnCard = document.getElementById('watch-earn-card');
+                if (watchEarnCard) {
+                    watchEarnCard.style.display = 'block';
+                    const rewardPerPlay = videoConfig.rewardPerPlay || 50;
+                    const rewardTextEl = watchEarnCard.querySelector('.text-sm');
+                    if (rewardTextEl) {
+                        rewardTextEl.textContent = `Instant ${rewardPerPlay} coins`;
+                    }
+                }
+            }
+        }
+        
+        function updateAdminConnectionStatus(connected) {
+            const statusEl = document.getElementById('admin-connection-status');
+            const textEl = document.getElementById('admin-connection-text');
+            
+            if (!statusEl || !textEl) return;
+            
+            if (connected) {
+                statusEl.className = 'admin-connection-status connected';
+                textEl.textContent = 'Admin Connected';
+                statusEl.style.display = 'flex';
+            } else {
+                statusEl.className = 'admin-connection-status disconnected';
+                textEl.textContent = 'Admin Disconnected';
+                statusEl.style.display = 'flex';
+            }
+        }
+
+        // ===== GAME PLAY LIMITS FUNCTIONS =====
+        function checkGamePlayLimits(gameId) {
+            const gameConfig = gamesConfig[gameId] || {};
+            
+            // If game is hidden, deny access
+            if (gameConfig.visible === false) {
+                return { allowed: false, reason: "Game is currently unavailable." };
+            }
+            
+            // Check daily play limit (20-30 plays from admin panel)
+            const dailyPlayLimit = gameConfig.dailyPlayLimit || 0;
+            
+            if (dailyPlayLimit > 0) {
+                const today = new Date().toISOString().split('T')[0];
+                const playCountKey = `${gameId}_playCount_${currentUser.uid}_${today}`;
+                const playCount = parseInt(localStorage.getItem(playCountKey) || '0');
+                
+                if (playCount >= dailyPlayLimit) {
+                    return { 
+                        allowed: false, 
+                        reason: `Daily play limit reached (${dailyPlayLimit} plays). Try again tomorrow!` 
+                    };
+                }
+            }
+            
+            // Check daily time limit
+            const dailyTimeLimit = gameConfig.dailyTimeLimit || 0;
+            if (dailyTimeLimit > 0) {
+                const today = new Date().toISOString().split('T')[0];
+                const dailyTimeKey = `${gameId}_dailyTime_${currentUser.uid}_${today}`;
+                const dailyPlayTime = parseInt(localStorage.getItem(dailyTimeKey) || '0') / 60;
+                
+                if (dailyPlayTime >= dailyTimeLimit) {
+                    const remainingSeconds = (dailyTimeLimit * 60) - (dailyPlayTime * 60);
+                    const hours = Math.floor(remainingSeconds / 3600);
+                    const minutes = Math.floor((remainingSeconds % 3600) / 60);
+                    
+                    return { 
+                        allowed: false, 
+                        reason: `Daily time limit (${dailyTimeLimit} minutes) reached. Try again in ${hours > 0 ? hours + 'h ' : ''}${minutes}m.` 
+                    };
+                }
+            }
+            
+            // Check session time limit
+            const sessionTimeLimit = gameConfig.sessionTimeLimit || 0;
+            if (sessionTimeLimit > 0) {
+                const sessionKey = `${gameId}_session_${currentUser.uid}`;
+                const sessionPlayTime = parseInt(localStorage.getItem(sessionKey) || '0') / 60;
+                
+                if (sessionPlayTime >= sessionTimeLimit) {
+                    return { 
+                        allowed: false, 
+                        reason: `Session play limit (${sessionTimeLimit} minutes) reached. Take a break!` 
+                    };
+                }
+            }
+            
+            return { allowed: true };
+        }
+        
+        function resetGamePlayCounts() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Check if we need to reset (after midnight)
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.includes('_playCount_') && !key.includes(today)) {
+                    localStorage.removeItem(key);
+                }
+                if (key.includes('_specialTaskCompleted_') && !key.includes(today)) {
+                    localStorage.removeItem(key);
+                }
+                if (key.includes('_specialTaskSkipped_') && !key.includes(today)) {
+                    localStorage.removeItem(key);
+                }
+            }
+            
+            console.log("🔄 Game play counts reset for new day");
+        }
 
         // ===== TELEGRAM USER INITIALIZATION =====
         async function initializeTelegramUser() {
@@ -1696,9 +2078,10 @@
 
         // ===== TADDY.PRO PRELOAD =====
         function preloadTaddySDK() {
-            if (taddyLoaded) return;
+            if (taddyPreloadStarted || taddyLoaded) return;
             
             console.log("⚡ Pre-loading Taddy.pro SDK in background...");
+            taddyPreloadStarted = true;
             
             const script = document.createElement('script');
             script.src = 'https://sdk.taddy.pro/web/taddy.min.js?1317';
@@ -1707,7 +2090,7 @@
             
             script.onload = () => {
                 console.log("✅ Taddy SDK pre-loaded");
-                initializeTaddy();
+                setTimeout(initializeTaddy, 100);
             };
             
             script.onerror = (error) => {
@@ -1856,6 +2239,9 @@
             navigateTo('home-page');
             fetchAppConfig();
             fetchUserData();
+            loadGameConfigurations();
+            setupGameConfigListener();
+            setupAppConfigListener();
             initSlider();
             checkWatchEarnStatus();
             initLudoGame();
@@ -1867,51 +2253,68 @@
                     resetGamePlayCounts();
                 }
             }, 60000);
+            
+            // Also reset on app start (in case it's a new day)
+            resetGamePlayCounts();
         }
 
         // ===== FETCH APP CONFIG =====
         async function fetchAppConfig() {
-            try {
-                const configRef = doc(db, "config", "main");
-                const configSnap = await getDoc(configRef);
-                appConfig = configSnap.exists() ? configSnap.data() : { 
-                    referralRules: ["Your friend must sign up.", "Bonus is credited after they apply the code."],
-                    referralShareText: "Join CashReward and earn money! Use my code {CODE} to get a bonus. App link: {APP_LINK}",
-                    watchAdSpecialTaskCount: 10, 
-                    watchAdSpecialTaskReward: 100, 
-                    watchAdSpecialTaskTimer: 60, 
-                    colorGameSpecialTaskCount: 10,
-                    colorGameSpecialTaskReward: 200,
-                    colorGameSpecialTaskTimer: 45,
-                    ludoDiceSpecialTaskCount: 10,
-                    ludoDiceSpecialTaskReward: 150,
-                    ludoDiceSpecialTaskTimer: 30,
-                    paymentMethods: ["UPI", "Paytm", "PayPal"],
-                    adWatchReward: 50,
-                    colorGameReward: 100,
-                    ludoGameCost: 10,
-                    websitesToVisit: [
-                        { name: "Google", link: "https://www.google.com", reward: 10, timer: 30 },
-                        { name: "YouTube", link: "https://www.youtube.com", reward: 15, timer: 45 },
-                        { name: "Facebook", link: "https://www.facebook.com", reward: 20, timer: 60 }
-                    ],
-                    socialTasks: [
-                        { name: "Follow on Instagram", link: "https://www.instagram.com", reward: 25, icon: "instagram" },
-                        { name: "Like on Facebook", link: "https://www.facebook.com", reward: 20, icon: "facebook" },
-                        { name: "Subscribe on YouTube", link: "https://www.youtube.com", reward: 30, icon: "youtube" }
-                    ],
-                    minWithdrawal: 1000,
-                    coinValueCoins: 1000,
-                    coinValueInr: 10,
-                    referralBonus: 100
-                };
-                
-                // Update coin value display
-                updateCoinValueDisplay();
-                
-            } catch (error) {
-                console.error("Error fetching app config:", error);
+            const configRef = doc(db, "config", "main");
+            const configSnap = await getDoc(configRef);
+            appConfig = configSnap.exists() ? configSnap.data() : { 
+                referralRules: ["Your friend must sign up.", "Bonus is credited after they apply the code."],
+                referralShareText: "Join CashReward and earn money! Use my code {CODE} to get a bonus. App link: {APP_LINK}",
+                watchAdSpecialTaskCount: 10, 
+                watchAdSpecialTaskReward: 100, 
+                watchAdSpecialTaskTimer: 60, 
+                colorGameSpecialTaskCount: 10,
+                colorGameSpecialTaskReward: 200,
+                colorGameSpecialTaskTimer: 45,
+                ludoDiceSpecialTaskCount: 10,
+                ludoDiceSpecialTaskReward: 150,
+                ludoDiceSpecialTaskTimer: 30,
+                paymentMethods: ["UPI", "Paytm", "PayPal"],
+                adWatchReward: 50,
+                colorGameReward: 100,
+                ludoGameCost: 10,
+                websitesToVisit: [
+                    { name: "Google", link: "https://www.google.com", reward: 10, timer: 30 },
+                    { name: "YouTube", link: "https://www.youtube.com", reward: 15, timer: 45 },
+                    { name: "Facebook", link: "https://www.facebook.com", reward: 20, timer: 60 }
+                ],
+                socialTasks: [
+                    { name: "Follow on Instagram", link: "https://www.instagram.com", reward: 25, icon: "instagram" },
+                    { name: "Like on Facebook", link: "https://www.facebook.com", reward: 20, icon: "facebook" },
+                    { name: "Subscribe on YouTube", link: "https://www.youtube.com", reward: 30, icon: "youtube" }
+                ],
+                minWithdrawal: 1000,
+                coinValueCoins: 1000,
+                coinValueInr: 10,
+                referralBonus: 100
+            };
+            
+            // Update coin value display
+            updateCoinValueDisplay();
+            
+            // Update special task info display
+            updateSpecialTaskInfoDisplay();
+            
+            if (!Array.isArray(appConfig.websitesToVisit)) {
+                appConfig.websitesToVisit = [];
             }
+            if (!Array.isArray(appConfig.socialTasks)) {
+                appConfig.socialTasks = [];
+            }
+            if (!Array.isArray(appConfig.sliderBanners)) {
+                appConfig.sliderBanners = [
+                    {img: "https://images.unsplash.com/photo-1611605698335-8b1569810432?q=80&w=1974&auto=format&fit=crop", link: "#"},
+                    {img: "https://images.unsplash.com/photo-1611224923853-80b023f02d71?q=80&w=2069&auto=format&fit=crop", link: "#"},
+                    {img: "https://images.unsplash.com/photo-1611605698335-8b1569810432?q=80&w=1974&auto=format&fit=crop", link: "#"}
+                ];
+            }
+            
+            return appConfig;
         }
 
         // ===== FETCH USER DATA =====
@@ -1924,7 +2327,6 @@
                 if (!userCountry && userData.country) {
                     userCountry = userData.country;
                 }
-                updateAllUI();
             }
         }
 
@@ -1997,13 +2399,17 @@
             const sliderContainer = document.getElementById('slider-container');
             const wrapper = sliderContainer.querySelector('.slider-wrapper');
             const dotsContainer = sliderContainer.querySelector('.slider-dots');
+            wrapper.innerHTML = ''; dotsContainer.innerHTML = '';
             
-            const banners = [
-                {img: "https://images.unsplash.com/photo-1611605698335-8b1569810432?q=80&w=1974&auto=format&fit=crop", link: "#"},
-                {img: "https://images.unsplash.com/photo-1611224923853-80b023f02d71?q=80&w=2069&auto=format&fit=crop", link: "#"},
-                {img: "https://images.unsplash.com/photo-1611605698335-8b1569810432?q=80&w=1974&auto=format&fit=crop", link: "#"}
-            ];
+            const banners = appConfig.sliderBanners || [];
             
+            if (banners.length === 0) { 
+                sliderContainer.style.display = 'none'; 
+                return; 
+            }
+            
+            sliderContainer.style.display = 'block';
+
             banners.forEach((banner, index) => {
                 wrapper.innerHTML += `<div class="slider-item"><a href="${banner.link}" target="_blank"><img src="${banner.img}" alt="Premium Banner ${index + 1}"></a></div>`;
                 dotsContainer.innerHTML += `<div class="slider-dot" data-slide="${index}"></div>`;
@@ -2022,7 +2428,8 @@
             }
             
             dots.forEach(dot => dot.addEventListener('click', () => showSlide(parseInt(dot.dataset.slide))));
-            setInterval(() => showSlide(currentSlide + 1), 4000);
+            if (sliderInterval) clearInterval(sliderInterval);
+            sliderInterval = setInterval(() => showSlide(currentSlide + 1), 4000);
             showSlide(0);
         }
 
@@ -2035,7 +2442,9 @@
         window.navigateTo = function(pageId) {
             document.querySelectorAll('.sub-page').forEach(p => {
                 p.classList.remove('active');
-                p.style.display = 'none';
+                if (!p.classList.contains('active')) {
+                    p.style.display = 'none';
+                }
             });
             
             const page = document.getElementById(pageId);
@@ -2059,6 +2468,7 @@
                 initLudoGame();
             }
             if (pageId === 'visit-earn-page') {
+                resetDailyWebsiteVisits();
                 populateWebsiteList();
             }
             if (pageId === 'social-tasks-page') populateSocialTasks();
@@ -2185,6 +2595,8 @@
                     console.log("❌ Richads failed, trying Taddy...:", richadsError);
                     hideAdLoadingPopup();
                 }
+            } else {
+                console.log("⚠️ Richads not available, trying Taddy...");
             }
             
             console.log("🔄 Attempting Taddy (Fallback)...");
@@ -2256,8 +2668,24 @@
         async function ensureTaddyLoaded() {
             if (taddyLoaded) return true;
             
+            if (taddySDKLoading) {
+                return new Promise((resolve) => {
+                    const checkInterval = setInterval(() => {
+                        if (taddyLoaded) {
+                            clearInterval(checkInterval);
+                            resolve(true);
+                        }
+                    }, 100);
+                    setTimeout(() => {
+                        clearInterval(checkInterval);
+                        resolve(false);
+                    }, 3000);
+                });
+            }
+            
             if (typeof window.Taddy === 'undefined') {
                 console.log("🔄 Loading Taddy SDK on demand...");
+                taddySDKLoading = true;
                 
                 const script = document.createElement('script');
                 script.src = 'https://sdk.taddy.pro/web/taddy.min.js?1317';
@@ -2267,11 +2695,13 @@
                     script.onload = () => {
                         setTimeout(() => {
                             initializeTaddy();
+                            taddySDKLoading = false;
                             resolve(taddyLoaded);
                         }, 800);
                     };
                     
                     script.onerror = () => {
+                        taddySDKLoading = false;
                         resolve(false);
                     };
                     
@@ -2389,6 +2819,55 @@
             }
             
             console.log("🔄 Game play counts reset for new day");
+        }
+
+        // Update special task info display
+        function updateSpecialTaskInfoDisplay() {
+            if (!currentUser) return;
+            
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Check Ludo special task
+            const ludoPlayCount = getGamePlayCount('ludoDice');
+            const ludoSpecialTaskCount = appConfig.ludoDiceSpecialTaskCount || 10;
+            
+            if (ludoPlayCount > 0 && ludoPlayCount % ludoSpecialTaskCount === 0) {
+                const ludoSpecialTaskKey = `ludoDice_specialTask_${ludoPlayCount}`;
+                const ludoTaskCompleted = localStorage.getItem(ludoSpecialTaskKey) === 'completed';
+                const ludoTaskSkipped = localStorage.getItem(ludoSpecialTaskKey) === 'skipped';
+                
+                if (!ludoTaskCompleted && !ludoTaskSkipped) {
+                    document.getElementById('ludo-special-task-info').textContent = `🎯 Special Task Available! Play ${ludoPlayCount} times completed`;
+                    document.getElementById('ludo-special-task-info').style.display = 'block';
+                    
+                    // Show button if it exists
+                    const ludoSpecialTaskBtn = document.getElementById('ludoDice-special-task-btn');
+                    if (ludoSpecialTaskBtn) {
+                        ludoSpecialTaskBtn.classList.remove('hidden');
+                    }
+                }
+            }
+            
+            // Check Color Game special task
+            const colorPlayCount = getGamePlayCount('colorGame');
+            const colorSpecialTaskCount = appConfig.colorGameSpecialTaskCount || 10;
+            
+            if (colorPlayCount > 0 && colorPlayCount % colorSpecialTaskCount === 0) {
+                const colorSpecialTaskKey = `colorGame_specialTask_${colorPlayCount}`;
+                const colorTaskCompleted = localStorage.getItem(colorSpecialTaskKey) === 'completed';
+                const colorTaskSkipped = localStorage.getItem(colorSpecialTaskKey) === 'skipped';
+                
+                if (!colorTaskCompleted && !colorTaskSkipped) {
+                    document.getElementById('color-special-task-info').textContent = `🎯 Special Task Available! Play ${colorPlayCount} times completed`;
+                    document.getElementById('color-special-task-info').style.display = 'block';
+                    
+                    // Show button if it exists
+                    const colorSpecialTaskBtn = document.getElementById('colorGame-special-task-btn');
+                    if (colorSpecialTaskBtn) {
+                        colorSpecialTaskBtn.classList.remove('hidden');
+                    }
+                }
+            }
         }
 
         // Check and show special task
@@ -2578,67 +3057,8 @@
                 // Show ad
                 await showAds();
                 
-                // Start click detection
-                adClickDetected = false;
-                
-                // Listen for window blur (user clicked on ad)
-                const onBlur = () => {
-                    window.removeEventListener('blur', onBlur);
-                    if (specialTaskClickCheckTimeout) {
-                        clearTimeout(specialTaskClickCheckTimeout);
-                    }
-                    adClickDetected = true;
-                    document.getElementById('special-task-message').innerHTML = 
-                        '<div class="text-green-400 font-bold">Click successful! Now waiting...</div>';
-                    
-                    // Start final countdown for ad viewing
-                    startAdViewingCountdown();
-                };
-                
-                window.addEventListener('blur', onBlur);
-                
-                // Set timeout for click detection (15 seconds)
-                specialTaskClickCheckTimeout = setTimeout(() => {
-                    window.removeEventListener('blur', onBlur);
-                    if (!adClickDetected) {
-                        document.getElementById('special-task-message').innerHTML = 
-                            '<div class="text-red-400 font-bold">You didn\'t click the ad. Try again.</div>';
-                        specialTaskBtn.disabled = false;
-                        specialTaskBtn.innerHTML = '<i class="fas fa-play-circle mr-3"></i> WATCH AD TO CLAIM';
-                        hideAdLoadingPopup();
-                    }
-                }, 15000);
-                
-            } catch (error) {
                 hideAdLoadingPopup();
-                console.log("❌ Special task ad failed:", error);
-                specialTaskBtn.disabled = false;
-                specialTaskBtn.innerHTML = '<i class="fas fa-play-circle mr-3"></i> WATCH AD TO CLAIM';
-                document.getElementById('special-task-message').innerHTML = 
-                    '<div class="text-red-400 font-bold">Ad not available. Please try again.</div>';
-            }
-        }
-
-        // Start ad viewing countdown
-        function startAdViewingCountdown() {
-            let remainingSeconds = 30;
-            
-            const adViewInterval = setInterval(() => {
-                remainingSeconds--;
-                document.getElementById('special-task-timer').textContent = `Wait: ${remainingSeconds} seconds`;
                 
-                if (remainingSeconds <= 0) {
-                    clearInterval(adViewInterval);
-                    claimSpecialTaskReward();
-                }
-            }, 1000);
-        }
-
-        // Claim special task reward
-        async function claimSpecialTaskReward() {
-            if (!currentSpecialTask) return;
-            
-            try {
                 const reward = currentSpecialTask.reward;
                 
                 // Mark special task as completed
@@ -2674,13 +3094,16 @@
                     // Clear intervals
                     if (specialTaskTimer) clearInterval(specialTaskTimer);
                     if (specialTaskProgressInterval) clearInterval(specialTaskProgressInterval);
-                    if (specialTaskClickCheckTimeout) clearTimeout(specialTaskClickCheckTimeout);
                     
                 }, 2000);
                 
             } catch (error) {
-                console.error("Error claiming special task reward:", error);
-                showAlert("Error claiming reward. Please try again.");
+                hideAdLoadingPopup();
+                console.log("❌ Special task ad failed:", error);
+                specialTaskBtn.disabled = false;
+                specialTaskBtn.innerHTML = '<i class="fas fa-play-circle mr-3"></i> WATCH AD TO CLAIM';
+                document.getElementById('special-task-message').innerHTML = 
+                    '<div class="text-red-400 font-bold">Ad not available. Please try again.</div>';
             }
         }
 
@@ -2703,7 +3126,6 @@
             // Clear intervals
             if (specialTaskTimer) clearInterval(specialTaskTimer);
             if (specialTaskProgressInterval) clearInterval(specialTaskProgressInterval);
-            if (specialTaskClickCheckTimeout) clearTimeout(specialTaskClickCheckTimeout);
             
             showAlert("⚠️ Special task skipped. No bonus coins earned.");
             
@@ -2785,32 +3207,80 @@
             
             console.log("🎮 Watch & Earn clicked");
             
-            // Increment play count
-            const playCount = incrementGamePlayCount('watchVideo');
+            const videoConfig = gamesConfig.watchVideo || {};
+            if (videoConfig.visible === false) {
+                showAlert("❌ This feature is currently unavailable. Please try another game.");
+                return;
+            }
+            
+            // Check game play limits FIRST
+            const limitCheck = checkGamePlayLimits('watchVideo');
+            if (!limitCheck.allowed) {
+                showAlert(`❌ ${limitCheck.reason}`);
+                return;
+            }
+            
+            // INCREMENT PLAY COUNT
+            incrementGamePlayCount('watchVideo');
             
             try {
-                // Show ad
-                await showAds();
+                showAdLoadingPopup("Loading ad for Watch & Earn...", "RichAds/Taddy");
                 
-                // Get reward from config
-                const reward = appConfig.adWatchReward || 50;
+                if (richAdsLoaded) {
+                    console.log("🎯 Attempting Richads for Watch & Earn...");
+                    try {
+                        await showRichAds();
+                        const reward = videoConfig.rewardPerPlay || appConfig.adWatchReward || 50;
+                        
+                        const newCount = (userData.dailyAdCount || 0) + 1;
+                        await updateDoc(doc(db, "users", currentUser.uid), { 
+                            dailyAdCount: newCount 
+                        });
+                        userData.dailyAdCount = newCount;
+                        
+                        await updateBalance(reward, 'ad_watch', 'Watched ad for coins');
+                        hideAdLoadingPopup();
+                        showAlert(`🎉 Congratulations! You earned ${reward} coins.`);
+                        
+                        disableWatchEarnCardRandomly();
+                        return;
+                        
+                    } catch (richadsError) {
+                        console.log("❌ Richads failed, trying Taddy...:", richadsError);
+                    }
+                }
                 
-                // Update user data
-                const newCount = (userData.dailyAdCount || 0) + 1;
-                await updateDoc(doc(db, "users", currentUser.uid), { 
-                    dailyAdCount: newCount 
-                });
-                userData.dailyAdCount = newCount;
+                console.log("🔄 Attempting Taddy for Watch & Earn...");
+                const taddyReady = await ensureTaddyLoaded();
                 
-                // Add reward
-                await updateBalance(reward, 'ad_watch', 'Watched ad for coins');
+                if (taddyReady && taddyAdsService) {
+                    try {
+                        await showTaddyAds();
+                        const reward = videoConfig.rewardPerPlay || appConfig.adWatchReward || 50;
+                        
+                        const newCount = (userData.dailyAdCount || 0) + 1;
+                        await updateDoc(doc(db, "users", currentUser.uid), { 
+                            dailyAdCount: newCount 
+                        });
+                        userData.dailyAdCount = newCount;
+                        
+                        await updateBalance(reward, 'ad_watch', 'Watched ad for coins (Taddy)');
+                        hideAdLoadingPopup();
+                        showAlert(`🎉 Congratulations! You earned ${reward} coins.`);
+                        
+                        disableWatchEarnCardRandomly();
+                        return;
+                        
+                    } catch (taddyError) {
+                        console.log("❌ Taddy also failed:", taddyError);
+                    }
+                }
                 
-                showAlert(`🎉 Congratulations! You earned ${reward} coins.`);
-                
-                // Randomly disable for 10-20 seconds
-                disableWatchEarnCardRandomly();
+                hideAdLoadingPopup();
+                showAlert("⚠️ Ad service not available. Please try again.");
                 
             } catch (error) {
+                hideAdLoadingPopup();
                 console.log("❌ Watch & Earn ad failed:", error);
                 showAlert("⚠️ Ad service not available. Please try again.");
             }
@@ -2818,6 +3288,13 @@
 
         // ===== COLOR GAME =====
         function startGame() {
+            const colorConfig = gamesConfig.colorGame || {};
+            if (colorConfig.visible === false) {
+                showAlert("❌ This game is currently unavailable. Please try another game.");
+                navigateTo('home-page');
+                return;
+            }
+            
             const targetColor = { 
                 r: Math.floor(Math.random() * 256), 
                 g: Math.floor(Math.random() * 256), 
@@ -2853,8 +3330,12 @@
                 optionsGrid.appendChild(optionBox);
             });
             
-            const reward = appConfig.colorGameReward || 100;
+            const reward = colorConfig.rewardPerPlay || appConfig.colorGameReward || 100;
             document.getElementById('color-game-reward-message').textContent = `Bravo! Watch an ad to claim ${reward} coins.`;
+            
+            // Update play count display
+            updatePlayCountDisplay();
+            updateSpecialTaskInfoDisplay();
         }
 
         function handleColorPick(event) {
@@ -2872,23 +3353,34 @@
         async function claimColorGameReward() {
             document.getElementById('color-game-popup').classList.add('hidden');
             
-            // Increment play count
+            // Check game play limits FIRST
+            const limitCheck = checkGamePlayLimits('colorGame');
+            if (!limitCheck.allowed) {
+                showAlert(`❌ ${limitCheck.reason}`);
+                startGame();
+                return;
+            }
+            
+            // INCREMENT PLAY COUNT
             incrementGamePlayCount('colorGame');
             
             try {
-                // Show ad
+                showAdLoadingPopup("Loading ad for color game reward...", "RichAds/Taddy");
+                
+                // FIXED: Properly await the ad show function
                 await showAds();
                 
-                // Get reward from config
-                const reward = appConfig.colorGameReward || 100;
+                const colorConfig = gamesConfig.colorGame || {};
+                const reward = colorConfig.rewardPerPlay || appConfig.colorGameReward || 100;
                 
-                // Add reward
                 await updateBalance(reward, 'color_game', 'Won color game');
                 
+                hideAdLoadingPopup();
                 showAlert(`🏆 Congratulations! You earned ${reward} coins.`);
-                startGame();
                 
+                startGame();
             } catch(error) { 
+                hideAdLoadingPopup();
                 console.log("Color game ad error:", error);
                 showAlert("⚠️ Ad service not available. Please try again."); 
             }
@@ -2917,14 +3409,23 @@
         async function rollLudoDice() {
             if (isLudoRolling) return;
             
-            const gameCost = 10;
+            const ludoConfig = gamesConfig.ludoDice || {};
+            
+            // Check game play limits FIRST
+            const limitCheck = checkGamePlayLimits('ludoDice');
+            if (!limitCheck.allowed) {
+                showAlert(`❌ ${limitCheck.reason}`);
+                return;
+            }
+            
+            const gameCost = ludoConfig.gameCost || 10;
             
             if (!userData || userData.balance < gameCost) {
                 showAlert(`❌ You need at least ${gameCost} points to play!`);
                 return;
             }
             
-            // Increment play count
+            // INCREMENT PLAY COUNT
             incrementGamePlayCount('ludoDice');
             
             isLudoRolling = true;
@@ -2952,7 +3453,8 @@
                     setTimeout(animateRoll, 80);
                 } else {
                     currentLudoDice = generateDiceResult();
-                    currentLudoWin = currentLudoDice * 10;
+                    const winMultiplier = ludoConfig.winMultiplier || 10;
+                    currentLudoWin = currentLudoDice * winMultiplier;
                     ludoDiceDisplay.textContent = currentLudoDice;
                     ludoDiceDisplay.style.transform = 'translate(-50%, -50%) rotate(-45deg)';
                     
@@ -3503,24 +4005,6 @@
             document.getElementById('total-earned').textContent = userData.totalEarned || 0;
         }
 
-        // ===== ADMIN CONNECTION STATUS =====
-        function updateAdminConnectionStatus(connected) {
-            const statusEl = document.getElementById('admin-connection-status');
-            const textEl = document.getElementById('admin-connection-text');
-            
-            if (!statusEl || !textEl) return;
-            
-            if (connected) {
-                statusEl.className = 'admin-connection-status connected';
-                textEl.textContent = 'Admin Connected';
-                statusEl.style.display = 'flex';
-            } else {
-                statusEl.className = 'admin-connection-status disconnected';
-                textEl.textContent = 'Admin Disconnected';
-                statusEl.style.display = 'flex';
-            }
-        }
-
         // ===== WEBSITE VISIT RESET =====
         async function resetDailyWebsiteVisits() {
             try {
@@ -3545,4 +4029,4 @@
 
     </script>
 </body>
-</html>
+    </html>
