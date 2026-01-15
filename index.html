@@ -1825,6 +1825,357 @@
             }
         }
 
+        // ===== SPECIAL TASK SYSTEM FUNCTIONS (from index15) =====
+        
+        // Get game play count
+        function getGamePlayCount(gameId) {
+            const today = new Date().toISOString().split('T')[0];
+            const playCountKey = `${gameId}_playCount_${currentUser.uid}_${today}`;
+            return parseInt(localStorage.getItem(playCountKey) || '0');
+        }
+
+        // Increment game play count and check for special task
+        function incrementGamePlayCount(gameId) {
+            const today = new Date().toISOString().split('T')[0];
+            const playCountKey = `${gameId}_playCount_${currentUser.uid}_${today}`;
+            const currentCount = parseInt(localStorage.getItem(playCountKey) || '0');
+            const newCount = currentCount + 1;
+            localStorage.setItem(playCountKey, newCount.toString());
+            
+            console.log(`📊 ${gameId} play count: ${newCount}`);
+            
+            // Update play count display
+            updatePlayCountDisplay(gameId, newCount);
+            
+            // Check for special task
+            checkAndShowSpecialTask(gameId, newCount);
+            
+            return newCount;
+        }
+
+        // Update play count display
+        function updatePlayCountDisplay(gameId, count) {
+            if (gameId === 'ludoDice') {
+                document.getElementById('ludo-play-count-display').textContent = `Today: ${count} plays`;
+                document.getElementById('ludo-play-count-display').style.display = 'block';
+            } else if (gameId === 'colorGame') {
+                document.getElementById('color-play-count-display').textContent = `Today: ${count} plays`;
+                document.getElementById('color-play-count-display').style.display = 'block';
+            }
+        }
+
+        // Update special task info display
+        function updateSpecialTaskInfoDisplay() {
+            if (!currentUser) return;
+            
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Check Ludo special task
+            const ludoPlayCount = getGamePlayCount('ludoDice');
+            const ludoSpecialTaskCount = appConfig.ludoDiceSpecialTaskCount || 10;
+            
+            if (ludoPlayCount > 0 && ludoPlayCount % ludoSpecialTaskCount === 0) {
+                const ludoSpecialTaskKey = `ludoDice_specialTask_${ludoPlayCount}`;
+                const ludoTaskCompleted = localStorage.getItem(ludoSpecialTaskKey) === 'completed';
+                const ludoTaskSkipped = localStorage.getItem(ludoSpecialTaskKey) === 'skipped';
+                
+                if (!ludoTaskCompleted && !ludoTaskSkipped) {
+                    document.getElementById('ludo-special-task-info').textContent = `🎯 Special Task Available! Play ${ludoPlayCount} times completed`;
+                    document.getElementById('ludo-special-task-info').style.display = 'block';
+                    
+                    // Show button if it exists
+                    const ludoSpecialTaskBtn = document.getElementById('ludoDice-special-task-btn');
+                    if (ludoSpecialTaskBtn) {
+                        ludoSpecialTaskBtn.classList.remove('hidden');
+                    }
+                }
+            }
+            
+            // Check Color Game special task
+            const colorPlayCount = getGamePlayCount('colorGame');
+            const colorSpecialTaskCount = appConfig.colorGameSpecialTaskCount || 10;
+            
+            if (colorPlayCount > 0 && colorPlayCount % colorSpecialTaskCount === 0) {
+                const colorSpecialTaskKey = `colorGame_specialTask_${colorPlayCount}`;
+                const colorTaskCompleted = localStorage.getItem(colorSpecialTaskKey) === 'completed';
+                const colorTaskSkipped = localStorage.getItem(colorSpecialTaskKey) === 'skipped';
+                
+                if (!colorTaskCompleted && !colorTaskSkipped) {
+                    document.getElementById('color-special-task-info').textContent = `🎯 Special Task Available! Play ${colorPlayCount} times completed`;
+                    document.getElementById('color-special-task-info').style.display = 'block';
+                    
+                    // Show button if it exists
+                    const colorSpecialTaskBtn = document.getElementById('colorGame-special-task-btn');
+                    if (colorSpecialTaskBtn) {
+                        colorSpecialTaskBtn.classList.remove('hidden');
+                    }
+                }
+            }
+        }
+
+        // Check and show special task
+        async function checkAndShowSpecialTask(gameId, playCount) {
+            try {
+                const specialTaskCount = appConfig[`${gameId}SpecialTaskCount`] || 10;
+                const specialTaskReward = appConfig[`${gameId}SpecialTaskReward`] || 100;
+                
+                // Check if play count matches special task count
+                if (playCount > 0 && playCount % specialTaskCount === 0) {
+                    // Check if already completed this special task
+                    const specialTaskKey = `${gameId}_specialTask_${playCount}`;
+                    const alreadyCompleted = localStorage.getItem(specialTaskKey) === 'completed';
+                    const alreadySkipped = localStorage.getItem(specialTaskKey) === 'skipped';
+                    
+                    if (!alreadyCompleted && !alreadySkipped) {
+                        // Show special task button
+                        showSpecialTaskButton(gameId, specialTaskReward);
+                        
+                        // Show notification
+                        let gameName = '';
+                        switch(gameId) {
+                            case 'watchVideo': gameName = 'Watch & Earn'; break;
+                            case 'colorGame': gameName = 'Color Game'; break;
+                            case 'ludoDice': gameName = 'Ludo Dice'; break;
+                        }
+                        
+                        specialTaskNotification.innerHTML = `
+                            <i class="fas fa-gift mr-2"></i> ${gameName} SPECIAL TASK! Click to get +${specialTaskReward} coins!
+                        `;
+                        specialTaskNotification.classList.remove('hidden');
+                        
+                        // Hide notification after 10 seconds
+                        setTimeout(() => {
+                            specialTaskNotification.classList.add('hidden');
+                        }, 10000);
+                        
+                        return true;
+                    }
+                }
+                
+                return false;
+            } catch (error) {
+                console.error("Error checking special task:", error);
+                return false;
+            }
+        }
+
+        // Show special task button
+        function showSpecialTaskButton(gameId, reward) {
+            const buttonId = `${gameId}-special-task-btn`;
+            const button = document.getElementById(buttonId);
+            
+            if (button) {
+                button.classList.remove('hidden');
+                button.innerHTML = `
+                    <i class="fas fa-gift mr-2"></i>SPECIAL TASK: Watch Ad for Bonus
+                    <span class="ml-2 bg-yellow-400 text-black px-2 py-1 rounded-full text-xs font-bold">+${reward}</span>
+                `;
+            }
+        }
+
+        // Open special task modal
+        async function openSpecialTaskModal(gameId) {
+            if (!currentUser) return;
+            
+            const playCount = getGamePlayCount(gameId);
+            
+            try {
+                const specialTaskCount = appConfig[`${gameId}SpecialTaskCount`] || 10;
+                const specialTaskReward = appConfig[`${gameId}SpecialTaskReward`] || 100;
+                const specialTaskTimerSeconds = appConfig[`${gameId}SpecialTaskTimer`] || 60;
+                
+                let gameName = '';
+                let gameIcon = '';
+                
+                switch(gameId) {
+                    case 'watchVideo':
+                        gameName = 'Watch & Earn';
+                        gameIcon = '🎬';
+                        break;
+                    case 'colorGame':
+                        gameName = 'Color Game';
+                        gameIcon = '🎨';
+                        break;
+                    case 'ludoDice':
+                        gameName = 'Ludo Dice';
+                        gameIcon = '🎲';
+                        break;
+                }
+                
+                // Set current special task
+                currentSpecialTask = {
+                    gameId: gameId,
+                    gameName: gameName,
+                    gameIcon: gameIcon,
+                    playCount: playCount,
+                    specialTaskCount: specialTaskCount,
+                    reward: specialTaskReward,
+                    timerSeconds: specialTaskTimerSeconds
+                };
+                
+                // Update modal content
+                document.getElementById('special-task-icon').textContent = gameIcon;
+                document.getElementById('special-task-title').textContent = `${gameName} SPECIAL TASK!`;
+                document.getElementById('special-task-message').textContent = 
+                    `You've played ${playCount} times! Watch a special ad and click on it to claim ${specialTaskReward} bonus coins!`;
+                document.getElementById('special-task-reward').textContent = `+${specialTaskReward} COINS`;
+                
+                // Set timer
+                specialTaskCountdownSeconds = specialTaskTimerSeconds;
+                document.getElementById('special-task-timer').textContent = `Wait: ${specialTaskCountdownSeconds} seconds`;
+                
+                // Reset progress bar
+                document.getElementById('special-task-progress-bar').style.width = '0%';
+                
+                // Disable button initially
+                specialTaskBtn.disabled = true;
+                specialTaskBtn.innerHTML = '<i class="fas fa-clock mr-3"></i> WATCH AD TO CLAIM';
+                
+                // Hide notification
+                specialTaskNotification.classList.add('hidden');
+                
+                // Show modal
+                specialTaskModal.style.display = 'flex';
+                
+                // Start countdown
+                startSpecialTaskCountdown();
+                
+            } catch (error) {
+                console.error("Error opening special task modal:", error);
+                showAlert("Error loading special task. Please try again.");
+            }
+        }
+
+        // Start special task countdown
+        function startSpecialTaskCountdown() {
+            // Clear any existing timers
+            if (specialTaskTimer) clearInterval(specialTaskTimer);
+            if (specialTaskProgressInterval) clearInterval(specialTaskProgressInterval);
+            
+            let progress = 0;
+            const totalSeconds = specialTaskCountdownSeconds;
+            const progressStep = 100 / totalSeconds;
+            
+            // Start progress bar animation
+            specialTaskProgressInterval = setInterval(() => {
+                progress += progressStep;
+                document.getElementById('special-task-progress-bar').style.width = `${progress}%`;
+                
+                if (progress >= 100) {
+                    clearInterval(specialTaskProgressInterval);
+                }
+            }, 1000);
+            
+            // Start countdown timer
+            specialTaskTimer = setInterval(() => {
+                specialTaskCountdownSeconds--;
+                document.getElementById('special-task-timer').textContent = `Wait: ${specialTaskCountdownSeconds} seconds`;
+                
+                if (specialTaskCountdownSeconds <= 0) {
+                    clearInterval(specialTaskTimer);
+                    enableSpecialTaskButton();
+                }
+            }, 1000);
+        }
+
+        // Enable special task button
+        function enableSpecialTaskButton() {
+            specialTaskBtn.disabled = false;
+            specialTaskBtn.innerHTML = '<i class="fas fa-play-circle mr-3"></i> WATCH AD TO CLAIM';
+            document.getElementById('special-task-timer').textContent = 'Ready! Click button above';
+        }
+
+        // Complete special task
+        async function completeSpecialTask() {
+            if (!currentSpecialTask) return;
+            
+            // Disable button immediately
+            specialTaskBtn.disabled = true;
+            specialTaskBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3"></i> LOADING AD...';
+            
+            try {
+                // Show ad loading popup
+                showAdLoadingPopup("Loading special task ad...", "RichAds/Taddy");
+                
+                // Show ad
+                await showAds();
+                
+                hideAdLoadingPopup();
+                
+                const reward = currentSpecialTask.reward;
+                
+                // Mark special task as completed
+                const specialTaskKey = `${currentSpecialTask.gameId}_specialTask_${currentSpecialTask.playCount}`;
+                localStorage.setItem(specialTaskKey, 'completed');
+                
+                // Hide special task button
+                const buttonId = `${currentSpecialTask.gameId}-special-task-btn`;
+                const button = document.getElementById(buttonId);
+                if (button) button.classList.add('hidden');
+                
+                // Update user balance
+                await updateBalance(reward, 'special_task', 
+                    `Completed ${currentSpecialTask.gameName} special task after ${currentSpecialTask.playCount} plays`);
+                
+                // Show success message
+                document.getElementById('special-task-message').innerHTML = 
+                    `<div class="text-green-400 font-bold text-lg">
+                        <i class="fas fa-check-circle mr-2"></i>Success!
+                    </div>
+                    <p class="text-gray-300">You received ${reward} bonus coins!</p>`;
+                
+                specialTaskBtn.innerHTML = '<i class="fas fa-check mr-3"></i> REWARD CLAIMED!';
+                
+                // Auto-close modal after 2 seconds
+                setTimeout(() => {
+                    specialTaskModal.style.display = 'none';
+                    showAlert(`🎉 Congratulations! You earned ${reward} bonus coins from the special task!`);
+                    
+                    // Reset current special task
+                    currentSpecialTask = null;
+                    
+                    // Clear intervals
+                    if (specialTaskTimer) clearInterval(specialTaskTimer);
+                    if (specialTaskProgressInterval) clearInterval(specialTaskProgressInterval);
+                    
+                }, 2000);
+                
+            } catch (error) {
+                hideAdLoadingPopup();
+                console.log("❌ Special task ad failed:", error);
+                specialTaskBtn.disabled = false;
+                specialTaskBtn.innerHTML = '<i class="fas fa-play-circle mr-3"></i> WATCH AD TO CLAIM';
+                document.getElementById('special-task-message').innerHTML = 
+                    '<div class="text-red-400 font-bold">Ad not available. Please try again.</div>';
+            }
+        }
+
+        // Skip special task
+        function skipSpecialTask() {
+            if (!currentSpecialTask) return;
+            
+            // Mark special task as skipped
+            const specialTaskKey = `${currentSpecialTask.gameId}_specialTask_${currentSpecialTask.playCount}`;
+            localStorage.setItem(specialTaskKey, 'skipped');
+            
+            // Hide special task button
+            const buttonId = `${currentSpecialTask.gameId}-special-task-btn`;
+            const button = document.getElementById(buttonId);
+            if (button) button.classList.add('hidden');
+            
+            // Hide modal
+            specialTaskModal.style.display = 'none';
+            
+            // Clear intervals
+            if (specialTaskTimer) clearInterval(specialTaskTimer);
+            if (specialTaskProgressInterval) clearInterval(specialTaskProgressInterval);
+            
+            showAlert("⚠️ Special task skipped. No bonus coins earned.");
+            
+            // Reset current special task
+            currentSpecialTask = null;
+        }
+
         // ===== GAME PLAY LIMITS FUNCTIONS =====
         function checkGamePlayLimits(gameId) {
             const gameConfig = gamesConfig[gameId] || {};
@@ -2765,374 +3116,6 @@
             }
         }
 
-        // ===== SPECIAL TASK SYSTEM =====
-        
-        // Get game play count
-        function getGamePlayCount(gameId) {
-            const today = new Date().toISOString().split('T')[0];
-            const playCountKey = `${gameId}_playCount_${currentUser.uid}_${today}`;
-            return parseInt(localStorage.getItem(playCountKey) || '0');
-        }
-
-        // Increment game play count and check for special task
-        function incrementGamePlayCount(gameId) {
-            const today = new Date().toISOString().split('T')[0];
-            const playCountKey = `${gameId}_playCount_${currentUser.uid}_${today}`;
-            const currentCount = parseInt(localStorage.getItem(playCountKey) || '0');
-            const newCount = currentCount + 1;
-            localStorage.setItem(playCountKey, newCount.toString());
-            
-            console.log(`📊 ${gameId} play count: ${newCount}`);
-            
-            // Update play count display
-            updatePlayCountDisplay(gameId, newCount);
-            
-            // Check for special task
-            checkAndShowSpecialTask(gameId, newCount);
-            
-            return newCount;
-        }
-
-        // Update play count display
-        function updatePlayCountDisplay(gameId, count) {
-            if (gameId === 'ludoDice') {
-                document.getElementById('ludo-play-count-display').textContent = `Today: ${count} plays`;
-                document.getElementById('ludo-play-count-display').style.display = 'block';
-            } else if (gameId === 'colorGame') {
-                document.getElementById('color-play-count-display').textContent = `Today: ${count} plays`;
-                document.getElementById('color-play-count-display').style.display = 'block';
-            }
-        }
-
-        // Reset game play counts at midnight
-        function resetGamePlayCounts() {
-            const today = new Date().toISOString().split('T')[0];
-            
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.includes('_playCount_') && !key.includes(today)) {
-                    localStorage.removeItem(key);
-                }
-                if (key.includes('_specialTask_') && !key.includes(today)) {
-                    localStorage.removeItem(key);
-                }
-            }
-            
-            console.log("🔄 Game play counts reset for new day");
-        }
-
-        // Update special task info display
-        function updateSpecialTaskInfoDisplay() {
-            if (!currentUser) return;
-            
-            const today = new Date().toISOString().split('T')[0];
-            
-            // Check Ludo special task
-            const ludoPlayCount = getGamePlayCount('ludoDice');
-            const ludoSpecialTaskCount = appConfig.ludoDiceSpecialTaskCount || 10;
-            
-            if (ludoPlayCount > 0 && ludoPlayCount % ludoSpecialTaskCount === 0) {
-                const ludoSpecialTaskKey = `ludoDice_specialTask_${ludoPlayCount}`;
-                const ludoTaskCompleted = localStorage.getItem(ludoSpecialTaskKey) === 'completed';
-                const ludoTaskSkipped = localStorage.getItem(ludoSpecialTaskKey) === 'skipped';
-                
-                if (!ludoTaskCompleted && !ludoTaskSkipped) {
-                    document.getElementById('ludo-special-task-info').textContent = `🎯 Special Task Available! Play ${ludoPlayCount} times completed`;
-                    document.getElementById('ludo-special-task-info').style.display = 'block';
-                    
-                    // Show button if it exists
-                    const ludoSpecialTaskBtn = document.getElementById('ludoDice-special-task-btn');
-                    if (ludoSpecialTaskBtn) {
-                        ludoSpecialTaskBtn.classList.remove('hidden');
-                    }
-                }
-            }
-            
-            // Check Color Game special task
-            const colorPlayCount = getGamePlayCount('colorGame');
-            const colorSpecialTaskCount = appConfig.colorGameSpecialTaskCount || 10;
-            
-            if (colorPlayCount > 0 && colorPlayCount % colorSpecialTaskCount === 0) {
-                const colorSpecialTaskKey = `colorGame_specialTask_${colorPlayCount}`;
-                const colorTaskCompleted = localStorage.getItem(colorSpecialTaskKey) === 'completed';
-                const colorTaskSkipped = localStorage.getItem(colorSpecialTaskKey) === 'skipped';
-                
-                if (!colorTaskCompleted && !colorTaskSkipped) {
-                    document.getElementById('color-special-task-info').textContent = `🎯 Special Task Available! Play ${colorPlayCount} times completed`;
-                    document.getElementById('color-special-task-info').style.display = 'block';
-                    
-                    // Show button if it exists
-                    const colorSpecialTaskBtn = document.getElementById('colorGame-special-task-btn');
-                    if (colorSpecialTaskBtn) {
-                        colorSpecialTaskBtn.classList.remove('hidden');
-                    }
-                }
-            }
-        }
-
-        // Check and show special task
-        async function checkAndShowSpecialTask(gameId, playCount) {
-            try {
-                const specialTaskCount = appConfig[`${gameId}SpecialTaskCount`] || 10;
-                const specialTaskReward = appConfig[`${gameId}SpecialTaskReward`] || 100;
-                
-                // Check if play count matches special task count
-                if (playCount > 0 && playCount % specialTaskCount === 0) {
-                    // Check if already completed this special task
-                    const specialTaskKey = `${gameId}_specialTask_${playCount}`;
-                    const alreadyCompleted = localStorage.getItem(specialTaskKey) === 'completed';
-                    const alreadySkipped = localStorage.getItem(specialTaskKey) === 'skipped';
-                    
-                    if (!alreadyCompleted && !alreadySkipped) {
-                        // Show special task button
-                        showSpecialTaskButton(gameId, specialTaskReward);
-                        
-                        // Show notification
-                        let gameName = '';
-                        switch(gameId) {
-                            case 'watchVideo': gameName = 'Watch & Earn'; break;
-                            case 'colorGame': gameName = 'Color Game'; break;
-                            case 'ludoDice': gameName = 'Ludo Dice'; break;
-                        }
-                        
-                        specialTaskNotification.innerHTML = `
-                            <i class="fas fa-gift mr-2"></i> ${gameName} SPECIAL TASK! Click to get +${specialTaskReward} coins!
-                        `;
-                        specialTaskNotification.classList.remove('hidden');
-                        
-                        // Hide notification after 10 seconds
-                        setTimeout(() => {
-                            specialTaskNotification.classList.add('hidden');
-                        }, 10000);
-                        
-                        return true;
-                    }
-                }
-                
-                return false;
-            } catch (error) {
-                console.error("Error checking special task:", error);
-                return false;
-            }
-        }
-
-        // Show special task button
-        function showSpecialTaskButton(gameId, reward) {
-            const buttonId = `${gameId}-special-task-btn`;
-            const button = document.getElementById(buttonId);
-            
-            if (button) {
-                button.classList.remove('hidden');
-                button.innerHTML = `
-                    <i class="fas fa-gift mr-2"></i>SPECIAL TASK: Watch Ad for Bonus
-                    <span class="ml-2 bg-yellow-400 text-black px-2 py-1 rounded-full text-xs font-bold">+${reward}</span>
-                `;
-            }
-        }
-
-        // Open special task modal
-        async function openSpecialTaskModal(gameId) {
-            if (!currentUser) return;
-            
-            const playCount = getGamePlayCount(gameId);
-            
-            try {
-                const specialTaskCount = appConfig[`${gameId}SpecialTaskCount`] || 10;
-                const specialTaskReward = appConfig[`${gameId}SpecialTaskReward`] || 100;
-                const specialTaskTimerSeconds = appConfig[`${gameId}SpecialTaskTimer`] || 60;
-                
-                let gameName = '';
-                let gameIcon = '';
-                
-                switch(gameId) {
-                    case 'watchVideo':
-                        gameName = 'Watch & Earn';
-                        gameIcon = '🎬';
-                        break;
-                    case 'colorGame':
-                        gameName = 'Color Game';
-                        gameIcon = '🎨';
-                        break;
-                    case 'ludoDice':
-                        gameName = 'Ludo Dice';
-                        gameIcon = '🎲';
-                        break;
-                }
-                
-                // Set current special task
-                currentSpecialTask = {
-                    gameId: gameId,
-                    gameName: gameName,
-                    gameIcon: gameIcon,
-                    playCount: playCount,
-                    specialTaskCount: specialTaskCount,
-                    reward: specialTaskReward,
-                    timerSeconds: specialTaskTimerSeconds
-                };
-                
-                // Update modal content
-                document.getElementById('special-task-icon').textContent = gameIcon;
-                document.getElementById('special-task-title').textContent = `${gameName} SPECIAL TASK!`;
-                document.getElementById('special-task-message').textContent = 
-                    `You've played ${playCount} times! Watch a special ad and click on it to claim ${specialTaskReward} bonus coins!`;
-                document.getElementById('special-task-reward').textContent = `+${specialTaskReward} COINS`;
-                
-                // Set timer
-                specialTaskCountdownSeconds = specialTaskTimerSeconds;
-                document.getElementById('special-task-timer').textContent = `Wait: ${specialTaskCountdownSeconds} seconds`;
-                
-                // Reset progress bar
-                document.getElementById('special-task-progress-bar').style.width = '0%';
-                
-                // Disable button initially
-                specialTaskBtn.disabled = true;
-                specialTaskBtn.innerHTML = '<i class="fas fa-clock mr-3"></i> WATCH AD TO CLAIM';
-                
-                // Hide notification
-                specialTaskNotification.classList.add('hidden');
-                
-                // Show modal
-                specialTaskModal.style.display = 'flex';
-                
-                // Start countdown
-                startSpecialTaskCountdown();
-                
-            } catch (error) {
-                console.error("Error opening special task modal:", error);
-                showAlert("Error loading special task. Please try again.");
-            }
-        }
-
-        // Start special task countdown
-        function startSpecialTaskCountdown() {
-            // Clear any existing timers
-            if (specialTaskTimer) clearInterval(specialTaskTimer);
-            if (specialTaskProgressInterval) clearInterval(specialTaskProgressInterval);
-            
-            let progress = 0;
-            const totalSeconds = specialTaskCountdownSeconds;
-            const progressStep = 100 / totalSeconds;
-            
-            // Start progress bar animation
-            specialTaskProgressInterval = setInterval(() => {
-                progress += progressStep;
-                document.getElementById('special-task-progress-bar').style.width = `${progress}%`;
-                
-                if (progress >= 100) {
-                    clearInterval(specialTaskProgressInterval);
-                }
-            }, 1000);
-            
-            // Start countdown timer
-            specialTaskTimer = setInterval(() => {
-                specialTaskCountdownSeconds--;
-                document.getElementById('special-task-timer').textContent = `Wait: ${specialTaskCountdownSeconds} seconds`;
-                
-                if (specialTaskCountdownSeconds <= 0) {
-                    clearInterval(specialTaskTimer);
-                    enableSpecialTaskButton();
-                }
-            }, 1000);
-        }
-
-        // Enable special task button
-        function enableSpecialTaskButton() {
-            specialTaskBtn.disabled = false;
-            specialTaskBtn.innerHTML = '<i class="fas fa-play-circle mr-3"></i> WATCH AD TO CLAIM';
-            document.getElementById('special-task-timer').textContent = 'Ready! Click button above';
-        }
-
-        // Complete special task
-        async function completeSpecialTask() {
-            if (!currentSpecialTask) return;
-            
-            // Disable button immediately
-            specialTaskBtn.disabled = true;
-            specialTaskBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3"></i> LOADING AD...';
-            
-            try {
-                // Show ad loading popup
-                showAdLoadingPopup("Loading special task ad...", "RichAds/Taddy");
-                
-                // Show ad
-                await showAds();
-                
-                hideAdLoadingPopup();
-                
-                const reward = currentSpecialTask.reward;
-                
-                // Mark special task as completed
-                const specialTaskKey = `${currentSpecialTask.gameId}_specialTask_${currentSpecialTask.playCount}`;
-                localStorage.setItem(specialTaskKey, 'completed');
-                
-                // Hide special task button
-                const buttonId = `${currentSpecialTask.gameId}-special-task-btn`;
-                const button = document.getElementById(buttonId);
-                if (button) button.classList.add('hidden');
-                
-                // Update user balance
-                await updateBalance(reward, 'special_task', 
-                    `Completed ${currentSpecialTask.gameName} special task after ${currentSpecialTask.playCount} plays`);
-                
-                // Show success message
-                document.getElementById('special-task-message').innerHTML = 
-                    `<div class="text-green-400 font-bold text-lg">
-                        <i class="fas fa-check-circle mr-2"></i>Success!
-                    </div>
-                    <p class="text-gray-300">You received ${reward} bonus coins!</p>`;
-                
-                specialTaskBtn.innerHTML = '<i class="fas fa-check mr-3"></i> REWARD CLAIMED!';
-                
-                // Auto-close modal after 2 seconds
-                setTimeout(() => {
-                    specialTaskModal.style.display = 'none';
-                    showAlert(`🎉 Congratulations! You earned ${reward} bonus coins from the special task!`);
-                    
-                    // Reset current special task
-                    currentSpecialTask = null;
-                    
-                    // Clear intervals
-                    if (specialTaskTimer) clearInterval(specialTaskTimer);
-                    if (specialTaskProgressInterval) clearInterval(specialTaskProgressInterval);
-                    
-                }, 2000);
-                
-            } catch (error) {
-                hideAdLoadingPopup();
-                console.log("❌ Special task ad failed:", error);
-                specialTaskBtn.disabled = false;
-                specialTaskBtn.innerHTML = '<i class="fas fa-play-circle mr-3"></i> WATCH AD TO CLAIM';
-                document.getElementById('special-task-message').innerHTML = 
-                    '<div class="text-red-400 font-bold">Ad not available. Please try again.</div>';
-            }
-        }
-
-        // Skip special task
-        function skipSpecialTask() {
-            if (!currentSpecialTask) return;
-            
-            // Mark special task as skipped
-            const specialTaskKey = `${currentSpecialTask.gameId}_specialTask_${currentSpecialTask.playCount}`;
-            localStorage.setItem(specialTaskKey, 'skipped');
-            
-            // Hide special task button
-            const buttonId = `${currentSpecialTask.gameId}-special-task-btn`;
-            const button = document.getElementById(buttonId);
-            if (button) button.classList.add('hidden');
-            
-            // Hide modal
-            specialTaskModal.style.display = 'none';
-            
-            // Clear intervals
-            if (specialTaskTimer) clearInterval(specialTaskTimer);
-            if (specialTaskProgressInterval) clearInterval(specialTaskProgressInterval);
-            
-            showAlert("⚠️ Special task skipped. No bonus coins earned.");
-            
-            // Reset current special task
-            currentSpecialTask = null;
-        }
-
         // ===== WATCH & EARN =====
         function checkWatchEarnStatus() {
             const watchEarnDisabledUntil = localStorage.getItem('watchEarnDisabledUntil');
@@ -3737,7 +3720,7 @@
             }
         }
 
-        // ===== WALLET FUNCTIONS =====
+        // ===== WALLET FUNCTIONS (WITH FIXED PAYMENT VALIDATION from index15) =====
         function loadWalletPage() {
             if (!userData) return;
             
@@ -3794,7 +3777,7 @@
                 return;
             }
             
-            // Validate payment details based on method
+            // Validate payment details based on method (from index15)
             if (method === 'UPI' && !paymentDetail.includes('@')) {
                 showAlert("❌ Please enter a valid UPI ID (e.g., name@upi)");
                 return;
