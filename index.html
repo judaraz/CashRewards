@@ -1540,7 +1540,7 @@
 
         // ===== NOTICE AUTO-CANCEL VARIABLES =====
         let noticeAutoCancelTimer = null;
-        let noticeAutoCancelSeconds = 3;
+        let noticeAutoCancelSeconds = 7;
         let currentNoticeCancelable = true;
 
         const loader = document.getElementById('loader');
@@ -1666,7 +1666,7 @@
                 clearInterval(noticeAutoCancelTimer);
             }
             
-            noticeAutoCancelSeconds = 3;
+            noticeAutoCancelSeconds = 7;
             noticeTimerSecondsEl.textContent = noticeAutoCancelSeconds;
             
             noticeAutoCancelTimer = setInterval(() => {
