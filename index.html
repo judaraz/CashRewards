@@ -2892,80 +2892,160 @@
             
             console.log(`⏱️ Watch & Earn card disabled for ${randomSeconds} seconds`);
         }
-        
         // ===== TELEGRAM USER INITIALIZATION =====
-        async function initializeTelegramUser() {
-            if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-                isTelegramWebApp = true;
-                const tg = window.Telegram.WebApp;
-                telegramUser = tg.initDataUnsafe?.user;
+async function initializeTelegramUser() {
+    console.log("🔍 Checking Telegram WebApp...");
+    
+    if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+        isTelegramWebApp = true;
+        const tg = window.Telegram.WebApp;
+        
+        // Ensure WebApp is ready - THIS WAS MISSING
+        tg.ready();
+        tg.expand();
+        
+        console.log("✅ Telegram WebApp detected");
+        console.log("📱 Telegram initData:", tg.initData);
+        console.log("👤 Telegram user data:", tg.initDataUnsafe?.user);
+        
+        telegramUser = tg.initDataUnsafe?.user;
+        
+        if (telegramUser) {
+            console.log("✅ Telegram user detected:", telegramUser);
+            
+            const userName = telegramUser.first_name || telegramUser.username || 'Telegram User';
+            const profilePic = telegramUser.photo_url || `https://placehold.co/100x100/1e1e1e/facc15?text=${userName.charAt(0).toUpperCase()}`;
+            
+            document.getElementById('header-profile-name').textContent = `Hi, ${userName}`;
+            document.getElementById('profile-picture').src = profilePic;
+            
+            await initializeFirebaseUser(telegramUser);
+            return; // THIS WAS MISSING - prevent fallback
+        } else {
+            console.log("⚠️ Telegram user data not available in initDataUnsafe");
+            
+            // Try alternative method to get user - THIS WAS MISSING
+            const initData = tg.initData;
+            if (initData) {
+                console.log("🔍 Parsing initData manually...");
+                const params = new URLSearchParams(initData);
+                const userStr = params.get('user');
                 
-                if (telegramUser) {
-                    console.log("✅ Telegram user detected:", telegramUser);
-                    
-                    const userName = telegramUser.first_name || telegramUser.username || 'Telegram User';
-                    const profilePic = telegramUser.photo_url || `https://placehold.co/100x100/1e1e1e/facc15?text=${userName.charAt(0).toUpperCase()}`;
-                    
-                    document.getElementById('header-profile-name').textContent = `Hi, ${userName}`;
-                    document.getElementById('profile-picture').src = profilePic;
-                    
-                    await initializeFirebaseUser(telegramUser);
-                } else {
-                    console.log("⚠️ Telegram user data not available");
-                    await createAnonymousUser();
+                if (userStr) {
+                    try {
+                        telegramUser = JSON.parse(decodeURIComponent(userStr));
+                        console.log("✅ Telegram user parsed from initData:", telegramUser);
+                        
+                        const userName = telegramUser.first_name || telegramUser.username || 'Telegram User';
+                        const profilePic = telegramUser.photo_url || `https://placehold.co/100x100/1e1e1e/facc15?text=${userName.charAt(0).toUpperCase()}`;
+                        
+                        document.getElementById('header-profile-name').textContent = `Hi, ${userName}`;
+                        document.getElementById('profile-picture').src = profilePic;
+                        
+                        await initializeFirebaseUser(telegramUser);
+                        return; // THIS WAS MISSING
+                    } catch (error) {
+                        console.error("❌ Error parsing Telegram user:", error);
+                    }
                 }
-            } else {
-                console.log("⚠️ Not running in Telegram WebApp");
-                await createAnonymousUser();
             }
+            
+            // Only create anonymous if truly not a Telegram user
+            console.log("🌐 Creating anonymous user (Telegram without user data)");
+            await createAnonymousUser();
+        }
+    } else {
+        console.log("⚠️ Not running in Telegram WebApp");
+        await createAnonymousUser();
+    }
+}
+
+async function initializeFirebaseUser(tgUser) {
+    try {
+        // CRITICAL VALIDATION - THIS WAS MISSING
+        if (!tgUser || !tgUser.id) {
+            console.error("❌ Invalid Telegram user data:", tgUser);
+            await createAnonymousUser();
+            return;
         }
         
-        async function initializeFirebaseUser(tgUser) {
-            try {
-                const userId = `tg_${tgUser.id}`;
-                const userName = tgUser.first_name || tgUser.username || 'Telegram User';
-                const userEmail = tgUser.id ? `${tgUser.id}@telegram.miniapp` : 'anonymous@telegram.miniapp';
-                const profilePic = tgUser.photo_url || `https://placehold.co/100x100/1e1e1e/facc15?text=${userName.charAt(0).toUpperCase()}`;
-                
-                const userRef = doc(db, "users", userId);
-                const userSnap = await getDoc(userRef);
-                
-                if (userSnap.exists()) {
-                    userData = userSnap.data();
-                    currentUser = { uid: userId, email: userEmail, displayName: userName };
-                    console.log("✅ Existing user loaded from Firebase");
-                } else {
-                    const ownReferralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-                    const defaultUserData = { 
-                        uid: userId, 
-                        name: userName, 
-                        email: userEmail, 
-                        telegramId: tgUser.id,
-                        telegramUsername: tgUser.username,
-                        profilePicture: profilePic,
-                        balance: 100,
-                        referralCode: ownReferralCode, 
-                        referredBy: null, 
-                        createdAt: serverTimestamp(), 
-                        isBlocked: false, 
-                        dailyAdCount: 0, 
-                        lastAdWatchDate: '1970-01-01', 
-                        visitedSitesToday: [],
-                        lastSiteVisitDate: '1970-01-01',
-                        completedSocialTasks: [],
-                        country: userCountry || 'unknown',
-                        level: 1,
-                        totalEarned: 0,
-                        tasksCompleted: 0,
-                        ludoGamesPlayed: 0,
-                        ludoTotalWon: 0
-                    };
-                    
-                    await setDoc(doc(db, "users", userId), defaultUserData);
-                    userData = defaultUserData;
-                    currentUser = { uid: userId, email: userEmail, displayName: userName };
-                    console.log("✅ New Telegram user created in Firebase");
-                }
+        const userId = `tg_${tgUser.id}`;
+        const userName = tgUser.first_name || tgUser.username || 'Telegram User';
+        const userEmail = tgUser.id ? `${tgUser.id}@telegram.miniapp` : 'anonymous@telegram.miniapp';
+        const profilePic = tgUser.photo_url || `https://placehold.co/100x100/1e1e1e/facc15?text=${userName.charAt(0).toUpperCase()}`;
+        
+        console.log("🔥 Creating/updating Firebase user with ID:", userId);
+        console.log("👤 User name:", userName);
+        
+        const userRef = doc(db, "users", userId);
+        const userSnap = await getDoc(userRef);
+        
+        if (userSnap.exists()) {
+            userData = userSnap.data();
+            currentUser = { uid: userId, email: userEmail, displayName: userName };
+            console.log("✅ Existing Telegram user loaded from Firebase");
+            
+            // UPDATE TELEGRAM DATA IF MISSING - THIS WAS MISSING
+            if (!userData.telegramId) {
+                await updateDoc(userRef, {
+                    telegramId: tgUser.id,
+                    telegramUsername: tgUser.username,
+                    telegramFirstName: tgUser.first_name,
+                    telegramLastName: tgUser.last_name,
+                    profilePicture: profilePic,
+                    updatedAt: serverTimestamp()
+                });
+            }
+        } else {
+            const ownReferralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const defaultUserData = { 
+                uid: userId, 
+                name: userName, 
+                email: userEmail, 
+                telegramId: tgUser.id,
+                telegramUsername: tgUser.username,
+                telegramFirstName: tgUser.first_name, // THIS WAS MISSING
+                telegramLastName: tgUser.last_name,   // THIS WAS MISSING
+                profilePicture: profilePic,
+                balance: 100,
+                referralCode: ownReferralCode, 
+                referredBy: null, 
+                createdAt: serverTimestamp(), 
+                isBlocked: false, 
+                dailyAdCount: 0, 
+                lastAdWatchDate: '1970-01-01', 
+                visitedSitesToday: [],
+                lastSiteVisitDate: '1970-01-01',
+                completedSocialTasks: [],
+                country: userCountry || 'unknown',
+                level: 1,
+                totalEarned: 0,
+                tasksCompleted: 0,
+                ludoGamesPlayed: 0,
+                ludoTotalWon: 0,
+                source: 'telegram_webapp'  // THIS WAS MISSING
+            };
+            
+            await setDoc(doc(db, "users", userId), defaultUserData);
+            userData = defaultUserData;
+            currentUser = { uid: userId, email: userEmail, displayName: userName };
+            console.log("✅ New Telegram user created in Firebase");
+        }
+        
+        // Update UI
+        updateAllUI();
+        
+        // Load saved payment details
+        loadSavedPaymentDetails();
+        
+    } catch (error) {
+        console.error("❌ Error initializing Firebase user:", error);
+        
+        // FALLBACK WITH LOGGING - THIS WAS MISSING
+        console.log("🔄 Falling back to anonymous user due to error");
+        await createAnonymousUser();
+    }
+}
                 
                 // Load saved payment details
                 loadSavedPaymentDetails();
