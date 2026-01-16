@@ -1111,7 +1111,7 @@
             
             <!-- Auto-cancel timer display -->
             <div id="notice-auto-cancel-timer" class="notice-auto-cancel-timer hidden">
-                Auto closing in <span id="notice-timer-seconds">3</span> seconds
+                Auto closing in <span id="notice-timer-seconds">10</span> seconds
             </div>
             
             <div class="flex justify-center space-x-4">
@@ -1540,7 +1540,7 @@
 
         // ===== NOTICE AUTO-CANCEL VARIABLES =====
         let noticeAutoCancelTimer = null;
-        let noticeAutoCancelSeconds = 3;
+        let noticeAutoCancelSeconds = 10;
         let currentNoticeCancelable = true;
 
         const loader = document.getElementById('loader');
@@ -1648,7 +1648,7 @@
                     
                     // Show auto-cancel timer
                     noticeAutoCancelTimerEl.classList.remove('hidden');
-                    noticeAutoCancelSeconds = 3;
+                    noticeAutoCancelSeconds = 10;
                     noticeTimerSecondsEl.textContent = noticeAutoCancelSeconds;
                     
                     // Start auto-cancel countdown
