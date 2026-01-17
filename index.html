@@ -1815,9 +1815,16 @@
         async function updateBalance(amount, taskType = 'unknown', details = '') {
             if (!currentUser || amount === 0) return;
             
-            // For browser users, update localStorage only
+            console.log(`💰 Processing balance update: ${amount} points for ${taskType}`);
+            
+            // For ALL users, update balance
+            const oldBalance = userData.balance || 0;
+            const newBalance = oldBalance + amount;  // This ADDS points
+            
+            console.log(`💰 Balance: ${oldBalance} → ${newBalance} (${amount > 0 ? '+' : ''}${amount})`);
+            
+            // For browser users, update localStorage
             if (isBrowserUser()) {
-                const newBalance = (userData.balance || 0) + amount;
                 userData.balance = newBalance;
                 
                 if (amount > 0) {
@@ -1826,6 +1833,8 @@
                     
                     userData.totalEarned = totalEarned;
                     userData.tasksCompleted = tasksCompleted;
+                    
+                    console.log(`📊 Browser user stats updated: Total earned: ${totalEarned}, Tasks: ${tasksCompleted}`);
                 }
                 
                 // Save to localStorage
@@ -1837,32 +1846,56 @@
             }
             
             // For Telegram users, update Firebase
-            const newBalance = (userData.balance || 0) + amount;
-            
-            if (amount > 0) {
-                const totalEarned = (userData.totalEarned || 0) + amount;
-                const tasksCompleted = (userData.tasksCompleted || 0) + 1;
+            try {
+                if (amount > 0) {
+                    const totalEarned = (userData.totalEarned || 0) + amount;
+                    const tasksCompleted = (userData.tasksCompleted || 0) + 1;
+                    
+                    await updateDoc(doc(db, "users", currentUser.uid), { 
+                        balance: newBalance,
+                        totalEarned: totalEarned,
+                        tasksCompleted: tasksCompleted,
+                        lastUpdated: serverTimestamp()
+                    });
+                    
+                    userData.totalEarned = totalEarned;
+                    userData.tasksCompleted = tasksCompleted;
+                    
+                    console.log(`📊 Telegram user stats updated: Total earned: ${totalEarned}, Tasks: ${tasksCompleted}`);
+                } else {
+                    await updateDoc(doc(db, "users", currentUser.uid), { 
+                        balance: newBalance,
+                        lastUpdated: serverTimestamp()
+                    });
+                }
                 
-                await updateDoc(doc(db, "users", currentUser.uid), { 
-                    balance: newBalance,
-                    totalEarned: totalEarned,
-                    tasksCompleted: tasksCompleted
-                });
+                userData.balance = newBalance;
                 
-                userData.totalEarned = totalEarned;
-                userData.tasksCompleted = tasksCompleted;
-            } else {
-                await updateDoc(doc(db, "users", currentUser.uid), { balance: newBalance });
+                if (amount !== 0) {
+                    await recordPointHistory(currentUser.uid, taskType, amount, details);
+                }
+                
+                updateAllUI();
+                updateStatsUI();
+                
+            } catch (error) {
+                console.error("Error updating balance in Firebase:", error);
+                // Fallback to local storage for Telegram users if Firebase fails
+                if (amount > 0) {
+                    const totalEarned = (userData.totalEarned || 0) + amount;
+                    const tasksCompleted = (userData.tasksCompleted || 0) + 1;
+                    
+                    userData.totalEarned = totalEarned;
+                    userData.tasksCompleted = tasksCompleted;
+                }
+                userData.balance = newBalance;
+                
+                // Store temporarily in localStorage
+                localStorage.setItem(`temp_balance_${currentUser.uid}`, JSON.stringify(userData));
+                
+                updateAllUI();
+                updateStatsUI();
             }
-            
-            userData.balance = newBalance;
-            
-            if (amount !== 0) {
-                await recordPointHistory(currentUser.uid, taskType, amount, details);
-            }
-            
-            updateAllUI();
-            updateStatsUI();
         }
         
         // ===== FIXED: RECORD POINT HISTORY =====
@@ -3081,6 +3114,7 @@
             }
         }
         
+        // ===== FIXED: ROLL LUDO DICE FUNCTION =====
         async function rollLudoDice() {
             if (isLudoRolling || ludoButtonDisabled) return;
             
@@ -3101,18 +3135,14 @@
                 return;
             }
             
+            // Deduct game cost FIRST
+            await updateBalance(-gameCost, 'game_cost', `Paid ${gameCost} points for Ludo game`);
+            
             // Increment play count
             const newPlayCount = incrementGamePlayCount('ludoDice');
             
             isLudoRolling = true;
             ludoRollBtn.disabled = true;
-            
-            const newBalance = (userData.balance || 0) - gameCost;
-            await updateDoc(doc(db, "users", currentUser.uid), { 
-                balance: newBalance 
-            });
-            userData.balance = newBalance;
-            updateAllUI();
             
             // Animation
             let rolls = 0;
@@ -3190,11 +3220,11 @@
                 
                 hideAdLoadingPopup();
                 
-                // Reward successful - add bonus
+                // Reward successful - add bonus and win amount
                 const adBonus = 5;
                 const totalWin = currentLudoWin + adBonus;
                 
-                await updateBalance(totalWin, 'ludo_game', `Won ${totalWin} points from Ludo dice (incl. +${adBonus} bonus)`);
+                await updateBalance(totalWin, 'ludo_game', `Won ${currentLudoWin} points from Ludo dice (incl. +${adBonus} bonus)`);
                 
                 showAlert(`🎉 Congratulations! You earned ${totalWin} points (incl. +${adBonus} bonus from ad)!`);
                 diceResultPopup.style.display = 'none';
@@ -3208,11 +3238,11 @@
                     
                     hideAdLoadingPopup();
                     
-                    // Interstitial successful - add bonus
+                    // Interstitial successful - add bonus and win amount
                     const adBonus = 5;
                     const totalWin = currentLudoWin + adBonus;
                     
-                    await updateBalance(totalWin, 'ludo_game', `Won ${totalWin} points from Ludo dice (incl. +${adBonus} bonus)`);
+                    await updateBalance(totalWin, 'ludo_game', `Won ${currentLudoWin} points from Ludo dice (incl. +${adBonus} bonus)`);
                     
                     showAlert(`🎉 Congratulations! You earned ${totalWin} points (incl. +${adBonus} bonus from ad)!`);
                     diceResultPopup.style.display = 'none';
@@ -3221,12 +3251,14 @@
                     console.log("❌ AdsGram interstitial also failed:", interstitialError);
                     hideAdLoadingPopup();
                     
-                    // Both AdsGram ads failed - refund points
+                    // Both AdsGram ads failed - refund points and give win amount
                     const ludoConfig = gamesConfig.ludoDice || {};
                     const gameCost = ludoConfig.gameCost || 10;
-                    await updateBalance(gameCost, 'refund', 'Ludo dice game refund - AdsGram ads not available');
                     
-                    showAlert("⚠️ AdsGram ads not available. Your points have been refunded.");
+                    // Refund game cost and give win amount
+                    await updateBalance(gameCost + currentLudoWin, 'refund', 'Ludo dice game - AdsGram ads not available, refund + win');
+                    
+                    showAlert(`⚠️ AdsGram ads not available. You got ${currentLudoWin} points (refunded game cost + win).`);
                     diceResultPopup.style.display = 'none';
                 }
             }
@@ -3310,6 +3342,7 @@
             console.log(`⏱️ Watch & Earn card disabled for ${randomSeconds} seconds`);
         }
         
+        // ===== FIXED: START APP FUNCTION =====
         function startApp() {
             showMainPage('app-container');
             navigateTo('home-page');
@@ -3356,7 +3389,7 @@
             }
         }
         
-        // ===== COUNTRY DETECTION =====
+        // ===== FIXED: COUNTRY DETECTION =====
         async function detectUserCountry() {
             try {
                 const configSnap = await getDoc(doc(db, "config", "main"));
@@ -3701,7 +3734,7 @@
             }
         }
         
-        // ===== USER DATA FUNCTIONS =====
+        // ===== FIXED: USER DATA FUNCTIONS =====
         async function fetchUserData() {
             if (!currentUser) return;
             
@@ -3710,71 +3743,84 @@
                 const savedData = localStorage.getItem('browserUserData');
                 if (savedData) {
                     userData = JSON.parse(savedData);
+                    console.log("✅ Loaded browser user data from localStorage");
                 }
                 return;
             }
             
             // For Telegram users, load from Firebase
-            const userRef = doc(db, "users", currentUser.uid);
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) { 
-                userData = userSnap.data(); 
-                if (!userCountry && userData.country) {
-                    userCountry = userData.country;
+            try {
+                const userRef = doc(db, "users", currentUser.uid);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) { 
+                    userData = userSnap.data(); 
+                    if (!userCountry && userData.country) {
+                        userCountry = userData.country;
+                    }
+                    console.log("✅ Loaded Telegram user data from Firebase");
                 }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
             }
         }
 
         async function fetchAppConfig() {
-            const configRef = doc(db, "config", "main");
-            const configSnap = await getDoc(configRef);
-            
-            // Load existing config or create minimal defaults
-            if (configSnap.exists()) {
-                appConfig = configSnap.data();
-            } else {
-                // Only set basic defaults for fresh install
-                appConfig = {
-                    referralRules: ["Your friend must sign up.", "Bonus is credited after they apply the code."],
-                    referralShareText: "Join CashReward and earn money! Use my code {CODE} to get a bonus. App link: {APP_LINK}"
-                };
+            try {
+                const configRef = doc(db, "config", "main");
+                const configSnap = await getDoc(configRef);
+                
+                // Load existing config or create minimal defaults
+                if (configSnap.exists()) {
+                    appConfig = configSnap.data();
+                    console.log("✅ Loaded app configuration from Firebase");
+                } else {
+                    // Only set basic defaults for fresh install
+                    appConfig = {
+                        referralRules: ["Your friend must sign up.", "Bonus is credited after they apply the code."],
+                        referralShareText: "Join CashReward and earn money! Use my code {CODE} to get a bonus. App link: {APP_LINK}"
+                    };
+                    console.log("⚠️ No app config found, using minimal defaults");
+                }
+                
+                // Ensure arrays exist but don't overwrite custom data
+                if (!Array.isArray(appConfig.websitesToVisit)) {
+                    appConfig.websitesToVisit = [];
+                }
+                if (!Array.isArray(appConfig.socialTasks)) {
+                    appConfig.socialTasks = [];
+                }
+                if (!Array.isArray(appConfig.sliderBanners)) {
+                    appConfig.sliderBanners = [
+                        {img: "https://images.unsplash.com/photo-1611605698335-8b1569810432?q=80&w=1974&auto=format&fit=crop", link: "#"},
+                        {img: "https://images.unsplash.com/photo-1611224923853-80b023f02d71?q=80&w=2069&auto=format&fit=crop", link: "#"},
+                        {img: "https://images.unsplash.com/photo-1611605698335-8b1569810432?q=80&w=1974&auto=format&fit=crop", link: "#"}
+                    ];
+                }
+                
+                // Set defaults only for missing special task configs
+                if (!appConfig.watchAdSpecialTaskCount) appConfig.watchAdSpecialTaskCount = 10;
+                if (!appConfig.watchAdSpecialTaskReward) appConfig.watchAdSpecialTaskReward = 100;
+                if (!appConfig.watchAdSpecialTaskTimer) appConfig.watchAdSpecialTaskTimer = 60;
+                if (!appConfig.colorGameSpecialTaskCount) appConfig.colorGameSpecialTaskCount = 20;
+                if (!appConfig.colorGameSpecialTaskReward) appConfig.colorGameSpecialTaskReward = 200;
+                if (!appConfig.colorGameSpecialTaskTimer) appConfig.colorGameSpecialTaskTimer = 45;
+                if (!appConfig.ludoDiceSpecialTaskCount) appConfig.ludoDiceSpecialTaskCount = 30;
+                if (!appConfig.ludoDiceSpecialTaskReward) appConfig.ludoDiceSpecialTaskReward = 150;
+                if (!appConfig.ludoDiceSpecialTaskTimer) appConfig.ludoDiceSpecialTaskTimer = 30;
+                if (!appConfig.paymentMethods) appConfig.paymentMethods = ["UPI", "Paytm", "PayPal"];
+                if (!appConfig.adWatchReward) appConfig.adWatchReward = 50;
+                if (!appConfig.colorGameReward) appConfig.colorGameReward = 100;
+                if (!appConfig.ludoGameCost) appConfig.ludoGameCost = 10;
+                if (!appConfig.minWithdrawal) appConfig.minWithdrawal = 1000;
+                if (!appConfig.coinValueCoins) appConfig.coinValueCoins = 1000;
+                if (!appConfig.coinValueInr) appConfig.coinValueInr = 10;
+                if (!appConfig.referralBonus) appConfig.referralBonus = 100;
+                
+                return appConfig;
+            } catch (error) {
+                console.error("Error fetching app config:", error);
+                return {};
             }
-            
-            // Ensure arrays exist but don't overwrite custom data
-            if (!Array.isArray(appConfig.websitesToVisit)) {
-                appConfig.websitesToVisit = [];
-            }
-            if (!Array.isArray(appConfig.socialTasks)) {
-                appConfig.socialTasks = [];
-            }
-            if (!Array.isArray(appConfig.sliderBanners)) {
-                appConfig.sliderBanners = [
-                    {img: "https://images.unsplash.com/photo-1611605698335-8b1569810432?q=80&w=1974&auto=format&fit=crop", link: "#"},
-                    {img: "https://images.unsplash.com/photo-1611224923853-80b023f02d71?q=80&w=2069&auto=format&fit=crop", link: "#"},
-                    {img: "https://images.unsplash.com/photo-1611605698335-8b1569810432?q=80&w=1974&auto=format&fit=crop", link: "#"}
-                ];
-            }
-            
-            // Set defaults only for missing special task configs
-            if (!appConfig.watchAdSpecialTaskCount) appConfig.watchAdSpecialTaskCount = 10;
-            if (!appConfig.watchAdSpecialTaskReward) appConfig.watchAdSpecialTaskReward = 100;
-            if (!appConfig.watchAdSpecialTaskTimer) appConfig.watchAdSpecialTaskTimer = 60;
-            if (!appConfig.colorGameSpecialTaskCount) appConfig.colorGameSpecialTaskCount = 20;
-            if (!appConfig.colorGameSpecialTaskReward) appConfig.colorGameSpecialTaskReward = 200;
-            if (!appConfig.colorGameSpecialTaskTimer) appConfig.colorGameSpecialTaskTimer = 45;
-            if (!appConfig.ludoDiceSpecialTaskCount) appConfig.ludoDiceSpecialTaskCount = 30;
-            if (!appConfig.ludoDiceSpecialTaskReward) appConfig.ludoDiceSpecialTaskReward = 150;
-            if (!appConfig.ludoDiceSpecialTaskTimer) appConfig.ludoDiceSpecialTaskTimer = 30;
-            if (!appConfig.paymentMethods) appConfig.paymentMethods = ["UPI", "Paytm", "PayPal"];
-            if (!appConfig.adWatchReward) appConfig.adWatchReward = 50;
-            if (!appConfig.colorGameReward) appConfig.colorGameReward = 100;
-            if (!appConfig.ludoGameCost) appConfig.ludoGameCost = 10;
-            if (!appConfig.minWithdrawal) appConfig.minWithdrawal = 1000;
-            if (!appConfig.coinValueCoins) appConfig.coinValueCoins = 1000;
-            if (!appConfig.coinValueInr) appConfig.coinValueInr = 10;
-            if (!appConfig.referralBonus) appConfig.referralBonus = 100;
-            
-            return appConfig;
         }
         
         function updateAllUI() {
@@ -4036,14 +4082,12 @@
                 return;
             }
             
-            // Increment play count
-            const newCount = (userData.dailyAdCount || 0) + 1;
-            
             // Update user data based on user type
             if (isBrowserUser()) {
-                userData.dailyAdCount = newCount;
+                userData.dailyAdCount = (userData.dailyAdCount || 0) + 1;
                 localStorage.setItem('browserUserData', JSON.stringify(userData));
             } else {
+                const newCount = (userData.dailyAdCount || 0) + 1;
                 await updateDoc(doc(db, "users", currentUser.uid), { 
                     dailyAdCount: newCount 
                 });
@@ -4052,7 +4096,7 @@
             
             // Check for special task
             const specialTaskCount = appConfig.watchAdSpecialTaskCount || 10;
-            if (newCount > 0 && newCount % specialTaskCount === 0) {
+            if (userData.dailyAdCount > 0 && userData.dailyAdCount % specialTaskCount === 0) {
                 showSpecialTask();
             } else {
                 try {
