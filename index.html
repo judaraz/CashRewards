@@ -1,0 +1,2005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash Reward - Fast Ads</title>
+    
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- AdsGram SDK - Loaded but not initialized yet -->
+    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Tailwind & Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+            color: #ffffff; 
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .main-bg { 
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+        }
+        
+        .card-bg { 
+            background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(0,0,0,0.2));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .premium-card {
+            background: linear-gradient(145deg, rgba(250, 204, 21, 0.1), rgba(0, 0, 0, 0.3));
+            border: 1px solid rgba(250, 204, 21, 0.2);
+            box-shadow: 0 10px 40px rgba(250, 204, 21, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .gold-text {
+            background: linear-gradient(45deg, #FFD700, #FFA500, #FFD700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        
+        .input-field { 
+            background: rgba(255, 255, 255, 0.05); 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: #facc15;
+            box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.2);
+        }
+        
+        .accent-yellow { 
+            color: #facc15; 
+            text-shadow: 0 0 10px rgba(250, 204, 21, 0.5);
+        }
+        
+        .accent-yellow-bg { 
+            background: linear-gradient(45deg, #facc15, #eab308, #facc15);
+            color: #1a1a1a;
+            font-weight: bold;
+            box-shadow: 0 4px 20px rgba(250, 204, 21, 0.3);
+        }
+        
+        .btn, .btn-accent { 
+            transition: all 0.3s ease; 
+            transform: scale(1); 
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn:active, .btn-accent:active { 
+            transform: scale(0.95); 
+        }
+        
+        .btn-accent { 
+            background: linear-gradient(45deg, #facc15, #eab308);
+            color: #1a1a1a; 
+            font-weight: bold;
+            box-shadow: 0 6px 20px rgba(250, 204, 21, 0.4);
+            border: none;
+        }
+        
+        .btn-accent:hover { 
+            background: linear-gradient(45deg, #eab308, #facc15);
+            box-shadow: 0 8px 25px rgba(250, 204, 21, 0.5);
+        }
+        
+        .btn-accent[disabled] { 
+            background: #4a4a4a; 
+            color: #888; 
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        .main-page { 
+            display: none; 
+            min-height: 100vh;
+        }
+        
+        .main-page.active { 
+            display: flex; 
+            animation: fadeIn 0.5s ease-in-out; 
+        }
+        
+        .sub-page { 
+            display: none; 
+        }
+        
+        .sub-page.active { 
+            display: block; 
+            animation: fadeIn 0.3s ease-in-out; 
+        }
+        
+        .bottom-nav { 
+            background: rgba(20, 20, 40, 0.9);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(250, 204, 21, 0.2);
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .bottom-nav a { 
+            color: #a1a1aa; 
+            transition: all 0.3s ease; 
+            position: relative;
+        }
+        
+        .bottom-nav a.active { 
+            color: #facc15; 
+        }
+        
+        .feature-btn { 
+            background: linear-gradient(145deg, rgba(250, 204, 21, 0.15), rgba(0, 0, 0, 0.3));
+            border-radius: 20px; 
+            padding: 1.5rem; 
+            color: #ffffff; 
+            font-weight: 700; 
+            text-align: center; 
+            box-shadow: 0 8px 30px rgba(250, 204, 21, 0.2);
+            transition: all 0.3s ease; 
+            cursor: pointer; 
+            border: 1px solid rgba(250, 204, 21, 0.2);
+        }
+        
+        .feature-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(250, 204, 21, 0.3);
+        }
+        
+        .feature-btn:active { 
+            transform: translateY(-2px); 
+        }
+        
+        /* Ad Status Indicator */
+        .ad-status {
+            position: fixed;
+            top: 70px;
+            right: 10px;
+            background: rgba(52, 152, 219, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            z-index: 99;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .ad-status.gigapub { background: linear-gradient(45deg, #9b59b6, #8e44ad); }
+        .ad-status.adsgram { background: linear-gradient(45deg, #2ecc71, #27ae60); }
+        .ad-status.loading { background: linear-gradient(45deg, #f1c40f, #f39c12); }
+        .ad-status.error { background: linear-gradient(45deg, #e74c3c, #c0392b); }
+        
+        /* Ad Loading Popup */
+        .ad-loading-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+        }
+        
+        .ad-loading-content {
+            background: linear-gradient(145deg, rgba(20, 20, 40, 0.95), rgba(10, 10, 30, 0.95));
+            border-radius: 25px;
+            padding: 30px;
+            max-width: 350px;
+            text-align: center;
+            border: 2px solid rgba(250, 204, 21, 0.3);
+        }
+        
+        .ad-loading-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #facc15;
+            animation: spin 1s linear infinite;
+        }
+        
+        .ad-loading-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+        
+        .ad-loading-message {
+            color: #a1a1aa;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .ad-loading-provider {
+            color: #facc15;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(20px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        
+        /* Premium Loader */
+        .premium-loader {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(250, 204, 21, 0.1);
+            border-radius: 50%;
+            border-top-color: #facc15;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        /* Dice Game */
+        .ludo-board {
+            width: 250px;
+            height: 250px;
+            background: white;
+            border-radius: 16px;
+            border: 6px solid #2c3e50;
+            position: relative;
+            transform: rotate(45deg);
+            margin: 20px auto;
+            overflow: hidden;
+        }
+        
+        .quadrant {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+        }
+        
+        .quadrant-1 { top: 0; left: 0; background: #ff6b6b; }
+        .quadrant-2 { top: 0; right: 0; background: #4ecdc4; }
+        .quadrant-3 { bottom: 0; left: 0; background: #ffd93d; }
+        .quadrant-4 { bottom: 0; right: 0; background: #6c5ce7; }
+        
+        .board-center {
+            position: absolute;
+            width: 40%;
+            height: 40%;
+            background: white;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 3px solid #2c3e50;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .board-center span {
+            transform: rotate(-45deg);
+            font-weight: 800;
+            color: #2c3e50;
+            font-size: 20px;
+        }
+        
+        .dice-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 10px;
+            border: 4px solid #2c3e50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 900;
+            color: #2c3e50;
+            z-index: 10;
+        }
+        
+        .dice-roll-btn {
+            background: linear-gradient(45deg, #facc15, #eab308);
+            color: #1a1a1a;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 15px;
+            cursor: pointer;
+            margin: 20px auto;
+            width: 100%;
+            max-width: 280px;
+        }
+        
+        .dice-roll-btn:disabled {
+            background: #4a4a4a;
+            color: #888;
+            cursor: not-allowed;
+        }
+        
+        .dice-result-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+        
+        .dice-result-content {
+            background: linear-gradient(145deg, rgba(20, 20, 40, 0.95), rgba(10, 10, 30, 0.95));
+            border-radius: 25px;
+            padding: 30px;
+            max-width: 350px;
+            text-align: center;
+            border: 2px solid rgba(250, 204, 21, 0.3);
+        }
+        
+        .dice-result-icon { font-size: 60px; margin-bottom: 10px; }
+        .dice-result-title { font-size: 24px; font-weight: bold; color: gold; margin-bottom: 10px; }
+        .dice-faces { font-size: 48px; margin: 10px 0; }
+        .dice-win-amount { font-size: 32px; font-weight: 900; color: #34c759; margin: 15px 0; }
+        
+        /* Color Game */
+        #target-color-box { width: 100px; height: 50px; border-radius: 10px; margin: 15px auto; }
+        #color-options-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+        #color-options-grid div { height: 80px; border-radius: 10px; cursor: pointer; transition: all 0.3s; }
+        #color-options-grid div:hover { transform: scale(1.05); box-shadow: 0 0 15px gold; }
+        
+        /* Custom Alert */
+        #custom-alert {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+        }
+        
+        .custom-alert-content {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 300px;
+            text-align: center;
+            border: 2px solid #facc15;
+        }
+        
+        /* Admin Connection Status */
+        .admin-connection-status {
+            position: fixed;
+            top: 110px;
+            right: 10px;
+            background: rgba(52, 152, 219, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+            z-index: 99;
+            backdrop-filter: blur(10px);
+        }
+        
+        .admin-connection-status.connected { background: linear-gradient(45deg, #2ecc71, #27ae60); }
+        .admin-connection-status.disconnected { background: linear-gradient(45deg, #7f8c8d, #95a5a6); }
+        
+        /* Countdown Timer */
+        .countdown-timer {
+            font-size: 12px;
+            color: #facc15;
+            margin-top: 5px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 400px) {
+            .feature-btn { padding: 1rem; }
+            .feature-btn .w-16 { width: 48px; height: 48px; }
+        }
+    </style>
+</head>
+<body class="max-w-md mx-auto">
+
+    <!-- Ad Loading Popup -->
+    <div id="ad-loading-popup" class="ad-loading-popup">
+        <div class="ad-loading-content">
+            <div class="ad-loading-icon">
+                <i class="fas fa-spinner"></i>
+            </div>
+            <div class="ad-loading-title">Loading Ad</div>
+            <div class="ad-loading-message" id="ad-loading-message">Please wait...</div>
+            <div class="ad-loading-provider" id="ad-loading-provider"></div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-container" class="min-h-screen flex-col main-page main-bg active">
+        
+        <!-- Ad Status Indicator -->
+        <div id="adStatusDisplay" class="ad-status loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span id="adStatusText">Loading Ads...</span>
+        </div>
+        
+        <!-- Admin Connection Status -->
+        <div id="admin-connection-status" class="admin-connection-status disconnected">
+            <i class="fas fa-database"></i>
+            <span id="admin-connection-text">Connecting...</span>
+        </div>
+        
+        <!-- Header -->
+        <header class="p-4 flex items-center justify-between" style="background: rgba(20,20,40,0.9); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(250,204,21,0.2);">
+            <div class="flex items-center space-x-3">
+                <div class="relative">
+                    <img src="https://placehold.co/100x100/1e1e1e/facc15?text=U" id="profile-picture" class="rounded-full border-2 border-yellow-400 w-12 h-12 object-cover">
+                </div>
+                <div>
+                    <h2 class="font-bold text-lg leading-tight gold-text" id="header-profile-name">Loading...</h2>
+                    <p class="text-gray-300 text-xs">CashReward</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 bg-black/30 px-3 py-2 rounded-full">
+                <span id="header-coin-balance" class="font-bold text-lg gold-text">0</span>
+                <i class="fas fa-coins accent-yellow"></i>
+            </div>
+        </header>
+        
+        <main class="flex-grow">
+            <div id="back-button-container" class="hidden p-4">
+                <button onclick="navigateTo('home-page')" class="flex items-center accent-yellow font-bold">
+                    <i class="fas fa-arrow-left mr-3"></i> Back to Home
+                </button>
+            </div>
+            
+            <!-- Home Page -->
+            <div id="home-page" class="p-4 space-y-6 sub-page active">
+                <!-- Welcome Banner -->
+                <div class="premium-card p-5 rounded-2xl text-center">
+                    <h1 class="text-xl font-bold mb-2 gold-text">Welcome to CashReward</h1>
+                    <p class="text-gray-300 text-sm">Complete tasks, play games & earn!</p>
+                </div>
+                
+                <!-- Slider -->
+                <div id="slider-container" class="hidden">
+                    <div class="slider-wrapper flex overflow-hidden rounded-xl"></div>
+                    <div class="slider-dots flex justify-center mt-2 gap-2"></div>
+                </div>
+                
+                <!-- Features Grid -->
+                <div id="features-grid" class="grid grid-cols-2 gap-4"></div>
+                
+                <!-- Stats -->
+                <div class="grid grid-cols-3 gap-4 mt-4">
+                    <div class="card-bg p-3 rounded-xl text-center">
+                        <i class="fas fa-fire accent-yellow text-lg mb-1"></i>
+                        <p class="text-xs text-gray-300">Today</p>
+                        <p class="text-base font-bold gold-text" id="today-earnings">0</p>
+                    </div>
+                    <div class="card-bg p-3 rounded-xl text-center">
+                        <i class="fas fa-tasks accent-yellow text-lg mb-1"></i>
+                        <p class="text-xs text-gray-300">Tasks</p>
+                        <p class="text-base font-bold gold-text" id="tasks-done">0</p>
+                    </div>
+                    <div class="card-bg p-3 rounded-xl text-center">
+                        <i class="fas fa-trophy accent-yellow text-lg mb-1"></i>
+                        <p class="text-xs text-gray-300">Level</p>
+                        <p class="text-base font-bold gold-text" id="user-level">1</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ludo Game Page -->
+            <div id="ludo-game-page" class="p-4 sub-page">
+                <h2 class="text-2xl font-bold text-center mb-2 gold-text">Ludo Dice Game</h2>
+                
+                <div class="premium-card p-4 rounded-2xl">
+                    <div class="text-center mb-4">
+                        <div class="text-lg font-bold gold-text" id="ludo-game-cost">10 Points</div>
+                        <div class="text-xs text-gray-400 mt-1">Watch ads for bonus points</div>
+                    </div>
+                    
+                    <div class="ludo-board">
+                        <div class="quadrant quadrant-1"></div>
+                        <div class="quadrant quadrant-2"></div>
+                        <div class="quadrant quadrant-3"></div>
+                        <div class="quadrant quadrant-4"></div>
+                        <div class="board-center"><span>LUDO</span></div>
+                        <div class="dice-display" id="ludo-dice-display">6</div>
+                    </div>
+                    
+                    <button id="ludo-roll-btn" class="dice-roll-btn">
+                        <i class="fas fa-dice"></i> <span id="roll-btn-text">ROLL DICE</span>
+                    </button>
+                    <div id="ludo-countdown" class="countdown-timer text-center hidden"></div>
+                </div>
+            </div>
+            
+            <!-- Color Game Page -->
+            <div id="color-game-page" class="p-4 sub-page">
+                <h2 class="text-2xl font-bold text-center mb-2 gold-text">Color Game</h2>
+                <div class="premium-card p-4 rounded-2xl">
+                    <p class="text-center mb-3 text-sm">Find this color:</p>
+                    <div id="target-color-box"></div>
+                    <p id="target-color-rgb" class="text-center font-mono text-sm"></p>
+                    <div id="color-options-grid" class="grid grid-cols-3 gap-3 mt-4"></div>
+                </div>
+            </div>
+            
+            <!-- Color Game Popup -->
+            <div id="color-game-popup" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+                <div class="premium-card rounded-2xl p-6 w-full max-w-sm text-center">
+                    <i class="fas fa-trophy text-4xl accent-yellow mb-3"></i>
+                    <h3 class="text-xl font-bold gold-text mb-2">Correct!</h3>
+                    <p id="color-game-reward-message" class="text-sm mb-4"></p>
+                    <button id="claim-color-reward-btn" class="btn-accent px-6 py-3 w-full font-bold">Claim Reward</button>
+                </div>
+            </div>
+            
+            <!-- Dice Result Popup -->
+            <div id="dice-result-popup" class="dice-result-popup">
+                <div class="dice-result-content">
+                    <div class="dice-result-icon">🎲</div>
+                    <div class="dice-result-title">DICE RESULT</div>
+                    <div class="dice-faces" id="dice-result-face">⚅</div>
+                    <div class="dice-win-amount" id="dice-win-amount">100 POINTS</div>
+                    <button id="dice-claim-btn" class="btn-accent px-6 py-3 w-full font-bold mt-3">
+                        RECEIVE BONUS
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Visit & Earn Page -->
+            <div id="visit-earn-page" class="p-4 sub-page">
+                <h2 class="text-2xl font-bold text-center mb-2 gold-text">Visit & Earn</h2>
+                <div id="website-list" class="space-y-3"></div>
+            </div>
+            
+            <!-- Social Tasks Page -->
+            <div id="social-tasks-page" class="p-4 sub-page">
+                <h2 class="text-2xl font-bold text-center mb-2 gold-text">Social Tasks</h2>
+                <div id="social-tasks-list" class="space-y-3"></div>
+            </div>
+            
+            <!-- Wallet Page -->
+            <div id="wallet-page" class="p-4 sub-page">
+                <h2 class="text-2xl font-bold text-center mb-2 gold-text">My Wallet</h2>
+                <div class="premium-card p-5 rounded-2xl">
+                    <p class="text-sm mb-2">Balance: <span class="font-bold gold-text text-xl" id="wallet-coin-balance">0.00</span> Coins</p>
+                    <p class="text-xs text-gray-400 mb-3" id="coin-value-info">1000 Coins = ₹10</p>
+                    
+                    <input id="withdraw-amount" type="number" placeholder="Coin amount" class="w-full p-3 rounded-xl input-field mb-3 text-sm" min="1000">
+                    
+                    <select id="withdraw-method" class="w-full p-3 rounded-xl input-field mb-3 text-sm"></select>
+                    
+                    <div id="payment-details-container"></div>
+                    <div id="payment-validation-message" class="text-xs text-red-400 mt-2 mb-2 hidden"></div>
+                    
+                    <button id="withdraw-btn" class="w-full p-3 btn-accent mt-3 text-sm font-bold">Request Withdrawal</button>
+                </div>
+                
+                <h3 class="text-lg font-bold my-3 gold-text">History</h3>
+                <div id="withdrawal-history-list" class="space-y-3"></div>
+            </div>
+            
+            <!-- Refer Page -->
+            <div id="refer-page" class="p-4 sub-page">
+                <h2 class="text-2xl font-bold text-center mb-2 gold-text">Refer & Earn</h2>
+                <div class="premium-card p-5 rounded-2xl">
+                    <p id="referral-bonus-info" class="text-sm mb-4">Refer a friend and get 100 coins!</p>
+                    <p class="text-xs text-gray-400 mb-2">Your Code</p>
+                    <div class="bg-gray-800 p-3 rounded-xl flex items-center justify-between mb-4">
+                        <span id="referral-code" class="text-xl font-bold gold-text">...</span>
+                        <button id="copy-code-btn" class="text-gray-300 hover:text-yellow-400">
+                            <i class="fas fa-copy text-xl"></i>
+                        </button>
+                    </div>
+                    <div id="referral-rules-container" class="text-xs"></div>
+                </div>
+                <button id="share-btn" class="w-full p-3 btn-accent mt-4 text-sm font-bold">
+                    <i class="fas fa-share-alt mr-2"></i>Share Code
+                </button>
+                <div class="premium-card p-4 rounded-2xl mt-4">
+                    <h3 class="font-bold mb-2 text-center">Have a code?</h3>
+                    <input id="enter-referral-code" type="text" placeholder="Enter code" class="w-full p-3 rounded-xl input-field mb-3 text-sm">
+                    <button id="apply-referral-btn" class="w-full p-3 bg-gray-700 text-white rounded-xl text-sm font-bold">Apply</button>
+                </div>
+            </div>
+            
+            <!-- Profile Page -->
+            <div id="profile-page" class="p-4 sub-page">
+                <h2 class="text-2xl font-bold text-center mb-2 gold-text">Profile</h2>
+                <div class="premium-card p-5 rounded-2xl flex flex-col items-center">
+                    <img src="" id="profile-page-picture" class="rounded-full w-20 h-20 object-cover border-3 border-yellow-400 mb-3">
+                    <h2 id="profile-page-name" class="text-lg font-bold gold-text">User Name</h2>
+                    <p id="profile-page-email" class="text-xs text-gray-300 mb-4">user@email.com</p>
+                    
+                    <div class="grid grid-cols-2 gap-4 w-full mt-2">
+                        <div class="bg-gray-800 p-2 rounded-xl text-center">
+                            <p class="text-xs text-gray-300">Member Since</p>
+                            <p class="text-sm font-bold gold-text" id="member-since">Today</p>
+                        </div>
+                        <div class="bg-gray-800 p-2 rounded-xl text-center">
+                            <p class="text-xs text-gray-300">Total Earned</p>
+                            <p class="text-sm font-bold gold-text" id="total-earned">0.00</p>
+                        </div>
+                    </div>
+                </div>
+                <button id="logout-btn" class="w-full mt-4 p-3 rounded-xl bg-red-600 text-white text-sm font-bold">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Close App
+                </button>
+            </div>
+        </main>
+        
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav sticky bottom-0 grid grid-cols-4 items-center text-center py-3 rounded-t-3xl">
+            <a href="#" class="nav-link active" data-page="home-page">
+                <i class="fas fa-home text-xl mb-1"></i>
+            </a>
+            <a href="#" class="nav-link" data-page="refer-page">
+                <i class="fas fa-users text-xl mb-1"></i>
+            </a>
+            <a href="#" class="nav-link" data-page="wallet-page">
+                <i class="fas fa-wallet text-xl mb-1"></i>
+            </a>
+            <a href="#" class="nav-link" data-page="profile-page">
+                <i class="fas fa-user text-xl mb-1"></i>
+            </a>
+        </nav>
+    </div>
+    
+    <!-- Custom Alert -->
+    <div id="custom-alert" class="custom-alert" style="display: none;">
+        <div class="custom-alert-content">
+            <i class="fas fa-info-circle text-4xl accent-yellow mb-3"></i>
+            <p id="alert-message" class="mb-4 text-sm"></p>
+            <button id="alert-ok-btn" class="btn-accent px-6 py-2 text-sm font-bold w-full">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBEvTvWy-hH1HHgjoOhUKkj-Dglm11Oc8U",
+            authDomain: "cash-rewards-01-624ae.firebaseapp.com",
+            projectId: "cash-rewards-01-624ae",
+            storageBucket: "cash-rewards-01-624ae.firebasestorage.app",
+            messagingSenderId: "29119912449",
+            appId: "1:29119912449:web:e0c68c1994ff0a71603e00"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        // ============================================
+        // GLOBAL VARIABLES
+        // ============================================
+        let currentUser = null;
+        let userData = null;
+        let appConfig = {};
+        let gamesConfig = {};
+        let userCountry = null;
+        let isTelegramWebApp = false;
+        
+        // Ad Provider Status
+        let gigapubAvailable = true;
+        let adsgramAvailable = false;
+        let adsgramController = null;
+        
+        // Ad Sequence Variables
+        let adSequenceInProgress = false;
+        let adSequenceTimer = null;
+        const AD_TIMEOUT = 8000; // 8 seconds timeout for ads on slow connection
+        
+        // Game Variables
+        let currentLudoDice = 6;
+        let currentLudoWin = 0;
+        let isLudoRolling = false;
+        let ludoButtonDisabled = false;
+        const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+        
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        window.onload = async () => {
+            setupEventListeners();
+            await initializeTelegramUser();
+            initializeTelegramWebApp();
+            
+            // Initialize AdsGram (but don't preload)
+            initializeAdsGram();
+            
+            // Detect country
+            await detectUserCountry();
+            
+            // Start app
+            startApp();
+        };
+        
+        function setupEventListeners() {
+            // Navigation
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    navigateTo(link.dataset.page);
+                });
+            });
+            
+            // Alert OK button
+            document.getElementById('alert-ok-btn').addEventListener('click', () => {
+                document.getElementById('custom-alert').style.display = 'none';
+            });
+            
+            // Color game claim
+            document.getElementById('claim-color-reward-btn').addEventListener('click', claimColorGameReward);
+            
+            // Ludo game
+            document.getElementById('ludo-roll-btn').addEventListener('click', rollLudoDice);
+            document.getElementById('dice-claim-btn').addEventListener('click', closeDiceResult);
+            
+            // Withdraw
+            document.getElementById('withdraw-btn').addEventListener('click', handleWithdrawal);
+            
+            // Referral
+            document.getElementById('copy-code-btn').addEventListener('click', copyReferralCode);
+            document.getElementById('share-btn').addEventListener('click', shareReferralCode);
+            document.getElementById('apply-referral-btn').addEventListener('click', handleApplyReferralCode);
+            
+            // Logout
+            document.getElementById('logout-btn').addEventListener('click', () => {
+                if (isTelegramWebApp && window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.close();
+                } else {
+                    showAlert('You can close the app to logout.');
+                }
+            });
+        }
+        
+        async function initializeTelegramUser() {
+            if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+                isTelegramWebApp = true;
+                const tg = window.Telegram.WebApp;
+                const user = tg.initDataUnsafe?.user;
+                
+                if (user) {
+                    const userId = `tg_${user.id}`;
+                    const userName = user.first_name || 'User';
+                    const profilePic = user.photo_url || `https://placehold.co/100x100/1e1e1e/facc15?text=${userName.charAt(0)}`;
+                    
+                    document.getElementById('header-profile-name').textContent = `Hi, ${userName}`;
+                    document.getElementById('profile-picture').src = profilePic;
+                    
+                    // Get user from Firestore or create
+                    await getOrCreateUser(userId, {
+                        name: userName,
+                        email: `${user.id}@telegram.miniapp`,
+                        profilePicture: profilePic,
+                        telegramId: user.id.toString(),
+                        telegramUsername: user.username || '-'
+                    });
+                } else {
+                    createGuestUser();
+                }
+            } else {
+                createGuestUser();
+            }
+        }
+        
+        async function getOrCreateUser(userId, userInfo) {
+            try {
+                const userRef = db.collection('users').doc(userId);
+                const userSnap = await userRef.get();
+                
+                if (userSnap.exists) {
+                    userData = userSnap.data();
+                    currentUser = { uid: userId };
+                    
+                    // Update last seen
+                    await userRef.update({
+                        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                        profilePicture: userInfo.profilePicture || userData.profilePicture
+                    });
+                    
+                    console.log('✅ Existing user loaded');
+                } else {
+                    const newUser = {
+                        uid: userId,
+                        name: userInfo.name,
+                        email: userInfo.email,
+                        profilePicture: userInfo.profilePicture,
+                        telegramId: userInfo.telegramId,
+                        telegramUsername: userInfo.telegramUsername,
+                        balance: 0,
+                        referralCode: generateReferralCode(),
+                        referredBy: null,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                        isBlocked: false,
+                        dailyAdCount: 0,
+                        lastAdWatchDate: '1970-01-01',
+                        visitedSitesToday: [],
+                        lastSiteVisitDate: '1970-01-01',
+                        completedSocialTasks: [],
+                        country: userCountry || 'unknown',
+                        totalEarned: 0,
+                        tasksCompleted: 0,
+                        userType: 'telegram'
+                    };
+                    
+                    await userRef.set(newUser);
+                    userData = newUser;
+                    currentUser = { uid: userId };
+                    
+                    console.log('✅ New user created');
+                }
+                
+                updateAllUI();
+                
+            } catch (error) {
+                console.error('Error with user:', error);
+                createGuestUser();
+            }
+        }
+        
+        function createGuestUser() {
+            const guestId = `guest_${Date.now()}`;
+            userData = {
+                uid: guestId,
+                name: 'Guest User',
+                email: 'guest@local',
+                profilePicture: 'https://placehold.co/100x100/1e1e1e/facc15?text=G',
+                balance: 50,
+                referralCode: 'GUEST',
+                country: userCountry || 'unknown',
+                userType: 'guest',
+                dailyAdCount: 0,
+                visitedSitesToday: [],
+                completedSocialTasks: []
+            };
+            currentUser = { uid: guestId };
+            
+            document.getElementById('header-profile-name').textContent = 'Hi, Guest';
+            document.getElementById('profile-picture').src = 'https://placehold.co/100x100/1e1e1e/facc15?text=G';
+            
+            updateAllUI();
+            console.log('✅ Guest user created');
+        }
+        
+        function generateReferralCode() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+        
+        function initializeTelegramWebApp() {
+            if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                tg.ready();
+                tg.expand();
+                tg.setHeaderColor('#1a1a2e');
+                tg.setBackgroundColor('#0f0f23');
+                console.log('✅ Telegram WebApp initialized');
+            }
+        }
+        
+        function initializeAdsGram() {
+            if (typeof window.Adsgram !== 'undefined') {
+                try {
+                    adsgramController = window.Adsgram.init({ blockId: "21145" });
+                    adsgramAvailable = true;
+                    console.log('✅ AdsGram initialized');
+                    updateAdStatus('adsgram');
+                } catch (error) {
+                    console.log('❌ AdsGram init error:', error);
+                }
+            }
+        }
+        
+        async function detectUserCountry() {
+            try {
+                const configSnap = await db.collection('config').doc('main').get();
+                if (configSnap.exists) {
+                    const config = configSnap.data();
+                    const token = config.ipinfoApiToken;
+                    
+                    if (token) {
+                        const response = await fetch(`https://ipinfo.io/json?token=${token}`, {
+                            signal: AbortSignal.timeout(3000)
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            userCountry = data.country?.toLowerCase() || 'unknown';
+                            console.log(`🌍 Country: ${userCountry}`);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('Country detection failed:', error);
+                userCountry = 'unknown';
+            }
+        }
+        
+        function startApp() {
+            showMainPage('app-container');
+            navigateTo('home-page');
+            fetchAppConfig();
+            loadGameConfigurations();
+            setupConfigListeners();
+            initSlider();
+            updateAdminConnectionStatus(true);
+            
+            // Update ad status
+            setTimeout(() => {
+                if (gigapubAvailable) updateAdStatus('gigapub');
+            }, 1000);
+        }
+        
+        // ============================================
+        // AD SEQUENCE FUNCTIONS (Core Logic)
+        // ============================================
+        
+        /**
+         * Main function to show ads in sequence:
+         * 1. Try Gigapub first (with timeout)
+         * 2. If Gigapub takes too long, show AdsGram
+         * 3. After AdsGram, try Gigapub again
+         * 4. If Gigapub still slow, show AdsGram again
+         * 5. No bonus after 2 ads (only admin panel points)
+         */
+        async function showAdSequence(taskType, basePoints, onSuccess) {
+            if (adSequenceInProgress) {
+                console.log('⚠️ Ad sequence already in progress');
+                return;
+            }
+            
+            adSequenceInProgress = true;
+            let gigapubAttempts = 0;
+            let adsGramShown = false;
+            let gigapubSucceeded = false;
+            
+            console.log('🎯 Starting ad sequence...');
+            
+            // Try Gigapub first
+            gigapubAttempts++;
+            let result = await tryGigapubWithTimeout();
+            
+            if (result === 'success') {
+                // Gigapub succeeded - give points from admin panel only
+                gigapubSucceeded = true;
+                console.log('✅ Gigapub succeeded on first try');
+                showAlert('✅ Ad completed! You earned points.');
+                
+                if (onSuccess) onSuccess(basePoints, 'gigapub');
+                adSequenceInProgress = false;
+                return;
+            }
+            
+            if (result === 'timeout') {
+                // Gigapub taking too long - show AdsGram
+                console.log('⏱️ Gigapub timeout - showing AdsGram');
+                adsGramShown = true;
+                
+                const adsGramResult = await showAdsGram();
+                
+                if (adsGramResult) {
+                    console.log('✅ AdsGram shown');
+                    
+                    // After AdsGram, try Gigapub again
+                    gigapubAttempts++;
+                    console.log('🔄 Trying Gigapub again...');
+                    
+                    const secondResult = await tryGigapubWithTimeout();
+                    
+                    if (secondResult === 'success') {
+                        // Gigapub succeeded on second try
+                        gigapubSucceeded = true;
+                        console.log('✅ Gigapub succeeded on second try');
+                        
+                        // Only give points once (from admin panel)
+                        if (onSuccess) onSuccess(basePoints, 'gigapub');
+                    } else if (secondResult === 'timeout') {
+                        // Gigapub still slow - show AdsGram again
+                        console.log('⏱️ Gigapub still timeout - showing AdsGram again');
+                        
+                        const secondAdsGram = await showAdsGram();
+                        
+                        if (secondAdsGram) {
+                            console.log('✅ Second AdsGram shown');
+                            
+                            // Still no bonus after 2 ads total
+                            if (onSuccess) onSuccess(basePoints, 'adsgram');
+                        } else {
+                            console.log('❌ AdsGram failed');
+                            showAlert('⚠️ No ads available at the moment');
+                        }
+                    } else {
+                        // Gigapub failed
+                        console.log('❌ Gigapub failed on second try');
+                    }
+                } else {
+                    console.log('❌ AdsGram failed');
+                    
+                    // Try Gigapub again anyway
+                    const secondResult = await tryGigapubWithTimeout();
+                    if (secondResult === 'success') {
+                        gigapubSucceeded = true;
+                        if (onSuccess) onSuccess(basePoints, 'gigapub');
+                    } else {
+                        showAlert('⚠️ No ads available');
+                    }
+                }
+            }
+            
+            adSequenceInProgress = false;
+        }
+        
+        /**
+         * Try to show Gigapub ad with timeout
+         * Returns: 'success', 'timeout', or 'error'
+         */
+        function tryGigapubWithTimeout() {
+            return new Promise((resolve) => {
+                let resolved = false;
+                
+                // Set timeout
+                const timeoutId = setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true;
+                        console.log('⏱️ Gigapub timeout');
+                        resolve('timeout');
+                    }
+                }, AD_TIMEOUT);
+                
+                // Try to show Gigapub
+                if (typeof window.showGiga === 'function') {
+                    window.showGiga()
+                        .then(() => {
+                            if (!resolved) {
+                                clearTimeout(timeoutId);
+                                resolved = true;
+                                console.log('✅ Gigapub success');
+                                resolve('success');
+                            }
+                        })
+                        .catch((error) => {
+                            if (!resolved) {
+                                clearTimeout(timeoutId);
+                                resolved = true;
+                                console.log('❌ Gigapub error:', error);
+                                resolve('error');
+                            }
+                        });
+                } else {
+                    // Gigapub not available
+                    if (!resolved) {
+                        clearTimeout(timeoutId);
+                        resolved = true;
+                        console.log('❌ Gigapub not available');
+                        resolve('error');
+                    }
+                }
+            });
+        }
+        
+        /**
+         * Show AdsGram ad
+         */
+        function showAdsGram() {
+            return new Promise((resolve) => {
+                if (!adsgramAvailable || !adsgramController) {
+                    console.log('❌ AdsGram not available');
+                    resolve(false);
+                    return;
+                }
+                
+                let resolved = false;
+                
+                // Set timeout
+                const timeoutId = setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true;
+                        console.log('⏱️ AdsGram timeout');
+                        resolve(false);
+                    }
+                }, AD_TIMEOUT);
+                
+                adsgramController.show()
+                    .then((result) => {
+                        if (!resolved) {
+                            clearTimeout(timeoutId);
+                            resolved = true;
+                            console.log('✅ AdsGram success:', result);
+                            resolve(true);
+                        }
+                    })
+                    .catch((error) => {
+                        if (!resolved) {
+                            clearTimeout(timeoutId);
+                            resolved = true;
+                            console.log('❌ AdsGram error:', error);
+                            resolve(false);
+                        }
+                    });
+            });
+        }
+        
+        // ============================================
+        // GAME FUNCTIONS
+        // ============================================
+        
+        // Ludo Game
+        async function rollLudoDice() {
+            if (isLudoRolling || ludoButtonDisabled) return;
+            
+            const gameCost = gamesConfig.ludoDice?.gameCost || 10;
+            
+            if (!userData || userData.balance < gameCost) {
+                showAlert(`❌ Need ${gameCost} points to play!`);
+                return;
+            }
+            
+            isLudoRolling = true;
+            ludoRollBtn.disabled = true;
+            
+            // Deduct cost
+            userData.balance = (userData.balance - gameCost).toFixed(2);
+            updateAllUI();
+            
+            // Animate dice
+            let rolls = 0;
+            const totalRolls = 10;
+            
+            function animate() {
+                if (rolls < totalRolls) {
+                    currentLudoDice = Math.floor(Math.random() * 6) + 1;
+                    document.getElementById('ludo-dice-display').textContent = currentLudoDice;
+                    rolls++;
+                    setTimeout(animate, 80);
+                } else {
+                    // Final result
+                    currentLudoDice = Math.floor(Math.random() * 6) + 1;
+                    const winMultiplier = gamesConfig.ludoDice?.winMultiplier || 10;
+                    currentLudoWin = currentLudoDice * winMultiplier;
+                    
+                    document.getElementById('ludo-dice-display').textContent = currentLudoDice;
+                    
+                    setTimeout(showLudoResult, 300);
+                }
+            }
+            
+            animate();
+        }
+        
+        function showLudoResult() {
+            document.getElementById('dice-result-face').textContent = diceFaces[currentLudoDice - 1];
+            document.getElementById('dice-win-amount').textContent = `${currentLudoWin} POINTS`;
+            document.getElementById('dice-result-popup').style.display = 'flex';
+            
+            isLudoRolling = false;
+        }
+        
+        async function closeDiceResult() {
+            const claimBtn = document.getElementById('dice-claim-btn');
+            claimBtn.disabled = true;
+            claimBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> LOADING...';
+            
+            // Show loading popup
+            showAdLoadingPopup('Loading ads...', 'Gigapub');
+            
+            // Run ad sequence
+            await showAdSequence('ludo_game', currentLudoWin, async (points, provider) => {
+                hideAdLoadingPopup();
+                
+                // Add points (no bonus, just what's set in admin panel)
+                await updateBalance(points, 'ludo_game', `Won from Ludo game via ${provider}`);
+                
+                document.getElementById('dice-result-popup').style.display = 'none';
+                showAlert(`🎉 You earned ${points} points!`);
+                
+                // Random disable button
+                disableLudoButton();
+            });
+            
+            claimBtn.disabled = false;
+            claimBtn.innerHTML = 'RECEIVE BONUS';
+        }
+        
+        function disableLudoButton() {
+            ludoButtonDisabled = true;
+            ludoRollBtn.disabled = true;
+            
+            const seconds = Math.floor(Math.random() * 11) + 10; // 10-20 seconds
+            const countdownEl = document.getElementById('ludo-countdown');
+            countdownEl.classList.remove('hidden');
+            
+            let timeLeft = seconds;
+            const interval = setInterval(() => {
+                timeLeft--;
+                countdownEl.textContent = `Wait ${timeLeft}s`;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                    ludoButtonDisabled = false;
+                    ludoRollBtn.disabled = false;
+                    countdownEl.classList.add('hidden');
+                }
+            }, 1000);
+        }
+        
+        // Color Game
+        function startGame() {
+            if (gamesConfig.colorGame?.visible === false) {
+                showAlert('Game unavailable');
+                navigateTo('home-page');
+                return;
+            }
+            
+            const targetColor = {
+                r: Math.floor(Math.random() * 256),
+                g: Math.floor(Math.random() * 256),
+                b: Math.floor(Math.random() * 256)
+            };
+            
+            document.getElementById('target-color-box').style.backgroundColor = `rgb(${targetColor.r}, ${targetColor.g}, ${targetColor.b})`;
+            document.getElementById('target-color-rgb').textContent = `RGB(${targetColor.r}, ${targetColor.g}, ${targetColor.b})`;
+            
+            const optionsGrid = document.getElementById('color-options-grid');
+            optionsGrid.innerHTML = '';
+            
+            const options = [`rgb(${targetColor.r}, ${targetColor.g}, ${targetColor.b})`];
+            
+            for (let i = 0; i < 8; i++) {
+                const diff = 30 + Math.floor(Math.random() * 40);
+                options.push(`rgb(${Math.min(255, targetColor.r + (Math.random() > 0.5 ? diff : -diff))}, 
+                                   ${Math.min(255, targetColor.g + (Math.random() > 0.5 ? diff : -diff))}, 
+                                   ${Math.min(255, targetColor.b + (Math.random() > 0.5 ? diff : -diff))})`);
+            }
+            
+            options.sort(() => Math.random() - 0.5);
+            
+            options.forEach(color => {
+                const div = document.createElement('div');
+                div.style.backgroundColor = color;
+                div.dataset.color = color;
+                div.addEventListener('click', handleColorPick);
+                optionsGrid.appendChild(div);
+            });
+            
+            const reward = gamesConfig.colorGame?.rewardPerPlay || 100;
+            document.getElementById('color-game-reward-message').textContent = `Watch ads to claim ${reward} points!`;
+        }
+        
+        function handleColorPick(e) {
+            const selected = e.target.style.backgroundColor;
+            const target = document.getElementById('target-color-box').style.backgroundColor;
+            
+            if (selected === target) {
+                document.getElementById('color-game-popup').style.display = 'flex';
+            } else {
+                showAlert('❌ Wrong! Try again');
+                setTimeout(startGame, 1000);
+            }
+        }
+        
+        async function claimColorGameReward() {
+            document.getElementById('color-game-popup').style.display = 'none';
+            
+            const reward = gamesConfig.colorGame?.rewardPerPlay || 100;
+            
+            showAdLoadingPopup('Loading ads...', 'Gigapub');
+            
+            await showAdSequence('color_game', reward, async (points, provider) => {
+                hideAdLoadingPopup();
+                await updateBalance(points, 'color_game', `Won from Color Game via ${provider}`);
+                showAlert(`🎉 You earned ${points} points!`);
+                startGame();
+            });
+        }
+        
+        // Watch & Earn
+        window.claimReward = async function() {
+            if (gamesConfig.watchVideo?.visible === false) return;
+            
+            const reward = gamesConfig.watchVideo?.rewardPerPlay || 50;
+            
+            showAdLoadingPopup('Loading ads...', 'Gigapub');
+            
+            await showAdSequence('ad_watch', reward, async (points, provider) => {
+                hideAdLoadingPopup();
+                await updateBalance(points, 'ad_watch', `Watched ad via ${provider}`);
+                showAlert(`🎉 You earned ${points} points!`);
+                
+                // Update daily count
+                if (!userData.userType?.includes('guest')) {
+                    userData.dailyAdCount = (userData.dailyAdCount || 0) + 1;
+                }
+            });
+        };
+        
+        // Website Visit
+        async function handleWebsiteVisit(e) {
+            const btn = e.target;
+            const link = btn.dataset.link;
+            const reward = parseInt(btn.dataset.reward);
+            const timer = parseInt(btn.dataset.timer);
+            
+            if (userData.visitedSitesToday?.includes(link)) {
+                showAlert('Already visited today!');
+                return;
+            }
+            
+            btn.disabled = true;
+            
+            showAdLoadingPopup('Loading ads...', 'Gigapub');
+            
+            await showAdSequence('website_visit', reward, async (points, provider) => {
+                hideAdLoadingPopup();
+                
+                // Open website
+                window.open(link, '_blank');
+                
+                // Start timer
+                btn.textContent = `Wait ${timer}s`;
+                
+                let timeLeft = timer;
+                const interval = setInterval(async () => {
+                    timeLeft--;
+                    btn.textContent = `Wait ${timeLeft}s`;
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(interval);
+                        
+                        // Add reward
+                        await updateBalance(points, 'website_visit', `Visited website via ${provider}`);
+                        
+                        // Mark as visited
+                        if (!userData.userType?.includes('guest')) {
+                            const visited = [...(userData.visitedSitesToday || []), link];
+                            userData.visitedSitesToday = visited;
+                        }
+                        
+                        btn.textContent = 'Visited';
+                        btn.classList.remove('btn-accent');
+                        btn.classList.add('bg-gray-500');
+                        
+                        showAlert(`🎉 You earned ${points} points!`);
+                        populateWebsiteList();
+                    }
+                }, 1000);
+            });
+        }
+        
+        // Social Tasks
+        async function handleSocialFollow(e) {
+            const btn = e.target;
+            const link = btn.dataset.link;
+            const reward = parseInt(btn.dataset.reward);
+            
+            if (userData.completedSocialTasks?.includes(link)) {
+                showAlert('Already completed!');
+                return;
+            }
+            
+            btn.disabled = true;
+            
+            showAdLoadingPopup('Loading ads...', 'Gigapub');
+            
+            await showAdSequence('social_task', reward, async (points, provider) => {
+                hideAdLoadingPopup();
+                
+                window.open(link, '_blank');
+                
+                // Add reward
+                await updateBalance(points, 'social_task', `Completed social task via ${provider}`);
+                
+                // Mark as completed
+                if (!userData.userType?.includes('guest')) {
+                    const completed = [...(userData.completedSocialTasks || []), link];
+                    userData.completedSocialTasks = completed;
+                }
+                
+                btn.textContent = 'Completed';
+                btn.classList.remove('btn-accent');
+                btn.classList.add('bg-gray-500');
+                
+                showAlert(`🎉 You earned ${points} points!`);
+                populateSocialTasks();
+            });
+        }
+        
+        // ============================================
+        // UI FUNCTIONS
+        // ============================================
+        
+        function showAdLoadingPopup(message, provider) {
+            document.getElementById('ad-loading-message').textContent = message;
+            document.getElementById('ad-loading-provider').textContent = `Provider: ${provider}`;
+            document.getElementById('ad-loading-popup').style.display = 'flex';
+        }
+        
+        function hideAdLoadingPopup() {
+            document.getElementById('ad-loading-popup').style.display = 'none';
+        }
+        
+        function updateAdStatus(status) {
+            const el = document.getElementById('adStatusDisplay');
+            const textEl = document.getElementById('adStatusText');
+            
+            el.className = `ad-status ${status}`;
+            
+            if (status === 'gigapub') textEl.textContent = 'Gigapub Ready';
+            else if (status === 'adsgram') textEl.textContent = 'AdsGram Ready';
+            else if (status === 'loading') textEl.textContent = 'Loading...';
+            else if (status === 'error') textEl.textContent = 'Ad Error';
+        }
+        
+        function showMainPage(pageId) {
+            document.querySelectorAll('.main-page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+        
+        window.navigateTo = function(pageId) {
+            document.querySelectorAll('.sub-page').forEach(p => {
+                p.classList.remove('active');
+                p.style.display = 'none';
+            });
+            
+            const page = document.getElementById(pageId);
+            if (page) {
+                page.classList.add('active');
+                page.style.display = 'block';
+            }
+            
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.toggle('active', link.dataset.page === pageId);
+            });
+            
+            document.getElementById('back-button-container').style.display = 
+                (pageId !== 'home-page') ? 'block' : 'none';
+            
+            // Page specific actions
+            if (pageId === 'color-game-page') startGame();
+            if (pageId === 'visit-earn-page') populateWebsiteList();
+            if (pageId === 'social-tasks-page') populateSocialTasks();
+            if (pageId === 'wallet-page') loadWalletPage();
+            if (pageId === 'refer-page') loadReferPage();
+            if (pageId === 'profile-page') loadProfilePage();
+        };
+        
+        function updateAllUI() {
+            if (!userData) return;
+            
+            document.getElementById('header-coin-balance').textContent = userData.balance?.toFixed(2) || '0';
+            document.getElementById('header-profile-name').textContent = `Hi, ${userData.name || 'User'}`;
+            
+            // Stats
+            const todayEarnings = (userData.dailyAdCount || 0) * (appConfig.adWatchReward || 10);
+            document.getElementById('today-earnings').textContent = todayEarnings;
+            
+            const tasksDone = (userData.dailyAdCount || 0) + 
+                             (userData.visitedSitesToday?.length || 0) + 
+                             (userData.completedSocialTasks?.length || 0);
+            document.getElementById('tasks-done').textContent = tasksDone;
+            
+            const level = Math.floor((userData.totalEarned || 0) / 1000) + 1;
+            document.getElementById('user-level').textContent = level;
+        }
+        
+        function showAlert(message) {
+            document.getElementById('alert-message').textContent = message;
+            document.getElementById('custom-alert').style.display = 'flex';
+        }
+        
+        // ============================================
+        // FIREBASE FUNCTIONS
+        // ============================================
+        
+        async function fetchAppConfig() {
+            try {
+                const configSnap = await db.collection('config').doc('main').get();
+                if (configSnap.exists) {
+                    appConfig = configSnap.data();
+                } else {
+                    appConfig = {
+                        referralRules: ['Friend must sign up', 'Bonus after they join'],
+                        referralShareText: 'Join with my code {CODE}',
+                        adWatchReward: 50,
+                        minWithdrawal: 1000,
+                        coinValueCoins: 1000,
+                        coinValueInr: 10,
+                        referralBonus: 100,
+                        paymentMethods: ['UPI', 'Paytm', 'PayPal']
+                    };
+                }
+            } catch (error) {
+                console.error('Error loading config:', error);
+            }
+        }
+        
+        async function loadGameConfigurations() {
+            try {
+                const gamesSnap = await db.collection('config').doc('games').get();
+                if (gamesSnap.exists) {
+                    gamesConfig = gamesSnap.data();
+                }
+                updateGamesDisplay();
+            } catch (error) {
+                console.error('Error loading games:', error);
+                // Default games
+                gamesConfig = {
+                    watchVideo: { visible: true, rewardPerPlay: 50, order: 1 },
+                    colorGame: { visible: true, rewardPerPlay: 100, order: 2 },
+                    ludoDice: { visible: true, gameCost: 10, winMultiplier: 10, order: 3 },
+                    visitWebsites: { visible: true, order: 4 },
+                    socialTasks: { visible: true, order: 5 }
+                };
+                updateGamesDisplay();
+            }
+        }
+        
+        function setupConfigListeners() {
+            db.collection('config').doc('main').onSnapshot((snap) => {
+                if (snap.exists) {
+                    appConfig = snap.data();
+                    console.log('🔄 Config updated');
+                }
+            });
+            
+            db.collection('config').doc('games').onSnapshot((snap) => {
+                if (snap.exists) {
+                    gamesConfig = snap.data();
+                    console.log('🔄 Games updated');
+                    updateGamesDisplay();
+                }
+            });
+        }
+        
+        function updateGamesDisplay() {
+            const grid = document.getElementById('features-grid');
+            grid.innerHTML = '';
+            
+            const games = [
+                { id: 'watchVideo', name: 'Watch & Earn', icon: 'fa-play-circle', desc: 'Watch ads for coins' },
+                { id: 'colorGame', name: 'Color Game', icon: 'fa-palette', desc: 'Match colors to win' },
+                { id: 'ludoDice', name: 'Ludo Dice', icon: 'fa-dice', desc: 'Roll & win points' },
+                { id: 'visitWebsites', name: 'Visit & Earn', icon: 'fa-globe', desc: 'Visit websites' },
+                { id: 'socialTasks', name: 'Social Tasks', icon: 'fa-tasks', desc: 'Complete tasks' }
+            ];
+            
+            games.forEach(game => {
+                const config = gamesConfig[game.id] || {};
+                if (config.visible !== false) {
+                    grid.innerHTML += `
+                        <div onclick="navigateTo('${game.id === 'watchVideo' ? '#' : game.id + '-page'}')" 
+                             class="feature-btn" ${game.id === 'watchVideo' ? 'onclick="claimReward()"' : ''}>
+                            <div class="mb-2">
+                                <div class="w-12 h-12 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                                    <i class="fas ${game.icon} text-lg text-black"></i>
+                                </div>
+                            </div>
+                            <span class="text-sm gold-text">${game.name}</span>
+                            <p class="text-xs text-gray-300 mt-1">${game.desc}</p>
+                        </div>
+                    `;
+                }
+            });
+            
+            // Wallet button
+            grid.innerHTML += `
+                <div onclick="navigateTo('wallet-page')" class="feature-btn">
+                    <div class="mb-2">
+                        <div class="w-12 h-12 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+                            <i class="fas fa-wallet text-lg text-black"></i>
+                        </div>
+                    </div>
+                    <span class="text-sm gold-text">My Wallet</span>
+                    <p class="text-xs text-gray-300 mt-1">Withdraw earnings</p>
+                </div>
+            `;
+        }
+        
+        function updateAdminConnectionStatus(connected) {
+            const el = document.getElementById('admin-connection-status');
+            const textEl = document.getElementById('admin-connection-text');
+            
+            el.className = `admin-connection-status ${connected ? 'connected' : 'disconnected'}`;
+            textEl.textContent = connected ? 'Admin Connected' : 'Admin Disconnected';
+        }
+        
+        async function updateBalance(amount, taskType, details) {
+            if (!userData || amount === 0) return;
+            
+            // Update local
+            userData.balance = (parseFloat(userData.balance || 0) + amount).toFixed(2);
+            if (amount > 0) {
+                userData.totalEarned = (parseFloat(userData.totalEarned || 0) + amount).toFixed(2);
+                userData.tasksCompleted = (userData.tasksCompleted || 0) + 1;
+            }
+            
+            updateAllUI();
+            
+            // Save to Firebase if not guest
+            if (!userData.userType?.includes('guest') && currentUser) {
+                try {
+                    const userRef = db.collection('users').doc(currentUser.uid);
+                    await userRef.update({
+                        balance: firebase.firestore.FieldValue.increment(amount),
+                        totalEarned: firebase.firestore.FieldValue.increment(amount > 0 ? amount : 0),
+                        tasksCompleted: firebase.firestore.FieldValue.increment(amount > 0 ? 1 : 0)
+                    });
+                    
+                    // Record history
+                    await db.collection('pointHistory').add({
+                        userId: currentUser.uid,
+                        userName: userData.name,
+                        taskType,
+                        points: amount,
+                        details,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        country: userCountry
+                    });
+                } catch (error) {
+                    console.error('Error updating balance:', error);
+                }
+            }
+        }
+        
+        // ============================================
+        // PAGE FUNCTIONS
+        // ============================================
+        
+        function populateWebsiteList() {
+            const listEl = document.getElementById('website-list');
+            listEl.innerHTML = '';
+            
+            const websites = appConfig.websitesToVisit || [];
+            
+            if (websites.length === 0) {
+                listEl.innerHTML = '<div class="premium-card p-4 text-center"><p class="text-sm">No websites available</p></div>';
+                return;
+            }
+            
+            websites.forEach((site, i) => {
+                const visited = userData.visitedSitesToday?.includes(site.link);
+                listEl.innerHTML += `
+                    <div class="premium-card p-4 rounded-2xl flex justify-between items-center">
+                        <div>
+                            <h3 class="font-semibold text-sm">${site.name}</h3>
+                            <p class="text-xs gold-text">${site.reward} Coins</p>
+                        </div>
+                        <button data-link="${site.link}" data-reward="${site.reward}" data-timer="${site.timer}"
+                                class="visit-btn ${visited ? 'bg-gray-500' : 'btn-accent'} px-4 py-2 text-xs font-bold" 
+                                ${visited ? 'disabled' : ''}>
+                            ${visited ? 'Visited' : 'Visit'}
+                        </button>
+                    </div>
+                `;
+            });
+            
+            document.querySelectorAll('.visit-btn:not([disabled])').forEach(btn => {
+                btn.addEventListener('click', handleWebsiteVisit);
+            });
+        }
+        
+        function populateSocialTasks() {
+            const listEl = document.getElementById('social-tasks-list');
+            listEl.innerHTML = '';
+            
+            const tasks = appConfig.socialTasks || [];
+            
+            if (tasks.length === 0) {
+                listEl.innerHTML = '<div class="premium-card p-4 text-center"><p class="text-sm">No tasks available</p></div>';
+                return;
+            }
+            
+            tasks.forEach(task => {
+                const completed = userData.completedSocialTasks?.includes(task.link);
+                listEl.innerHTML += `
+                    <div class="premium-card p-4 rounded-2xl flex justify-between items-center">
+                        <div>
+                            <h3 class="font-semibold text-sm">${task.name}</h3>
+                            <p class="text-xs gold-text">${task.reward} Coins</p>
+                        </div>
+                        <button data-link="${task.link}" data-reward="${task.reward}"
+                                class="follow-btn ${completed ? 'bg-gray-500' : 'btn-accent'} px-4 py-2 text-xs font-bold" 
+                                ${completed ? 'disabled' : ''}>
+                            ${completed ? 'Done' : 'Follow'}
+                        </button>
+                    </div>
+                `;
+            });
+            
+            document.querySelectorAll('.follow-btn:not([disabled])').forEach(btn => {
+                btn.addEventListener('click', handleSocialFollow);
+            });
+        }
+        
+        function loadWalletPage() {
+            document.getElementById('wallet-coin-balance').textContent = userData?.balance?.toFixed(2) || '0';
+            document.getElementById('coin-value-info').textContent = 
+                `${appConfig.coinValueCoins || 1000} Coins = ₹${appConfig.coinValueInr || 10}`;
+            
+            const methodSelect = document.getElementById('withdraw-method');
+            const methods = appConfig.paymentMethods || ['UPI', 'Paytm', 'PayPal'];
+            methodSelect.innerHTML = methods.map(m => `<option value="${m}">${m}</option>`).join('');
+            
+            methodSelect.addEventListener('change', updatePaymentDetails);
+            updatePaymentDetails();
+            
+            loadWithdrawalHistory();
+        }
+        
+        function updatePaymentDetails() {
+            const method = document.getElementById('withdraw-method').value;
+            const container = document.getElementById('payment-details-container');
+            
+            let placeholder = 'Enter details';
+            if (method === 'UPI') placeholder = 'UPI ID (e.g., name@okhdfcbank)';
+            else if (method === 'Paytm') placeholder = 'Paytm number';
+            else if (method === 'PayPal') placeholder = 'PayPal email';
+            
+            container.innerHTML = `
+                <input type="text" placeholder="${placeholder}" 
+                       class="w-full p-3 rounded-xl input-field text-sm" id="payment-details">
+            `;
+        }
+        
+        async function loadWithdrawalHistory() {
+            if (userData.userType?.includes('guest') || !currentUser) {
+                document.getElementById('withdrawal-history-list').innerHTML = 
+                    '<div class="premium-card p-4 text-center"><p class="text-sm">Login to see history</p></div>';
+                return;
+            }
+            
+            try {
+                const snapshot = await db.collection('withdrawals')
+                    .where('userId', '==', currentUser.uid)
+                    .orderBy('requestedAt', 'desc')
+                    .limit(5)
+                    .get();
+                
+                if (snapshot.empty) {
+                    document.getElementById('withdrawal-history-list').innerHTML = 
+                        '<div class="premium-card p-4 text-center"><p class="text-sm">No history yet</p></div>';
+                    return;
+                }
+                
+                let html = '';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const date = data.requestedAt?.toDate?.()?.toLocaleDateString() || 'Pending';
+                    html += `
+                        <div class="premium-card p-3 rounded-2xl flex justify-between items-center">
+                            <span class="text-sm font-bold">${data.amount} Coins</span>
+                            <span class="text-xs text-gray-400">${data.method}</span>
+                            <span class="text-xs ${data.status === 'pending' ? 'text-yellow-400' : data.status === 'approved' ? 'text-green-400' : 'text-red-400'}">${data.status}</span>
+                        </div>
+                    `;
+                });
+                document.getElementById('withdrawal-history-list').innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error loading history:', error);
+            }
+        }
+        
+        async function handleWithdrawal() {
+            if (userData.userType?.includes('guest')) {
+                showAlert('Guests cannot withdraw');
+                return;
+            }
+            
+            const amount = parseInt(document.getElementById('withdraw-amount').value);
+            const method = document.getElementById('withdraw-method').value;
+            const details = document.getElementById('payment-details')?.value;
+            
+            if (!amount || amount < (appConfig.minWithdrawal || 1000)) {
+                showAlert(`Minimum withdrawal: ${appConfig.minWithdrawal || 1000} coins`);
+                return;
+            }
+            
+            if (amount > userData.balance) {
+                showAlert('Insufficient balance');
+                return;
+            }
+            
+            if (!details) {
+                showAlert('Enter payment details');
+                return;
+            }
+            
+            try {
+                await db.collection('withdrawals').add({
+                    userId: currentUser.uid,
+                    userName: userData.name,
+                    amount,
+                    method,
+                    paymentDetail: details,
+                    status: 'pending',
+                    requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    country: userCountry
+                });
+                
+                // Deduct balance
+                await updateBalance(-amount, 'withdrawal', `Withdrawal request`);
+                
+                showAlert('✅ Withdrawal requested!');
+                loadWalletPage();
+                
+            } catch (error) {
+                console.error('Withdrawal error:', error);
+                showAlert('❌ Error submitting request');
+            }
+        }
+        
+        function loadReferPage() {
+            document.getElementById('referral-bonus-info').textContent = 
+                `Refer a friend and get ${appConfig.referralBonus || 100} coins!`;
+            document.getElementById('referral-code').textContent = userData.referralCode || 'CODE';
+            
+            const rules = appConfig.referralRules || ['Friend must sign up', 'Bonus after they join'];
+            document.getElementById('referral-rules-container').innerHTML = `
+                <h3 class="font-semibold mb-2">Rules:</h3>
+                <ul class="list-disc list-inside text-gray-300 space-y-1">
+                    ${rules.map(r => `<li class="text-xs">${r}</li>`).join('')}
+                </ul>
+            `;
+        }
+        
+        function copyReferralCode() {
+            navigator.clipboard.writeText(userData.referralCode || 'CODE');
+            showAlert('✅ Code copied!');
+        }
+        
+        function shareReferralCode() {
+            const text = (appConfig.referralShareText || 'Use my code {CODE}')
+                .replace('{CODE}', userData.referralCode || 'CODE');
+            
+            if (navigator.share) {
+                navigator.share({ title: 'Join CashReward', text });
+            } else {
+                navigator.clipboard.writeText(text);
+                showAlert('✅ Share link copied!');
+            }
+        }
+        
+        async function handleApplyReferralCode() {
+            if (userData.referredBy) {
+                showAlert('Already used a code');
+                return;
+            }
+            
+            const code = document.getElementById('enter-referral-code').value.trim().toUpperCase();
+            if (!code || code === userData.referralCode) {
+                showAlert('Invalid code');
+                return;
+            }
+            
+            try {
+                const snapshot = await db.collection('users')
+                    .where('referralCode', '==', code)
+                    .limit(1)
+                    .get();
+                
+                if (!snapshot.empty) {
+                    const bonus = appConfig.referralBonus || 100;
+                    
+                    // Give bonus to current user
+                    await updateBalance(bonus, 'referral', `Applied code: ${code}`);
+                    
+                    // Update user
+                    if (!userData.userType?.includes('guest')) {
+                        await db.collection('users').doc(currentUser.uid).update({
+                            referredBy: code
+                        });
+                        userData.referredBy = code;
+                    }
+                    
+                    showAlert(`🎉 You got ${bonus} coins!`);
+                } else {
+                    showAlert('❌ Invalid code');
+                }
+            } catch (error) {
+                console.error('Referral error:', error);
+                showAlert('Error applying code');
+            }
+        }
+        
+        function loadProfilePage() {
+            document.getElementById('profile-page-picture').src = userData.profilePicture || 
+                `https://placehold.co/100x100/1e1e1e/facc15?text=${(userData.name || 'U').charAt(0)}`;
+            document.getElementById('profile-page-name').textContent = userData.name || 'User';
+            document.getElementById('profile-page-email').textContent = userData.email || 'user@email.com';
+            
+            const date = userData.createdAt?.toDate?.() || new Date();
+            document.getElementById('member-since').textContent = date.toLocaleDateString();
+            document.getElementById('total-earned').textContent = (userData.totalEarned || 0).toFixed(2);
+        }
+        
+        function initSlider() {
+            const banners = appConfig.sliderBanners || [];
+            if (banners.length === 0) {
+                document.getElementById('slider-container').classList.add('hidden');
+                return;
+            }
+            
+            document.getElementById('slider-container').classList.remove('hidden');
+            const wrapper = document.querySelector('.slider-wrapper');
+            const dots = document.querySelector('.slider-dots');
+            
+            wrapper.innerHTML = '';
+            dots.innerHTML = '';
+            
+            banners.forEach((banner, i) => {
+                wrapper.innerHTML += `<div class="slider-item min-w-full"><img src="${banner.img}" class="w-full h-32 object-cover rounded-xl"></div>`;
+                dots.innerHTML += `<div class="slider-dot w-2 h-2 rounded-full bg-gray-400 cursor-pointer" data-slide="${i}"></div>`;
+            });
+            
+            let current = 0;
+            const slideCount = banners.length;
+            
+            function showSlide(n) {
+                current = (n + slideCount) % slideCount;
+                wrapper.style.transform = `translateX(-${current * 100}%)`;
+                document.querySelectorAll('.slider-dot').forEach((dot, i) => {
+                    dot.classList.toggle('bg-yellow-400', i === current);
+                    dot.classList.toggle('bg-gray-400', i !== current);
+                });
+            }
+            
+            document.querySelectorAll('.slider-dot').forEach(dot => {
+                dot.addEventListener('click', () => showSlide(parseInt(dot.dataset.slide)));
+            });
+            
+            setInterval(() => showSlide(current + 1), 5000);
+            showSlide(0);
+        }
+    </script>
+</body>
+</html>
