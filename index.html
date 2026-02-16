@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash Reward - Premium</title>
+    
+    <!-- Telegram WebApp SDK (MUST BE FIRST) -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- AdsGram SDK -->
+    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    
+    <!-- Adexium Widget - Push-like Ad Format -->
+    <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
+    
+    <!-- RichAds SDK -->
+    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
+    
+    <!-- Gigapub SDK -->
+    <script src="https://ad.gigapub.tech/script?id=1794"></script>
+    
+    <!-- Offerwall SDK Loader -->
+    <script>
+        // Offerwall SDK loader
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!window.loadOfferWallSDK) {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.giga.pub/script/offer/loader/loader.js';
+                script.async = true;
+                document.head.appendChild(script);
+            }
+        });
+
+        // Initialize Offerwall SDK callbacks
+        (window.loadGigaSDKCallbacks || (window.loadGigaSDKCallbacks = [])).push(() => {
+            window.loadOfferWallSDK({
+                projectId: '1817'
+            })
+            .then(sdk => {
+                window.gigaOfferWallSDK = sdk;
+                console.log('✅ Offerwall SDK loaded successfully');
+                
+                // Handle reward claims
+                sdk.on('rewardClaim', async (data) => {
+                    console.log('💰 Reward claim received:', data);
+                    // Credit user reward will be handled by the main app
+                    if (window.creditUserReward) {
+                        await window.creditUserReward(data.userId, data.amount);
+                    }
+                    sdk.confirmReward(data.rewardId, data.hash);
+                });
+            })
+            .catch(error => {
+                console.error('❌ Error loading Offerwall SDK:', error);
+            });
+        });
+    </script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+            color: #ffffff; 
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .main-bg { 
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+        }
+        
+        .card-bg { 
+            background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(0,0,0,0.2));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .premium-card {
+            background: linear-gradient(145deg, rgba(250, 204, 21, 0.1), rgba(0, 0, 0, 0.3));
+            border: 1px solid rgba(250, 204, 21, 0.2);
+            box-shadow: 0 10px 40px rgba(250, 204, 21, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .premium-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(250, 204, 21, 0.1), transparent);
+            transition: 0.5s;
+        }
+        
+        .premium-card:hover::before {
+            left: 100%;
+        }
+        
+        .gold-text {
+            background: linear-gradient(45deg, #FFD700, #FFA500, #FFD700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        
+        .input-field { 
+            background: rgba(255, 255, 255, 0.05); 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: #facc15;
+            box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.2);
+        }
+        
+        .accent-yellow { 
+            color: #facc15; 
+            text-shadow: 0 0 10px rgba(250, 204, 21, 0.5);
+        }
+        
+        .accent-yellow-bg { 
+            background: linear-gradient(45deg, #facc15, #eab308, #facc15);
+            color: #1a1a1a;
+            font-weight: bold;
+            box-shadow: 0 4px 20px rgba(250, 204, 21, 0.3);
+        }
+        
+        .btn, .btn-accent { 
+            transition: all 0.3s ease; 
+            transform: scale(1); 
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before, .btn-accent::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+        }
+        
+        .btn:hover::before, .btn-accent:hover::before {
+            left: 100%;
+        }
+        
+        .btn:active, .btn-accent:active { 
+            transform: scale(0.95); 
+        }
+        
+        .btn-accent { 
+            background: linear-gradient(45deg, #facc15, #eab308);
+            color: #1a1a1a; 
+            font-weight: bold;
+            box-shadow: 0 6px 20px rgba(250, 204, 21, 0.4);
+            border: none;
+        }
+        
+        .btn-accent:hover { 
+            background: linear-gradient(45deg, #eab308, #facc15);
+            box-shadow: 0 8px 25px rgba(250, 204, 21, 0.5);
+        }
+        
+        .btn-accent[disabled] { 
+            background: #4a4a4a; 
+            color: #888; 
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        .main-page { 
+            display: none; 
+            min-height: 100vh;
+        }
+        
+        .main-page.active { 
+            display: flex; 
+            animation: fadeIn 0.5s ease-in-out; 
+        }
+        
+        .sub-page { 
+            display: none; 
+        }
+        
+        .sub-page.active { 
+            display: block; 
+            animation: fadeIn 0.3s ease-in-out; 
+        }
+        
+        .bottom-nav { 
+            background: rgba(20, 20, 40, 0.9);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(250, 204, 21, 0.2);
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .bottom-nav a { 
+            color: #a1a1aa; 
+            transition: all 0.3s ease; 
+            position: relative;
+        }
+        
+        .bottom-nav a.active { 
+            color: #facc15; 
+        }
+        
+        .bottom-nav a.active .nav-indicator { 
+            width: 24px; 
+            height: 4px; 
+            background: linear-gradient(45deg, #facc15, #eab308);
+            border-radius: 2px; 
+            margin: 4px auto 0; 
+            box-shadow: 0 0 10px rgba(250, 204, 21, 0.5);
+        }
+        
+        .feature-btn { 
+            background: linear-gradient(145deg, rgba(250, 204, 21, 0.15), rgba(0, 0, 0, 0.3));
+            border-radius: 20px; 
+            padding: 1.5rem; 
+            color: #ffffff; 
+            font-weight: 700; 
+            text-align: center; 
+            box-shadow: 0 8px 30px rgba(250, 204, 21, 0.2);
+            transition: all 0.3s ease; 
+            position: relative; 
+            top: 0; 
+            cursor: pointer; 
+            border: 1px solid rgba(250, 204, 21, 0.2);
+            overflow: hidden;
+        }
+        
+        .feature-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(250, 204, 21, 0.1), transparent);
+            transition: 0.5s;
+        }
+        
+        .feature-btn:hover::before {
+            left: 100%;
+        }
+        
+        .feature-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(250, 204, 21, 0.3);
+        }
+        
+        .feature-btn:active { 
+            transform: translateY(-2px); 
+            box-shadow: 0 6px 20px rgba(250, 204, 21, 0.2);
+        }
+        
+        .feature-btn svg, .feature-btn img { 
+            filter: drop-shadow(0 2px 8px rgba(250, 204, 21, 0.4));
+        }
+        
+        #slider-container { 
+            overflow: hidden; 
+            position: relative; 
+            aspect-ratio: 16/7; 
+            border-radius: 20px;
+            border: 2px solid rgba(250, 204, 21, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+        
+        .slider-wrapper { 
+            display: flex; 
+            transition: transform 0.5s ease-in-out; 
+        }
+        
+        .slider-item { 
+            min-width: 100%; 
+            box-sizing: border-box; 
+        }
+        
+        .slider-item img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+        }
+        
+        .slider-dots { 
+            position: absolute; 
+            bottom: 15px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            display: flex; 
+            gap: 10px; 
+            z-index: 2;
+        }
+        
+        .slider-dot { 
+            width: 12px; 
+            height: 12px; 
+            background-color: rgba(255, 255, 255, 0.3); 
+            border-radius: 50%; 
+            cursor: pointer; 
+            transition: all 0.3s; 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .slider-dot.active { 
+            background: linear-gradient(45deg, #facc15, #eab308);
+            box-shadow: 0 0 10px rgba(250, 204, 21, 0.8);
+            transform: scale(1.2);
+        }
+        
+        @keyframes fadeIn { 
+            from { 
+                opacity: 0; 
+                transform: translateY(20px);
+            } 
+            to { 
+                opacity: 1; 
+                transform: translateY(0);
+            } 
+        }
+        
+        /* Ad Status Indicator */
+        .ad-status {
+            position: fixed;
+            top: 70px;
+            right: 10px;
+            background: rgba(52, 152, 219, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 99;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .ad-status.loading { 
+            background: linear-gradient(45deg, rgba(241, 196, 15, 0.8), rgba(243, 156, 18, 0.8));
+        }
+        
+        /* Admin Connection Status */
+        .admin-connection-status {
+            position: fixed;
+            top: 110px;
+            right: 10px;
+            background: rgba(52, 152, 219, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 99;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .admin-connection-status.connected { 
+            background: linear-gradient(45deg, rgba(46, 204, 113, 0.8), rgba(39, 174, 96, 0.8));
+        }
+        
+        /* Countdown Timer */
+        .countdown-timer {
+            font-size: 14px;
+            font-weight: bold;
+            color: #facc15;
+            margin-top: 5px;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        /* Game Status Indicators */
+        .game-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .game-status-visible {
+            background: linear-gradient(45deg, #34c759, #30d158);
+            color: white;
+        }
+        
+        /* Country Block Modal */
+        .country-block-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .country-block-content {
+            background: linear-gradient(145deg, rgba(20, 20, 40, 0.9), rgba(10, 10, 30, 0.9));
+            border-radius: 25px;
+            padding: 40px 30px;
+            max-width: 400px;
+            text-align: center;
+            border: 2px solid rgba(250, 204, 21, 0.3);
+            box-shadow: 0 20px 50px rgba(250, 204, 21, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .country-block-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: #facc15;
+            text-shadow: 0 0 20px rgba(250, 204, 21, 0.5);
+        }
+        
+        .country-block-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Offerwall Button */
+        .offerwall-btn {
+            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+            color: white;
+            border: none;
+            box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4);
+        }
+        
+        .offerwall-btn:hover {
+            background: linear-gradient(45deg, #8e44ad, #9b59b6);
+            box-shadow: 0 8px 25px rgba(155, 89, 182, 0.5);
+        }
+    </style>
+</head>
+<body class="max-w-md mx-auto">
+
+    <!-- Country Block Modal -->
+    <div id="country-block-modal" class="country-block-modal hidden">
+        <div class="country-block-content">
+            <div class="country-block-icon">🌍</div>
+            <div class="country-block-title">Access Restricted</div>
+            <div class="country-block-message text-gray-300 mb-6" id="country-block-message">
+                This application is not available in your country.
+            </div>
+            <button onclick="location.reload()" class="bg-gray-600 text-white px-8 py-3 rounded-full font-bold hover:bg-gray-700 transition-all">
+                Try Again
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-container" class="min-h-screen flex-col main-page main-bg active">
+        <!-- Ad Status Indicator -->
+        <div id="adStatusDisplay" class="ad-status loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span id="adStatusText">Loading Ads...</span>
+        </div>
+        
+        <!-- Admin Connection Status -->
+        <div id="admin-connection-status" class="admin-connection-status disconnected">
+            <i class="fas fa-database"></i>
+            <span id="admin-connection-text">Connecting to Admin...</span>
+        </div>
+        
+        <header class="p-5 flex items-center justify-between header-gradient bg-gray-900 bg-opacity-90">
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <img src="" id="profile-picture" class="rounded-full border-3 border-yellow-400 w-14 h-14 object-cover">
+                    <div class="absolute -bottom-1 -right-1 bg-green-500 w-4 h-4 rounded-full border-2 border-gray-900"></div>
+                </div>
+                <div>
+                    <h2 class="font-bold text-xl leading-tight gold-text" id="header-profile-name">Loading...</h2>
+                    <p class="text-gray-300 text-sm leading-tight">Welcome to CashReward</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 bg-gray-800 px-4 py-2 rounded-full">
+                <span id="header-coin-balance" class="font-bold text-xl gold-text">0</span>
+                <i class="fas fa-coins accent-yellow"></i>
+            </div>
+        </header>
+        
+        <main class="flex-grow">
+            <div id="back-button-container" class="hidden p-5">
+                <button onclick="navigateTo('home-page')" class="flex items-center accent-yellow font-bold">
+                    <i class="fas fa-arrow-left mr-3"></i>
+                    <span>Back to Home</span>
+                </button>
+            </div>
+            
+            <div id="home-page" class="p-5 space-y-8 sub-page active">
+                <!-- Premium Welcome Banner -->
+                <div class="premium-card p-5 rounded-2xl text-center">
+                    <h1 class="text-2xl font-bold mb-2 gold-text">Welcome to CashReward <i class="fas fa-crown ml-2"></i></h1>
+                    <p class="text-gray-300">Complete tasks, play games & earn real money!</p>
+                </div>
+                
+                <!-- Premium Slider -->
+                <div id="slider-container">
+                    <div class="slider-wrapper"></div>
+                    <div class="slider-dots"></div>
+                </div>
+                
+                <!-- Offerwall Button -->
+                <button id="rewards-button" class="w-full p-5 rounded-2xl offerwall-btn text-white font-bold text-xl flex items-center justify-center gap-3">
+                    <i class="fas fa-gift"></i>
+                    <span>Earn More - Offerwall</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                
+                <!-- Premium Features Grid -->
+                <div id="features-grid" class="grid grid-cols-2 gap-6"></div>
+                
+                <!-- Premium Stats -->
+                <div class="grid grid-cols-3 gap-4 mt-6">
+                    <div class="card-bg p-4 rounded-xl text-center">
+                        <i class="fas fa-fire accent-yellow text-xl mb-2"></i>
+                        <p class="text-sm text-gray-300">Today's Earnings</p>
+                        <p class="text-lg font-bold gold-text" id="today-earnings">0</p>
+                    </div>
+                    <div class="card-bg p-4 rounded-xl text-center">
+                        <i class="fas fa-tasks accent-yellow text-xl mb-2"></i>
+                        <p class="text-sm text-gray-300">Tasks Done</p>
+                        <p class="text-lg font-bold gold-text" id="tasks-done">0</p>
+                    </div>
+                    <div class="card-bg p-4 rounded-xl text-center">
+                        <i class="fas fa-trophy accent-yellow text-xl mb-2"></i>
+                        <p class="text-sm text-gray-300">Level</p>
+                        <p class="text-lg font-bold gold-text" id="user-level">1</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ludo Game Page -->
+            <div id="ludo-game-page" class="p-5 space-y-4 sub-page">
+                <h2 class="text-3xl font-bold text-center mb-2 gold-text">🎲 Ludo Dice Game</h2>
+                <p class="text-center text-gray-300 mb-6">Roll dice, win points, get rewards!</p>
+                
+                <div class="premium-card p-6 rounded-2xl relative">
+                    <div id="ludo-game-status" class="game-status game-status-visible">VISIBLE</div>
+                    
+                    <div class="text-center mb-6">
+                        <div class="text-sm text-gray-300 mb-2">GAME COST</div>
+                        <div class="text-2xl font-bold gold-text" id="ludo-game-cost">10 Points</div>
+                    </div>
+                    
+                    <div class="flex justify-center items-center h-48 mb-6">
+                        <div id="ludo-dice-display" class="text-8xl gold-text">6</div>
+                    </div>
+                    
+                    <button id="ludo-roll-btn" class="w-full p-5 btn-accent text-xl font-bold relative">
+                        <span id="roll-btn-text">ROLL DICE</span>
+                        <div id="ludo-countdown" class="countdown-timer hidden"></div>
+                    </button>
+                    
+                    <div id="ludo-win-multiplier" class="text-center text-sm text-gray-400 mt-3">
+                        Win multiplier: Dice result × 10
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Color Game Page -->
+            <div id="color-game-page" class="p-5 space-y-4 sub-page">
+                <h2 class="text-3xl font-bold text-center mb-2 gold-text">🎨 Color Game</h2>
+                <p class="text-center text-gray-300 mb-6">Match colors to win coins!</p>
+                
+                <div class="premium-card p-6 rounded-2xl relative">
+                    <div id="color-game-status" class="game-status game-status-visible">VISIBLE</div>
+                    
+                    <p class="text-center mb-4 text-gray-300">Find this color:</p>
+                    <div id="target-color-box" class="w-32 h-16 mx-auto rounded-xl my-4 border-3 border-white shadow-lg"></div>
+                    <p id="target-color-rgb" class="font-mono text-center text-xl font-bold mb-6"></p>
+                    
+                    <div id="color-options-grid" class="grid grid-cols-3 gap-4 max-w-sm mx-auto"></div>
+                    
+                    <div class="text-center text-sm gold-text mt-4" id="color-game-reward-display">
+                        Win up to 100 coins
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Watch & Earn Page -->
+            <div id="watch-earn-page" class="p-5 space-y-4 sub-page">
+                <h2 class="text-3xl font-bold text-center mb-2 gold-text">📺 Watch & Earn</h2>
+                <p class="text-center text-gray-300 mb-6">Watch ads and earn coins instantly!</p>
+                
+                <div class="premium-card p-6 rounded-2xl text-center">
+                    <i class="fas fa-play-circle text-6xl gold-text mb-4"></i>
+                    <div class="text-2xl font-bold gold-text mb-2" id="watch-earn-reward">50 Coins</div>
+                    <p class="text-gray-400 mb-4">Watch a short ad to earn coins</p>
+                    
+                    <button id="watch-earn-btn" class="w-full p-5 btn-accent text-xl font-bold">
+                        <i class="fas fa-play mr-2"></i> WATCH NOW
+                    </button>
+                    
+                    <div id="watch-earn-countdown" class="countdown-timer hidden mt-3"></div>
+                </div>
+            </div>
+            
+            <!-- Try Your Luck Page -->
+            <div id="try-your-luck-page" class="p-5 space-y-4 sub-page">
+                <h2 class="text-3xl font-bold text-center mb-2 gold-text">🎰 Try Your Luck</h2>
+                <p class="text-center text-gray-300 mb-6">Watch multiple ads to earn big!</p>
+                
+                <div class="premium-card p-6 rounded-2xl text-center">
+                    <i class="fas fa-star text-6xl gold-text mb-4"></i>
+                    <div class="text-2xl font-bold gold-text mb-2" id="try-your-luck-reward">500 Coins</div>
+                    <p class="text-gray-400 mb-4">Watch 4 ads and earn maximum reward</p>
+                    
+                    <button onclick="startTryYourLuckGame()" class="w-full p-5 offerwall-btn text-xl font-bold">
+                        <i class="fas fa-play mr-2"></i> TRY YOUR LUCK
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Visit & Earn Page -->
+            <div id="visit-earn-page" class="p-5 space-y-4 sub-page">
+                <h2 class="text-3xl font-bold text-center mb-2 gold-text">Visit & Earn</h2>
+                <p class="text-center text-gray-300 mb-6">Visit websites and earn coins</p>
+                <div id="website-list" class="space-y-4"></div>
+            </div>
+            
+            <!-- Social Tasks Page -->
+            <div id="social-tasks-page" class="p-5 space-y-4 sub-page">
+                <h2 class="text-3xl font-bold text-center mb-2 gold-text">Social Tasks</h2>
+                <p class="text-center text-gray-300 mb-6">Complete social media tasks</p>
+                <div id="social-tasks-list" class="space-y-4"></div>
+            </div>
+            
+            <!-- Wallet Page -->
+            <div id="wallet-page" class="p-5 space-y-6 sub-page">
+                <h2 class="text-3xl font-bold text-center mb-2 gold-text">My Wallet</h2>
+                <div class="premium-card p-6 rounded-2xl">
+                    <p class="text-sm text-gray-400 mb-1">Balance: <span class="font-bold gold-text text-xl" id="wallet-coin-balance">0.00</span> Coins</p>
+                    <p class="text-sm text-gray-400 mb-4" id="coin-value-info">1000 Coins = ₹10</p>
+                    
+                    <input id="withdraw-amount" type="number" placeholder="Coin amount" class="w-full p-4 rounded-xl input-field mb-4 text-lg" min="1000">
+                    
+                    <select id="withdraw-method" class="w-full p-4 rounded-xl input-field mb-4 text-lg">
+                        <option value="UPI">UPI</option>
+                        <option value="Paytm">Paytm</option>
+                        <option value="PayPal">PayPal</option>
+                    </select>
+                    
+                    <div id="payment-details-container"></div>
+                    <div id="payment-validation-message" class="text-sm text-red-400 mt-2 mb-2 hidden"></div>
+                    
+                    <button id="withdraw-btn" class="w-full p-4 btn-accent mt-4 text-lg font-bold">
+                        Request Withdrawal
+                    </button>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-bold my-4 gold-text">Withdrawal History</h3>
+                    <div id="withdrawal-history-list" class="space-y-4"></div>
+                </div>
+            </div>
+            
+            <!-- Refer Page -->
+            <div id="refer-page" class="p-5 space-y-6 sub-page">
+                <h2 class="text-3xl font-bold text-center mb-2 gold-text">Refer & Earn</h2>
+                <div class="premium-card p-8 rounded-2xl text-center">
+                    <i class="fas fa-user-plus text-5xl gold-text mb-4"></i>
+                    <p id="referral-bonus-info" class="text-xl mb-6">Refer a friend and get 100 coins!</p>
+                    
+                    <p class="text-gray-300 mb-4">Your Referral Code</p>
+                    <div class="bg-gray-800 p-5 rounded-2xl flex items-center justify-center mb-6 border border-yellow-400">
+                        <span id="referral-code" class="text-3xl font-bold tracking-widest gold-text">...</span>
+                        <button id="copy-code-btn" class="ml-6">
+                            <i class="fas fa-copy text-2xl text-gray-300 hover:text-yellow-400"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button id="share-btn" class="w-full p-4 btn-accent mt-6 text-lg font-bold">
+                    <i class="fas fa-share-alt mr-3"></i>Share Code
+                </button>
+            </div>
+            
+            <!-- Profile Page -->
+            <div id="profile-page" class="p-5 space-y-6 sub-page">
+                <h2 class="text-3xl font-bold text-center mb-6 gold-text">Profile</h2>
+                <div class="premium-card p-8 rounded-2xl flex flex-col items-center">
+                    <img src="" id="profile-page-picture" class="rounded-full w-32 h-32 object-cover border-4 border-yellow-400 shadow-lg mb-4">
+                    <h2 id="profile-page-name" class="text-2xl font-bold mb-2 gold-text">User Name</h2>
+                    <p id="profile-page-email" class="text-gray-300 mb-4">user@email.com</p>
+                    
+                    <div class="grid grid-cols-2 gap-4 w-full mt-6">
+                        <div class="bg-gray-800 p-4 rounded-xl text-center">
+                            <p class="text-sm text-gray-300">Member Since</p>
+                            <p class="text-lg font-bold gold-text" id="member-since">Today</p>
+                        </div>
+                        <div class="bg-gray-800 p-4 rounded-xl text-center">
+                            <p class="text-sm text-gray-300">Total Earned</p>
+                            <p class="text-lg font-bold gold-text" id="total-earned">0.00</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="logout-btn" class="w-full mt-8 p-4 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-bold text-lg">
+                    <i class="fas fa-sign-out-alt mr-3"></i>Close App
+                </button>
+            </div>
+        </main>
+        
+        <!-- Premium Bottom Navigation -->
+        <nav class="bottom-nav sticky bottom-0 grid grid-cols-4 items-center text-center py-4 rounded-t-3xl">
+            <a href="#" class="nav-link active" data-page="home-page">
+                <i class="fas fa-home text-2xl mb-1"></i>
+                <div class="nav-indicator"></div>
+            </a>
+            <a href="#" class="nav-link" data-page="refer-page">
+                <i class="fas fa-users text-2xl mb-1"></i>
+                <div class="nav-indicator"></div>
+            </a>
+            <a href="#" class="nav-link" data-page="wallet-page">
+                <i class="fas fa-wallet text-2xl mb-1"></i>
+                <div class="nav-indicator"></div>
+            </a>
+            <a href="#" class="nav-link" data-page="profile-page">
+                <i class="fas fa-user text-2xl mb-1"></i>
+                <div class="nav-indicator"></div>
+            </a>
+        </nav>
+    </div>
+    
+    <!-- Custom Alert -->
+    <div id="custom-alert" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-5">
+        <div class="premium-card rounded-2xl p-8 w-full max-w-sm text-center">
+            <i class="fas fa-info-circle text-4xl accent-yellow mb-4"></i>
+            <p id="alert-message" class="mb-6 text-lg"></p>
+            <button id="alert-ok-btn" class="btn-accent px-8 py-3 text-lg font-bold">OK</button>
+        </div>
+    </div>
+    
+    <!-- Color Game Popup -->
+    <div id="color-game-popup" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-5">
+        <div class="premium-card rounded-2xl p-8 w-full max-w-sm text-center space-y-6">
+            <i class="fas fa-trophy text-5xl gold-text"></i>
+            <h3 class="text-2xl font-bold gold-text">Correct Answer!</h3>
+            <p class="text-gray-300" id="color-game-reward-message">Watch an ad to claim coins.</p>
+            <button id="claim-color-reward-btn" class="btn-accent px-8 py-3 font-bold w-full">
+                Claim Reward
+            </button>
+        </div>
+    </div>
+    
+    <!-- Try Your Luck Modal -->
+    <div id="try-your-luck-modal" class="hidden fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-50 p-5">
+        <div class="premium-card rounded-2xl p-8 w-full max-w-md text-center relative">
+            <button onclick="exitTryYourLuckGame()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+            
+            <i class="fas fa-star text-5xl gold-text mb-4"></i>
+            <h3 class="text-2xl font-bold gold-text mb-4">Try Your Luck</h3>
+            
+            <div id="try-luck-progress" class="hidden mb-4">
+                <div class="flex justify-between text-sm mb-2">
+                    <span>Progress:</span>
+                    <span id="try-luck-progress-text">0/4 ads</span>
+                </div>
+                <div class="w-full bg-gray-700 rounded-full h-2.5">
+                    <div id="try-luck-progress-bar" class="bg-gradient-to-r from-pink-500 to-purple-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div id="try-luck-ad-status" class="text-sm text-yellow-400 mb-4"></div>
+            
+            <button id="start-try-your-luck-btn" class="w-full p-4 offerwall-btn text-lg font-bold mb-4">
+                <i class="fas fa-play mr-2"></i> Start Watching
+            </button>
+            
+            <button id="claim-try-luck-reward-btn" class="hidden w-full p-4 btn-accent text-lg font-bold">
+                <i class="fas fa-gift mr-2"></i> Claim Reward
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ===== GLOBAL VARIABLES =====
+        let currentUser = { uid: 'demo_user_' + Date.now() };
+        let userData = {
+            uid: currentUser.uid,
+            name: 'Demo User',
+            email: 'demo@user.com',
+            balance: 100,
+            referralCode: 'DEMO123',
+            dailyAdCount: 0,
+            visitedSitesToday: [],
+            completedSocialTasks: [],
+            totalEarned: 0,
+            tasksCompleted: 0,
+            level: 1,
+            profilePicture: 'https://via.placeholder.com/100'
+        };
+        
+        let appConfig = {
+            adWatchReward: 50,
+            colorGameReward: 100,
+            minWithdrawal: 1000,
+            coinValueCoins: 1000,
+            coinValueInr: 10,
+            referralBonus: 100,
+            websitesToVisit: [
+                { name: "Google", link: "https://www.google.com", reward: 10, timer: 30 },
+                { name: "YouTube", link: "https://www.youtube.com", reward: 15, timer: 45 }
+            ],
+            socialTasks: [
+                { name: "Follow on Twitter", link: "https://twitter.com", reward: 20, icon: "twitter" }
+            ],
+            sliderBanners: [
+                { img: "https://images.unsplash.com/photo-1611605698335-8b1569810432?q=80&w=1974&auto=format&fit=crop", link: "#" }
+            ]
+        };
+        
+        let gamesConfig = {
+            ludoDice: { visible: true, gameCost: 10, winMultiplier: 10, dailyPlayLimit: 10 },
+            colorGame: { visible: true, rewardPerPlay: 100, dailyPlayLimit: 10 },
+            watchVideo: { visible: true, rewardPerPlay: 50, dailyPlayLimit: 20 },
+            tryYourLuck: { visible: true, rewardPerPlay: 500, dailyPlayLimit: 5 }
+        };
+        
+        // ===== COOLDOWN VARIABLES =====
+        let cooldownTimers = {};
+        let activeCooldowns = {};
+        
+        // ===== ADS VARIABLES =====
+        let telegramAdsController = window.TelegramAdsController;
+        let adexiumPushWidget = null;
+        let adexiumInterstitialWidget = null;
+        let adsGramLoaded = false;
+        let adsGramRewardController = null;
+        
+        // ===== TRY YOUR LUCK VARIABLES =====
+        let tryYourLuckGameActive = false;
+        let tryYourLuckAdCount = 0;
+        let tryYourLuckReward = 0;
+        
+        // ===== INITIALIZATION =====
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+        
+        function initializeApp() {
+            lucide?.createIcons();
+            setupEventListeners();
+            initializeAds();
+            updateAllUI();
+            populateGames();
+            initSlider();
+            navigateTo('home-page');
+            
+            // Check for Telegram WebApp
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.ready();
+                window.Telegram.WebApp.expand();
+            }
+        }
+        
+        // ===== ADS INITIALIZATION =====
+        function initializeAds() {
+            // Initialize Adexium
+            try {
+                if (typeof AdexiumWidget !== 'undefined') {
+                    adexiumPushWidget = new AdexiumWidget({wid: 'd29f2549-2e28-4016-8b89-f36b11f66244', adFormat: 'push-like'});
+                    adexiumPushWidget.autoMode();
+                    
+                    adexiumInterstitialWidget = new AdexiumWidget({wid: 'f2c903be-ac1d-4f6b-b0c7-8a281363517e', adFormat: 'interstitial'});
+                    adexiumInterstitialWidget.autoMode();
+                }
+            } catch (e) {
+                console.log("Adexium init error:", e);
+            }
+            
+            // Initialize RichAds
+            if (telegramAdsController) {
+                telegramAdsController.initialize({ pubId: "956231", appId: "6162" });
+            }
+            
+            // Initialize AdsGram
+            if (typeof window.Adsgram !== 'undefined') {
+                try {
+                    adsGramRewardController = window.Adsgram.init({ blockId: "21145" });
+                    adsGramLoaded = true;
+                } catch (e) {
+                    console.log("AdsGram init error:", e);
+                }
+            }
+            
+            updateAdStatus();
+        }
+        
+        // ===== COOLDOWN FUNCTIONS =====
+        function startCooldown(gameId, callback) {
+            const cooldownTime = Math.floor(Math.random() * 6) + 15; // 15-20 seconds randomly
+            const endTime = Date.now() + (cooldownTime * 1000);
+            
+            activeCooldowns[gameId] = {
+                endTime: endTime,
+                timer: setInterval(() => {
+                    const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+                    
+                    // Update UI
+                    const countdownEl = document.getElementById(`${gameId}-countdown`);
+                    if (countdownEl) {
+                        if (remaining > 0) {
+                            countdownEl.textContent = `Wait ${remaining}s`;
+                            countdownEl.classList.remove('hidden');
+                        } else {
+                            countdownEl.classList.add('hidden');
+                        }
+                    }
+                    
+                    // Disable button
+                    const btn = document.getElementById(`${gameId}-btn`);
+                    if (btn) {
+                        btn.disabled = remaining > 0;
+                    }
+                    
+                    if (remaining <= 0) {
+                        clearInterval(activeCooldowns[gameId].timer);
+                        delete activeCooldowns[gameId];
+                        if (callback) callback();
+                    }
+                }, 1000)
+            };
+            
+            // Show ads during cooldown
+            showAdsDuringCooldown();
+            
+            return cooldownTime;
+        }
+        
+        function isInCooldown(gameId) {
+            return activeCooldowns[gameId] && Date.now() < activeCooldowns[gameId].endTime;
+        }
+        
+        // ===== AD FUNCTIONS =====
+        function showAdsDuringCooldown() {
+            // Show RichAds
+            if (telegramAdsController) {
+                try {
+                    telegramAdsController.showAd();
+                } catch (e) {}
+            }
+            
+            // Show Gigapub
+            if (typeof window.showGiga === 'function') {
+                try {
+                    window.showGiga();
+                } catch (e) {}
+            }
+            
+            // Show Adexium
+            if (adexiumInterstitialWidget?.show) {
+                try {
+                    adexiumInterstitialWidget.show();
+                } catch (e) {}
+            }
+        }
+        
+        async function showAdSequence() {
+            updateAdStatus('loading');
+            
+            // Try Gigapub first
+            if (typeof window.showGiga === 'function') {
+                try {
+                    await window.showGiga();
+                    updateAdStatus('gigapub');
+                    return true;
+                } catch (e) {}
+            }
+            
+            // Try AdsGram next
+            if (adsGramLoaded && adsGramRewardController) {
+                try {
+                    await adsGramRewardController.show();
+                    updateAdStatus('adsgram');
+                    return true;
+                } catch (e) {}
+            }
+            
+            // Try Adexium next
+            if (adexiumInterstitialWidget?.show) {
+                try {
+                    adexiumInterstitialWidget.show();
+                    updateAdStatus('adexium');
+                    return true;
+                } catch (e) {}
+            }
+            
+            // Try RichAds last
+            if (telegramAdsController) {
+                try {
+                    telegramAdsController.showAd();
+                    updateAdStatus('richads');
+                    return true;
+                } catch (e) {}
+            }
+            
+            updateAdStatus();
+            return false;
+        }
+        
+        function updateAdStatus(type = 'ready') {
+            const statusEl = document.getElementById('adStatusDisplay');
+            const textEl = document.getElementById('adStatusText');
+            
+            if (!statusEl || !textEl) return;
+            
+            if (type === 'loading') {
+                statusEl.className = 'ad-status loading';
+                textEl.textContent = 'Loading Ad...';
+            } else if (type === 'gigapub') {
+                statusEl.style.background = 'linear-gradient(45deg, rgba(155, 89, 182, 0.8), rgba(142, 68, 173, 0.8))';
+                textEl.textContent = 'Gigapub Ad Ready';
+            } else if (type === 'adsgram') {
+                statusEl.style.background = 'linear-gradient(45deg, rgba(46, 204, 113, 0.8), rgba(39, 174, 96, 0.8))';
+                textEl.textContent = 'AdsGram Ready';
+            } else if (type === 'adexium') {
+                statusEl.style.background = 'linear-gradient(45deg, rgba(231, 76, 60, 0.8), rgba(192, 57, 43, 0.8))';
+                textEl.textContent = 'Adexium Ready';
+            } else if (type === 'richads') {
+                statusEl.style.background = 'linear-gradient(45deg, rgba(52, 152, 219, 0.8), rgba(41, 128, 185, 0.8))';
+                textEl.textContent = 'RichAds Ready';
+            } else {
+                statusEl.className = 'ad-status';
+                statusEl.style.background = 'rgba(52, 152, 219, 0.8)';
+                textEl.textContent = 'Ads Ready';
+            }
+        }
+        
+        // ===== OFFERWALL FUNCTIONS =====
+        window.openOfferWall = function() {
+            if (window.gigaOfferWallSDK) {
+                window.gigaOfferWallSDK.open();
+            } else {
+                showAlert("Offerwall is loading. Please try again in a moment.");
+            }
+        };
+        
+        window.creditUserReward = async function(userId, amount) {
+            console.log(`💰 Crediting ${amount} to user ${userId}`);
+            await updateBalance(amount, 'offerwall', 'Offerwall reward');
+            return true;
+        };
+        
+        // ===== GAME FUNCTIONS =====
+        function populateGames() {
+            const grid = document.getElementById('features-grid');
+            if (!grid) return;
+            
+            const games = [
+                { id: 'ludo-game-page', name: 'Ludo Dice', icon: 'dice', reward: gamesConfig.ludoDice.gameCost + ' pts' },
+                { id: 'color-game-page', name: 'Color Game', icon: 'palette', reward: gamesConfig.colorGame.rewardPerPlay + ' coins' },
+                { id: 'watch-earn-page', name: 'Watch & Earn', icon: 'play-circle', reward: gamesConfig.watchVideo.rewardPerPlay + ' coins' },
+                { id: 'try-your-luck-page', name: 'Try Your Luck', icon: 'star', reward: gamesConfig.tryYourLuck.rewardPerPlay + ' coins' },
+                { id: 'visit-earn-page', name: 'Visit & Earn', icon: 'globe', reward: 'Earn coins' },
+                { id: 'social-tasks-page', name: 'Social Tasks', icon: 'tasks', reward: 'Earn coins' }
+            ];
+            
+            grid.innerHTML = games.map(game => `
+                <div onclick="navigateTo('${game.id}')" class="feature-btn">
+                    <i class="fas fa-${game.icon} text-3xl gold-text mb-3"></i>
+                    <span class="text-lg gold-text block">${game.name}</span>
+                    <p class="text-sm text-gray-300 mt-1">${game.reward}</p>
+                </div>
+            `).join('');
+        }
+        
+        // ===== LUDO DICE GAME =====
+        function setupLudoGame() {
+            const rollBtn = document.getElementById('ludo-roll-btn');
+            const diceDisplay = document.getElementById('ludo-dice-display');
+            
+            rollBtn.addEventListener('click', async function() {
+                if (isInCooldown('ludo')) {
+                    return;
+                }
+                
+                const gameCost = gamesConfig.ludoDice.gameCost || 10;
+                
+                if (userData.balance < gameCost) {
+                    showAlert(`❌ Need at least ${gameCost} points!`);
+                    return;
+                }
+                
+                // Deduct cost
+                await updateBalance(-gameCost, 'ludo_game', 'Play Ludo Dice');
+                
+                // Roll dice
+                const diceValue = Math.floor(Math.random() * 6) + 1;
+                diceDisplay.textContent = diceValue;
+                diceDisplay.classList.add('animate-bounce');
+                setTimeout(() => diceDisplay.classList.remove('animate-bounce'), 500);
+                
+                // Start cooldown
+                startCooldown('ludo', async function() {
+                    // Show ad sequence during cooldown
+                    const adShown = await showAdSequence();
+                    
+                    if (adShown) {
+                        const winAmount = diceValue * (gamesConfig.ludoDice.winMultiplier || 10);
+                        await updateBalance(winAmount, 'ludo_game', `Won Ludo Dice (${diceValue}× multiplier)`);
+                        showAlert(`🎉 You won ${winAmount} points!`);
+                    } else {
+                        // Refund if no ad
+                        await updateBalance(gameCost, 'refund', 'No ads available');
+                        showAlert("⚠️ No ads available. Refund issued.");
+                    }
+                });
+            });
+        }
+        
+        // ===== COLOR GAME =====
+        function setupColorGame() {
+            const claimBtn = document.getElementById('claim-color-reward-btn');
+            claimBtn.addEventListener('click', async function() {
+                if (isInCooldown('color')) return;
+                
+                startCooldown('color', async function() {
+                    const adShown = await showAdSequence();
+                    
+                    if (adShown) {
+                        const reward = gamesConfig.colorGame.rewardPerPlay || 100;
+                        await updateBalance(reward, 'color_game', 'Won Color Game');
+                        document.getElementById('color-game-popup').classList.add('hidden');
+                        showAlert(`🎨 You earned ${reward} coins!`);
+                        startColorGame();
+                    } else {
+                        showAlert("⚠️ No ads available. Try again later.");
+                    }
+                });
+            });
+            
+            startColorGame();
+        }
+        
+        function startColorGame() {
+            const r = Math.floor(Math.random() * 256);
+            const g = Math.floor(Math.random() * 256);
+            const b = Math.floor(Math.random() * 256);
+            
+            document.getElementById('target-color-box').style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+            document.getElementById('target-color-rgb').textContent = `RGB(${r}, ${g}, ${b})`;
+            
+            const options = [`rgb(${r}, ${g}, ${b})`];
+            for (let i = 0; i < 8; i++) {
+                options.push(`rgb(${Math.random()*255},${Math.random()*255},${Math.random()*255})`);
+            }
+            options.sort(() => Math.random() - 0.5);
+            
+            const grid = document.getElementById('color-options-grid');
+            grid.innerHTML = '';
+            
+            options.forEach(color => {
+                const div = document.createElement('div');
+                div.className = 'w-full h-24 rounded-xl cursor-pointer transition-transform hover:scale-105';
+                div.style.backgroundColor = color;
+                div.dataset.color = color;
+                div.addEventListener('click', handleColorPick);
+                grid.appendChild(div);
+            });
+        }
+        
+        function handleColorPick(e) {
+            const selected = e.target.dataset.color;
+            const target = document.getElementById('target-color-box').style.backgroundColor;
+            
+            if (selected === target) {
+                document.getElementById('color-game-popup').classList.remove('hidden');
+            } else {
+                showAlert("❌ Wrong! Try again.");
+                setTimeout(startColorGame, 1000);
+            }
+        }
+        
+        // ===== WATCH & EARN =====
+        function setupWatchEarn() {
+            const watchBtn = document.getElementById('watch-earn-btn');
+            
+            watchBtn.addEventListener('click', async function() {
+                if (isInCooldown('watch')) return;
+                
+                startCooldown('watch', async function() {
+                    const adShown = await showAdSequence();
+                    
+                    if (adShown) {
+                        const reward = gamesConfig.watchVideo.rewardPerPlay || 50;
+                        await updateBalance(reward, 'ad_watch', 'Watched ad');
+                        showAlert(`📺 You earned ${reward} coins!`);
+                    } else {
+                        showAlert("⚠️ No ads available. Try again later.");
+                    }
+                });
+            });
+        }
+        
+        // ===== TRY YOUR LUCK GAME =====
+        window.startTryYourLuckGame = function() {
+            tryYourLuckGameActive = true;
+            tryYourLuckAdCount = 0;
+            tryYourLuckReward = 0;
+            
+            document.getElementById('try-your-luck-modal').classList.remove('hidden');
+            document.getElementById('start-try-your-luck-btn').classList.remove('hidden');
+            document.getElementById('try-luck-progress').classList.add('hidden');
+            document.getElementById('claim-try-luck-reward-btn').classList.add('hidden');
+            document.getElementById('try-luck-ad-status').textContent = '';
+        };
+        
+        document.getElementById('start-try-your-luck-btn')?.addEventListener('click', startTryLuckAdSequence);
+        document.getElementById('claim-try-luck-reward-btn')?.addEventListener('click', claimTryLuckReward);
+        
+        async function startTryLuckAdSequence() {
+            if (!tryYourLuckGameActive) return;
+            
+            document.getElementById('start-try-your-luck-btn').classList.add('hidden');
+            document.getElementById('try-luck-progress').classList.remove('hidden');
+            
+            tryYourLuckAdCount = 0;
+            
+            for (let i = 0; i < 4; i++) {
+                if (!tryYourLuckGameActive) break;
+                
+                document.getElementById('try-luck-ad-status').textContent = `Loading ad ${i+1}/4...`;
+                
+                const adShown = await showAdSequence();
+                
+                if (adShown) {
+                    tryYourLuckAdCount++;
+                }
+                
+                updateTryLuckProgress();
+                
+                if (i < 3) await new Promise(r => setTimeout(r, 2000));
+            }
+            
+            if (tryYourLuckGameActive) {
+                completeTryLuckGame();
+            }
+        }
+        
+        function updateTryLuckProgress() {
+            const progress = (tryYourLuckAdCount / 4) * 100;
+            document.getElementById('try-luck-progress-bar').style.width = `${progress}%`;
+            document.getElementById('try-luck-progress-text').textContent = `${tryYourLuckAdCount}/4 ads`;
+        }
+        
+        function completeTryLuckGame() {
+            const reward = gamesConfig.tryYourLuck.rewardPerPlay || 500;
+            tryYourLuckReward = reward;
+            
+            document.getElementById('try-luck-ad-status').textContent = `✅ Completed ${tryYourLuckAdCount}/4 ads!`;
+            document.getElementById('claim-try-luck-reward-btn').classList.remove('hidden');
+            document.getElementById('start-try-your-luck-btn').classList.add('hidden');
+        }
+        
+        async function claimTryLuckReward() {
+            if (tryYourLuckReward > 0) {
+                await updateBalance(tryYourLuckReward, 'try_your_luck', 'Try Your Luck reward');
+                showAlert(`🎉 You earned ${tryYourLuckReward} points!`);
+            }
+            
+            document.getElementById('try-your-luck-modal').classList.add('hidden');
+            tryYourLuckGameActive = false;
+        }
+        
+        window.exitTryYourLuckGame = function() {
+            document.getElementById('try-your-luck-modal').classList.add('hidden');
+            tryYourLuckGameActive = false;
+        };
+        
+        // ===== WEBSITE VISIT =====
+        function populateWebsiteList() {
+            const list = document.getElementById('website-list');
+            if (!list) return;
+            
+            const websites = appConfig.websitesToVisit || [];
+            
+            if (websites.length === 0) {
+                list.innerHTML = '<div class="premium-card p-6 text-center">No websites available</div>';
+                return;
+            }
+            
+            list.innerHTML = websites.map(site => `
+                <div class="premium-card p-4 rounded-2xl flex justify-between items-center">
+                    <div>
+                        <h3 class="font-semibold">${site.name}</h3>
+                        <p class="text-sm gold-text">${site.reward} Coins</p>
+                    </div>
+                    <button onclick="visitWebsite('${site.link}', ${site.reward})" class="btn-accent px-4 py-2 text-sm font-bold">
+                        Visit
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        window.visitWebsite = async function(link, reward) {
+            if (isInCooldown('visit')) return;
+            
+            startCooldown('visit', async function() {
+                const adShown = await showAdSequence();
+                
+                if (adShown) {
+                    window.open(link, '_blank');
+                    await updateBalance(reward, 'website_visit', 'Visited website');
+                    showAlert(`🌐 You earned ${reward} coins!`);
+                } else {
+                    showAlert("⚠️ No ads available. Try again later.");
+                }
+            });
+        };
+        
+        // ===== SOCIAL TASKS =====
+        function populateSocialTasks() {
+            const list = document.getElementById('social-tasks-list');
+            if (!list) return;
+            
+            const tasks = appConfig.socialTasks || [];
+            
+            if (tasks.length === 0) {
+                list.innerHTML = '<div class="premium-card p-6 text-center">No tasks available</div>';
+                return;
+            }
+            
+            list.innerHTML = tasks.map(task => `
+                <div class="premium-card p-4 rounded-2xl flex justify-between items-center">
+                    <div>
+                        <h3 class="font-semibold">${task.name}</h3>
+                        <p class="text-sm gold-text">${task.reward} Coins</p>
+                    </div>
+                    <button onclick="completeSocialTask('${task.link}', ${task.reward})" class="btn-accent px-4 py-2 text-sm font-bold">
+                        Follow
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        window.completeSocialTask = async function(link, reward) {
+            if (isInCooldown('social')) return;
+            
+            startCooldown('social', async function() {
+                const adShown = await showAdSequence();
+                
+                if (adShown) {
+                    window.open(link, '_blank');
+                    await updateBalance(reward, 'social_task', 'Completed social task');
+                    showAlert(`✅ You earned ${reward} coins!`);
+                } else {
+                    showAlert("⚠️ No ads available. Try again later.");
+                }
+            });
+        };
+        
+        // ===== WALLET FUNCTIONS =====
+        function setupWallet() {
+            const withdrawBtn = document.getElementById('withdraw-btn');
+            const methodSelect = document.getElementById('withdraw-method');
+            const paymentContainer = document.getElementById('payment-details-container');
+            
+            methodSelect.addEventListener('change', function() {
+                const method = this.value.toLowerCase();
+                const placeholders = {
+                    upi: 'Enter UPI ID (e.g., user@okhdfcbank)',
+                    paytm: 'Enter Paytm number',
+                    paypal: 'Enter PayPal email'
+                };
+                
+                paymentContainer.innerHTML = `
+                    <input type="text" id="payment-details-input" 
+                           placeholder="${placeholders[method] || 'Enter details'}" 
+                           class="w-full p-4 rounded-xl input-field text-lg">
+                `;
+            });
+            
+            methodSelect.dispatchEvent(new Event('change'));
+            
+            withdrawBtn.addEventListener('click', handleWithdrawal);
+        }
+        
+        async function handleWithdrawal() {
+            const amount = parseInt(document.getElementById('withdraw-amount').value);
+            const method = document.getElementById('withdraw-method').value;
+            const details = document.getElementById('payment-details-input')?.value;
+            
+            if (!amount || amount < appConfig.minWithdrawal) {
+                showAlert(`❌ Minimum withdrawal is ${appConfig.minWithdrawal} coins`);
+                return;
+            }
+            
+            if (amount > userData.balance) {
+                showAlert('❌ Insufficient balance');
+                return;
+            }
+            
+            if (!details) {
+                showAlert('❌ Please enter payment details');
+                return;
+            }
+            
+            await updateBalance(-amount, 'withdrawal', `Withdrawal via ${method}`);
+            showAlert('✅ Withdrawal request submitted!');
+            
+            document.getElementById('withdraw-amount').value = '';
+        }
+        
+        // ===== REFERRAL FUNCTIONS =====
+        function setupReferral() {
+            document.getElementById('referral-code').textContent = userData.referralCode;
+            
+            document.getElementById('copy-code-btn').addEventListener('click', function() {
+                navigator.clipboard.writeText(userData.referralCode);
+                showAlert('✅ Code copied!');
+            });
+            
+            document.getElementById('share-btn').addEventListener('click', function() {
+                const text = `Join CashReward and earn money! Use my code: ${userData.referralCode}`;
+                if (navigator.share) {
+                    navigator.share({ title: 'CashReward', text });
+                } else {
+                    navigator.clipboard.writeText(text);
+                    showAlert('✅ Share link copied!');
+                }
+            });
+        }
+        
+        // ===== PROFILE FUNCTIONS =====
+        function setupProfile() {
+            document.getElementById('logout-btn').addEventListener('click', function() {
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.close();
+                } else {
+                    showAlert('You can close the app to logout');
+                }
+            });
+        }
+        
+        // ===== SLIDER =====
+        function initSlider() {
+            const wrapper = document.querySelector('.slider-wrapper');
+            const dots = document.querySelector('.slider-dots');
+            if (!wrapper || !dots) return;
+            
+            const banners = appConfig.sliderBanners || [];
+            if (banners.length === 0) return;
+            
+            wrapper.innerHTML = banners.map(b => `
+                <div class="slider-item">
+                    <a href="${b.link}" target="_blank">
+                        <img src="${b.img}" alt="Banner">
+                    </a>
+                </div>
+            `).join('');
+            
+            dots.innerHTML = banners.map((_, i) => `
+                <div class="slider-dot" data-slide="${i}"></div>
+            `).join('');
+            
+            let current = 0;
+            const slides = wrapper.querySelectorAll('.slider-item');
+            const dotEls = dots.querySelectorAll('.slider-dot');
+            
+            function showSlide(n) {
+                current = (n + slides.length) % slides.length;
+                wrapper.style.transform = `translateX(-${current * 100}%)`;
+                dotEls.forEach(d => d.classList.remove('active'));
+                dotEls[current]?.classList.add('active');
+            }
+            
+            dotEls.forEach(d => d.addEventListener('click', () => showSlide(parseInt(d.dataset.slide))));
+            setInterval(() => showSlide(current + 1), 4000);
+            showSlide(0);
+        }
+        
+        // ===== BALANCE FUNCTIONS =====
+        async function updateBalance(amount, type, description) {
+            userData.balance = parseFloat((userData.balance || 0) + amount).toFixed(2);
+            
+            if (amount > 0) {
+                userData.totalEarned = parseFloat((userData.totalEarned || 0) + amount).toFixed(2);
+                userData.tasksCompleted = (userData.tasksCompleted || 0) + 1;
+            }
+            
+            updateAllUI();
+            return true;
+        }
+        
+        // ===== UI FUNCTIONS =====
+        function updateAllUI() {
+            document.getElementById('header-profile-name').textContent = `Hi, ${userData.name}`;
+            document.getElementById('header-coin-balance').textContent = userData.balance;
+            document.getElementById('profile-page-name').textContent = userData.name;
+            document.getElementById('profile-page-email').textContent = userData.email;
+            document.getElementById('wallet-coin-balance').textContent = userData.balance;
+            document.getElementById('total-earned').textContent = userData.totalEarned || 0;
+            document.getElementById('tasks-done').textContent = userData.tasksCompleted || 0;
+            
+            const level = Math.floor((userData.totalEarned || 0) / 1000) + 1;
+            document.getElementById('user-level').textContent = level;
+            
+            const todayEarnings = (userData.dailyAdCount || 0) * (appConfig.adWatchReward || 50);
+            document.getElementById('today-earnings').textContent = todayEarnings;
+        }
+        
+        // ===== NAVIGATION =====
+        window.navigateTo = function(pageId) {
+            document.querySelectorAll('.sub-page').forEach(p => {
+                p.classList.remove('active');
+                p.style.display = 'none';
+            });
+            
+            const page = document.getElementById(pageId);
+            if (page) {
+                page.classList.add('active');
+                page.style.display = 'block';
+            }
+            
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.toggle('active', link.dataset.page === pageId);
+            });
+            
+            document.getElementById('back-button-container').style.display = 
+                pageId !== 'home-page' ? 'block' : 'none';
+            
+            // Load page-specific content
+            if (pageId === 'color-game-page') startColorGame();
+            if (pageId === 'visit-earn-page') populateWebsiteList();
+            if (pageId === 'social-tasks-page') populateSocialTasks();
+        };
+        
+        function setupEventListeners() {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    navigateTo(link.dataset.page);
+                });
+            });
+            
+            document.getElementById('rewards-button').addEventListener('click', openOfferWall);
+            document.getElementById('alert-ok-btn').addEventListener('click', () => {
+                document.getElementById('custom-alert').classList.add('hidden');
+            });
+            
+            setupLudoGame();
+            setupColorGame();
+            setupWatchEarn();
+            setupWallet();
+            setupReferral();
+            setupProfile();
+        }
+        
+        function showAlert(message) {
+            document.getElementById('alert-message').textContent = message;
+            document.getElementById('custom-alert').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
