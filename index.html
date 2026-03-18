@@ -8,83 +8,215 @@
     <!-- Telegram WebApp SDK (MUST BE FIRST) -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-
-          
-          <!-- RICHADS - OPTIMIZED FOR ALWAYS LOAD -->
-          <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
-          <script>
-            // Optimized: Force initialize and retry on failure
-            (function() {
-                function initRichAds() {
-                    try {
-                        window.TelegramAdsController = new TelegramAdsController();
-                        window.TelegramAdsController.initialize({
+    <!-- RICHADS - FIXED INTEGRATION -->
+    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
+    <script>
+        (function() {
+            // Enhanced RichAds initialization with better error handling
+            function initRichAds(retryCount = 0) {
+                try {
+                    if (typeof TelegramAdsController !== 'undefined') {
+                        window.richAdsController = new TelegramAdsController();
+                        window.richAdsController.initialize({
                             pubId: "956231",
                             appId: "6477",
+                            onInit: function() {
+                                console.log("✅ RichAds initialized successfully");
+                                window.richAdsReady = true;
+                            },
+                            onError: function(error) {
+                                console.log("❌ RichAds init error:", error);
+                                window.richAdsReady = false;
+                                if (retryCount < 3) {
+                                    console.log(`🔄 Retrying RichAds (${retryCount + 1}/3)...`);
+                                    setTimeout(() => initRichAds(retryCount + 1), 2000);
+                                }
+                            }
                         });
-                        console.log("✅ RichAds initialized (optimized)");
-                    } catch(e) {
-                        console.log("❌ RichAds init error, retrying in 1s...", e);
-                        setTimeout(initRichAds, 1000);
+                    } else {
+                        console.log("⚠️ TelegramAdsController not loaded yet");
+                        if (retryCount < 3) {
+                            setTimeout(() => initRichAds(retryCount + 1), 1000);
+                        }
+                    }
+                } catch (e) {
+                    console.log("❌ RichAds exception:", e);
+                    if (retryCount < 3) {
+                        setTimeout(() => initRichAds(retryCount + 1), 1000);
                     }
                 }
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', initRichAds);
-                } else {
-                    initRichAds();
-                }
-            })();
-          </script>
+            }
 
-          <!-- ADEXIUM WIDGET - OPTIMIZED FOR ALWAYS LOAD -->
-          <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
-          <script type="text/javascript">
-            // Optimized: Force load both widgets with retry
-            (function() {
-                function initAdexiumPush() {
-                    try {
-                        if (typeof AdexiumWidget !== 'undefined') {
-                            const widget = new AdexiumWidget({wid: 'd29f2549-2e28-4016-8b89-f36b11f66244', adFormat: 'push-like'});
-                            widget.autoMode();
-                            console.log("✅ Adexium Push initialized (optimized)");
-                        } else {
-                            console.log("⏳ Adexium not ready, retrying push in 1s...");
-                            setTimeout(initAdexiumPush, 1000);
-                        }
-                    } catch(e) { console.log("Adexium push init error:", e); }
-                }
-                
-                function initAdexiumInterstitial() {
-                    try {
-                        if (typeof AdexiumWidget !== 'undefined') {
-                            const widget = new AdexiumWidget({wid: 'f2c903be-ac1d-4f6b-b0c7-8a281363517e', adFormat: 'interstitial'});
-                            widget.autoMode();
-                            console.log("✅ Adexium Interstitial initialized (optimized)");
-                        } else {
-                            console.log("⏳ Adexium not ready, retrying interstitial in 1s...");
-                            setTimeout(initAdexiumInterstitial, 1000);
-                        }
-                    } catch(e) { console.log("Adexium interstitial init error:", e); }
-                }
-                
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', () => {
-                        initAdexiumPush();
-                        initAdexiumInterstitial();
-                    });
-                } else {
-                    initAdexiumPush();
-                    initAdexiumInterstitial();
-                }
-            })();
-          </script>
+            // Initialize when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => initRichAds());
+            } else {
+                initRichAds();
+            }
 
-<script async src="https://js.mbidadm.com/static/scripts.js" data-admpid="352245"></script>
+            // Show RichAds ad function
+            window.showRichAd = function() {
+                return new Promise((resolve, reject) => {
+                    if (!window.richAdsReady || !window.richAdsController) {
+                        reject(new Error("RichAds not ready"));
+                        return;
+                    }
+                    
+                    try {
+                        window.richAdsController.showAd({
+                            onAdShown: function() {
+                                console.log("✅ RichAds ad shown");
+                            },
+                            onAdCompleted: function() {
+                                console.log("✅ RichAds ad completed");
+                                resolve(true);
+                            },
+                            onAdError: function(error) {
+                                console.log("❌ RichAds ad error:", error);
+                                reject(error);
+                            }
+                        });
+                        
+                        // Timeout fallback
+                        setTimeout(() => {
+                            console.log("⚠️ RichAds timeout - assuming completion");
+                            resolve(true);
+                        }, 5000);
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            };
+        })();
+    </script>
+
+    <!-- ADEXIUM - FIXED INTEGRATION -->
+    <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
+    <script type="text/javascript">
+        (function() {
+            // Adexium initialization with proper widget setup
+            window.adexiumWidgets = {};
+            
+            function initAdexium(retryCount = 0) {
+                try {
+                    if (typeof AdexiumWidget !== 'undefined') {
+                        console.log("✅ Adexium SDK loaded");
+                        
+                        // Initialize Push Ad
+                        try {
+                            window.adexiumPush = new AdexiumWidget({
+                                wid: 'd29f2549-2e28-4016-8b89-f36b11f66244',
+                                adFormat: 'push-like'
+                            });
+                            window.adexiumPush.autoMode();
+                            window.adexiumWidgets.push = window.adexiumPush;
+                            console.log("✅ Adexium Push initialized");
+                        } catch (e) {
+                            console.log("❌ Adexium Push error:", e);
+                        }
+                        
+                        // Initialize Interstitial
+                        try {
+                            window.adexiumInterstitial = new AdexiumWidget({
+                                wid: 'f2c903be-ac1d-4f6b-b0c7-8a281363517e',
+                                adFormat: 'interstitial'
+                            });
+                            window.adexiumInterstitial.autoMode();
+                            window.adexiumWidgets.interstitial = window.adexiumInterstitial;
+                            console.log("✅ Adexium Interstitial initialized");
+                        } catch (e) {
+                            console.log("❌ Adexium Interstitial error:", e);
+                        }
+                        
+                        window.adexiumReady = true;
+                    } else {
+                        console.log("⚠️ AdexiumWidget not loaded yet");
+                        if (retryCount < 3) {
+                            setTimeout(() => initAdexium(retryCount + 1), 1000);
+                        }
+                    }
+                } catch (e) {
+                    console.log("❌ Adexium init error:", e);
+                }
+            }
+
+            // Show Adexium interstitial function
+            window.showAdexiumInterstitial = function() {
+                return new Promise((resolve, reject) => {
+                    if (!window.adexiumReady || !window.adexiumInterstitial) {
+                        reject(new Error("Adexium interstitial not ready"));
+                        return;
+                    }
+                    
+                    try {
+                        // Create container if not exists
+                        let container = document.getElementById('adexium-interstitial-container');
+                        if (!container) {
+                            container = document.createElement('div');
+                            container.id = 'adexium-interstitial-container';
+                            container.className = 'adexium-container';
+                            container.innerHTML = `
+                                <div class="adexium-content">
+                                    <div class="adexium-close-btn" onclick="closeAdexiumAd()">×</div>
+                                    <div id="adexium-interstitial-placeholder"></div>
+                                </div>
+                            `;
+                            document.body.appendChild(container);
+                        }
+                        
+                        container.style.display = 'flex';
+                        
+                        // Set up close handler
+                        window.closeAdexiumAd = function() {
+                            container.style.display = 'none';
+                            resolve(true);
+                        };
+                        
+                        // Show the ad
+                        window.adexiumInterstitial.show();
+                        
+                        // Auto-close timeout
+                        setTimeout(() => {
+                            if (container.style.display === 'flex') {
+                                container.style.display = 'none';
+                                resolve(true);
+                            }
+                        }, 10000);
+                        
+                    } catch (error) {
+                        console.log("❌ Adexium show error:", error);
+                        reject(error);
+                    }
+                });
+            };
+
+            // Show Adexium push function
+            window.showAdexiumPush = function() {
+                return new Promise((resolve) => {
+                    if (window.adexiumPush) {
+                        window.adexiumPush.show();
+                    }
+                    // Push ads don't need resolution
+                    resolve(true);
+                });
+            };
+
+            // Initialize when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => initAdexium());
+            } else {
+                initAdexium();
+            }
+        })();
+    </script>
+
+    <!-- Other ad networks -->
+    <script async src="https://js.mbidadm.com/static/scripts.js" data-admpid="352245"></script>
     
     <!-- AdsGram SDK -->
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
     
-    <!-- Gigapub SDK (Replaces Taddy.pro) -->
+    <!-- Gigapub SDK -->
     <script src="https://ad.gigapub.tech/script?id=1817"></script>
     
     <!-- Giga OfferWall SDK Loader -->
@@ -108,13 +240,9 @@
                 
                 sdk.on('rewardClaim', async (data) => {
                     console.log('🎯 Reward claim received:', data);
-                    
-                    // Credit user reward
                     if (window.creditUserReward) {
                         await window.creditUserReward(data.userId, data.amount);
                     }
-                    
-                    // Confirm reward
                     sdk.confirmReward(data.rewardId, data.hash);
                 });
             })
@@ -128,7 +256,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/lucide@latest"></script>
+    
     <style>
+        /* Your existing styles remain exactly the same */
         * {
             margin: 0;
             padding: 0;
@@ -1533,16 +1663,6 @@
         </div>
     </div>
     
-    <!-- Adexium Interstitial Ad Container -->
-    <div id="adexium-interstitial-container" class="adexium-container hidden">
-        <div class="adexium-content" id="adexium-interstitial-content">
-            <div class="adexium-close-btn" onclick="closeAdexiumInterstitial()">×</div>
-            <div id="adexium-interstitial-placeholder">
-                <!-- Adexium interstitial ad will be displayed here -->
-            </div>
-        </div>
-    </div>
-    
     <!-- OfferWall Modal -->
     <div id="offerwall-modal" class="offerwall-modal">
         <div class="offerwall-modal-content">
@@ -2002,10 +2122,9 @@
         let gamesConfig = {};
         
         // ===== ADS SDK VARIABLES =====
-        let richAdsLoaded = true; // RichAds initialized in head
-        let gigapubLoaded = true; // Gigapub SDK loaded in head
+        let richAdsLoaded = false;
+        let gigapubLoaded = true;
         let gigapubAdsService = null;
-        let telegramAdsController = window.TelegramAdsController;
         let isTelegramWebApp = false;
         
         // Adexium Widgets
@@ -2055,16 +2174,16 @@
         let currentAdProvider = null;
         
         // ===== FIXED: AD SEQUENCE VARIABLES - Gigapub and Adsgram alternating =====
-        let adSequenceProviders = ['gigapub', 'adsgram']; // Primary ad providers for sequential display
+        let adSequenceProviders = ['gigapub', 'adsgram'];
         let adSequenceIndex = 0;
         let adSequenceSuccessCount = 0;
         let adSequenceInProgress = false;
         let adSequencePoints = 0;
         let adSequenceTimer = null;
-        let adSequenceTimeoutMs = 5000; // 5 second timeout for each ad
+        let adSequenceTimeoutMs = 5000;
         
         // ===== TRY YOUR LUCK GAME VARIABLES =====
-        let tryYourLuckAdProviders = ['gigapub', 'adsgram', 'gigapub', 'adsgram']; // Alternate between both providers
+        let tryYourLuckAdProviders = ['gigapub', 'adsgram', 'gigapub', 'adsgram'];
         let tryYourLuckAdStatus = {
             gigapub1: { loaded: true, shown: false, success: false },
             adsgram1: { loaded: false, shown: false, success: false },
@@ -2097,7 +2216,6 @@
         const noticeAutoCancelTimerEl = document.getElementById('notice-auto-cancel-timer');
         const noticeTimerSecondsEl = document.getElementById('notice-timer-seconds');
         const adProviderNameEl = document.getElementById('ad-provider-name');
-        const adexiumInterstitialContainer = document.getElementById('adexium-interstitial-container');
         const offerwallModal = document.getElementById('offerwall-modal');
 
         window.onload = async () => {
@@ -2137,7 +2255,6 @@
         function initializeOfferWallSDK() {
             console.log("🎯 Initializing OfferWall SDK...");
             
-            // Check if SDK is already loaded
             if (window.gigaOfferWallSDK) {
                 gigaOfferWallSDK = window.gigaOfferWallSDK;
                 console.log("✅ OfferWall SDK already loaded");
@@ -2145,7 +2262,6 @@
                 return;
             }
             
-            // Set up callback for when SDK loads
             if (!window.loadGigaSDKCallbacks) {
                 window.loadGigaSDKCallbacks = [];
             }
@@ -2161,14 +2277,12 @@
                         console.log("✅ OfferWall SDK loaded successfully");
                         updateAdStatus('offerwall');
                         
-                        // Set up reward claim handler
                         sdk.on('rewardClaim', async (data) => {
                             console.log('🎯 Reward claim received:', data);
                             await creditUserReward(data.userId, data.amount);
                             sdk.confirmReward(data.rewardId, data.hash);
                         });
                         
-                        // Update stats
                         updateOfferWallStats();
                     })
                     .catch(error => {
@@ -2177,7 +2291,6 @@
                 }
             });
             
-            // If SDK is already loaded, trigger callbacks
             if (window.loadOfferWallSDK && window.loadGigaSDKCallbacks.length > 0) {
                 window.loadGigaSDKCallbacks.forEach(callback => callback());
             }
@@ -2328,7 +2441,6 @@
         
         function trackOfferWallAction(action) {
             console.log(`📊 OfferWall action: ${action}`);
-            // Track for analytics if needed
         }
         
         // ===== CREDIT USER REWARD FROM OFFERWALL =====
@@ -2342,10 +2454,7 @@
             
             try {
                 await updateBalance(amount, 'offerwall', `Earned ${amount} points from OfferWall`);
-                
-                // Show notification
                 showAlert(`🎉 You earned ${amount} points from OfferWall!`);
-                
                 return true;
             } catch (error) {
                 console.error("❌ Error crediting reward:", error);
@@ -2394,10 +2503,9 @@
             
             return new Promise((resolve, reject) => {
                 try {
-                    // Set timeout for ad loading
                     const timeout = setTimeout(() => {
                         reject(new Error("AdsGram interstitial timeout"));
-                    }, 10000); // 10 second timeout
+                    }, 10000);
                     
                     adsGramInterstitialController.show()
                         .then((result) => {
@@ -2434,10 +2542,9 @@
             
             return new Promise((resolve, reject) => {
                 try {
-                    // Set timeout for ad loading
                     const timeout = setTimeout(() => {
                         reject(new Error("AdsGram reward timeout"));
-                    }, 10000); // 10 second timeout
+                    }, 10000);
                     
                     adsGramRewardController.show()
                         .then((result) => {
@@ -2470,11 +2577,10 @@
             
             return new Promise((resolve, reject) => {
                 if (typeof window.showGiga === 'function') {
-                    // Set timeout for Gigapub
                     const timeout = setTimeout(() => {
                         console.log("⏱️ Gigapub ad timeout");
                         reject(new Error("Gigapub timeout"));
-                    }, 10000); // 10 second timeout
+                    }, 10000);
                     
                     window.showGiga()
                         .then(() => {
@@ -2495,92 +2601,41 @@
         }
         
         // ===== RICHADS AD FUNCTIONS =====
-        async function showRichAds() {
-            if (telegramAdsController) {
-                console.log("🎯 Showing RichAds...");
-                currentAdProvider = 'RichAds';
-                updateAdProviderDisplay();
-                
-                return new Promise((resolve, reject) => {
-                    try {
-                        telegramAdsController.showAd();
-                        // RichAds doesn't have a direct callback, so we'll assume success after timeout
-                        setTimeout(() => {
-                            console.log("✅ RichAds assumed completed");
-                            resolve(true);
-                        }, 5000);
-                    } catch (error) {
-                        console.log("❌ RichAds error:", error);
-                        reject(error);
-                    }
-                });
+        async function showRichAd() {
+            console.log("🎯 Showing RichAds...");
+            currentAdProvider = 'RichAds';
+            updateAdProviderDisplay();
+            
+            if (typeof window.showRichAd === 'function') {
+                return window.showRichAd();
             } else {
-                reject(new Error("RichAds not available"));
+                return new Promise((resolve) => {
+                    console.log("⚠️ RichAds show function not available");
+                    setTimeout(resolve, 1000);
+                });
             }
         }
         
         // ===== ADEXIUM AD FUNCTIONS =====
-        function showAdexiumInterstitialContainer() {
-            adexiumInterstitialContainer.style.display = 'flex';
+        async function showAdexiumInterstitial() {
+            console.log("🎯 Showing Adexium interstitial...");
+            currentAdProvider = 'Adexium';
+            updateAdProviderDisplay();
             
-            if (adexiumInterstitialWidget && typeof adexiumInterstitialWidget.show === 'function') {
-                try {
-                    document.getElementById('adexium-interstitial-placeholder').innerHTML = '';
-                    
-                    adexiumInterstitialWidget.show();
-                    
-                    adexiumInterstitialWidget.on('close', () => {
-                        console.log("✅ Adexium interstitial ad completed");
-                        closeAdexiumInterstitial();
-                        
-                        const event = new CustomEvent('adexiumInterstitialCompleted');
-                        window.dispatchEvent(event);
-                    });
-                    
-                    adexiumInterstitialWidget.on('error', (error) => {
-                        console.log("❌ Adexium interstitial ad error:", error);
-                        closeAdexiumInterstitial();
-                    });
-                    
-                } catch (error) {
-                    console.log("❌ Error showing Adexium interstitial ad:", error);
-                    closeAdexiumInterstitial();
-                }
+            if (typeof window.showAdexiumInterstitial === 'function') {
+                return window.showAdexiumInterstitial();
+            } else {
+                return new Promise((resolve) => {
+                    console.log("⚠️ Adexium show function not available");
+                    setTimeout(resolve, 1000);
+                });
             }
         }
         
-        function closeAdexiumInterstitial() {
-            adexiumInterstitialContainer.style.display = 'none';
-            document.getElementById('adexium-interstitial-placeholder').innerHTML = '';
-        }
-        
-        async function showAdexiumInterstitial() {
-            console.log("🎯 Showing Adexium interstitial ad...");
-            currentAdProvider = 'Adexium Interstitial';
-            updateAdProviderDisplay();
-            
-            return new Promise((resolve, reject) => {
-                try {
-                    showAdexiumInterstitialContainer();
-                    
-                    const handleAdexiumComplete = () => {
-                        console.log("✅ Adexium interstitial ad completed");
-                        window.removeEventListener('adexiumInterstitialCompleted', handleAdexiumComplete);
-                        resolve(true);
-                    };
-                    
-                    window.addEventListener('adexiumInterstitialCompleted', handleAdexiumComplete);
-                    
-                    setTimeout(() => {
-                        window.removeEventListener('adexiumInterstitialCompleted', handleAdexiumComplete);
-                        reject(new Error("Adexium ad timeout"));
-                    }, 30000);
-                    
-                } catch (error) {
-                    console.log("❌ Adexium interstitial ad error:", error);
-                    reject(error);
-                }
-            });
+        async function showAdexiumPush() {
+            if (typeof window.showAdexiumPush === 'function') {
+                return window.showAdexiumPush();
+            }
         }
         
         function updateAdStatus(type) {
@@ -2589,7 +2644,7 @@
             
             if (!adStatusElement) return;
             
-            if (type === 'richads' && richAdsLoaded) {
+            if (type === 'richads' && window.richAdsReady) {
                 adStatusElement.className = 'ad-status richads';
                 adStatusText.textContent = 'RichAds Ready';
             } else if (type === 'gigapub' && gigapubLoaded) {
@@ -2598,10 +2653,10 @@
             } else if (type === 'adsgram' && adsGramLoaded) {
                 adStatusElement.className = 'ad-status adsgram';
                 adStatusText.textContent = 'AdsGram Ready';
-            } else if (type === 'adexium') {
+            } else if (type === 'adexium' && window.adexiumReady) {
                 adStatusElement.className = 'ad-status adexium';
                 adStatusText.textContent = 'Adexium Ready';
-            } else if (type === 'offerwall') {
+            } else if (type === 'offerwall' && gigaOfferWallSDK) {
                 adStatusElement.className = 'ad-status offerwall';
                 adStatusText.textContent = 'OfferWall Ready';
             } else if (type === 'loading') {
@@ -2615,8 +2670,8 @@
             adStatusElement.style.display = 'flex';
         }
         
-        // ===== FIXED: AD SEQUENCE FUNCTIONS (Gigapub and Adsgram alternating with timeouts) =====
-        async function startAdSequence(basePoints = 10) {
+        // ===== FIXED: AD SEQUENCE FUNCTIONS =====
+        async function startAdSequence(basePoints = 0) {
             if (adSequenceInProgress) {
                 console.log("⚠️ Ad sequence already in progress");
                 return { success: false, points: 0, successCount: 0 };
@@ -2627,14 +2682,14 @@
             adSequenceSuccessCount = 0;
             adSequencePoints = 0;
             
-            console.log("🎯 Starting ad sequence with providers:", adSequenceProviders);
+            const providers = ['gigapub', 'adsgram', 'richads', 'adexium'];
+            console.log("🎯 Starting ad sequence with providers:", providers);
             showAdLoadingPopup("Loading first ad...");
             
             try {
-                // Show first ad (Gigapub)
-                if (adSequenceIndex < adSequenceProviders.length) {
-                    const provider = adSequenceProviders[adSequenceIndex];
-                    console.log(`🔄 Showing ad ${adSequenceIndex + 1}/${adSequenceProviders.length}: ${provider}`);
+                for (let i = 0; i < providers.length; i++) {
+                    const provider = providers[i];
+                    console.log(`🔄 Showing ad ${i + 1}/${providers.length}: ${provider}`);
                     
                     try {
                         let success = false;
@@ -2642,13 +2697,16 @@
                         if (provider === 'gigapub') {
                             success = await showGigapubAd();
                         } else if (provider === 'adsgram') {
-                            // Try reward ad first, then interstitial
                             try {
                                 success = await showAdsGramReward();
                             } catch (rewardError) {
                                 console.log("AdsGram reward failed, trying interstitial...");
                                 success = await showAdsGramInterstitial();
                             }
+                        } else if (provider === 'richads') {
+                            success = await showRichAd();
+                        } else if (provider === 'adexium') {
+                            success = await showAdexiumInterstitial();
                         }
                         
                         if (success) {
@@ -2658,47 +2716,14 @@
                     } catch (error) {
                         console.log(`❌ ${provider} ad failed:`, error);
                     }
-                }
-                
-                adSequenceIndex++;
-                
-                // If first ad failed or took too long, try second ad (Adsgram)
-                if (adSequenceIndex < adSequenceProviders.length) {
-                    // Small delay between ads
-                    await new Promise(resolve => setTimeout(resolve, 1000));
                     
-                    showAdLoadingPopup(`Loading next ad (${adSequenceIndex + 1}/${adSequenceProviders.length})...`);
-                    
-                    const provider = adSequenceProviders[adSequenceIndex];
-                    console.log(`🔄 Showing ad ${adSequenceIndex + 1}/${adSequenceProviders.length}: ${provider}`);
-                    
-                    try {
-                        let success = false;
-                        
-                        if (provider === 'gigapub') {
-                            success = await showGigapubAd();
-                        } else if (provider === 'adsgram') {
-                            // Try reward ad first, then interstitial
-                            try {
-                                success = await showAdsGramReward();
-                            } catch (rewardError) {
-                                console.log("AdsGram reward failed, trying interstitial...");
-                                success = await showAdsGramInterstitial();
-                            }
-                        }
-                        
-                        if (success) {
-                            adSequenceSuccessCount++;
-                            console.log(`✅ ${provider} ad successful`);
-                        }
-                    } catch (error) {
-                        console.log(`❌ ${provider} ad failed:`, error);
+                    if (i < providers.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        showAdLoadingPopup(`Loading next ad (${i + 2}/${providers.length})...`);
                     }
                 }
                 
                 hideAdLoadingPopup();
-                
-                // Calculate points based on successful ads - NO BONUSES, JUST SUCCESS COUNT
                 adSequencePoints = basePoints * adSequenceSuccessCount;
                 
                 console.log(`✅ Ad sequence completed. Success count: ${adSequenceSuccessCount}, Points: ${adSequencePoints}`);
@@ -3295,14 +3320,10 @@
             
             try {
                 console.log("🎯 Starting ad sequence for Ludo...");
-                
-                // Run the ad sequence - NO BONUSES, just base points from admin
-                const adResult = await startAdSequence(0); // Base points = 0, only success count matters
+                const adResult = await startAdSequence(0);
                 
                 if (adResult.success) {
-                    // Add base points - ONLY from admin panel, NO BONUSES
                     const totalWin = currentLudoWin;
-                    
                     await updateBalance(totalWin, 'ludo_game', `Won ${totalWin} points from Ludo dice (${adResult.successCount} ads watched)`);
                     
                     showAlert(`🎉 Congratulations! You watched ${adResult.successCount} ad(s) and earned ${totalWin} points!`);
@@ -3310,7 +3331,6 @@
                     diceResultPopup.style.display = 'none';
                     
                 } else {
-                    // No ads were successful - refund points
                     const ludoConfig = gamesConfig.ludoDice || {};
                     const gameCost = ludoConfig.gameCost || 10;
                     await updateBalance(gameCost, 'refund', 'Ludo dice game refund - ads not available');
@@ -3322,7 +3342,6 @@
             } catch (error) {
                 console.log("❌ Ad sequence error:", error);
                 
-                // Refund on error
                 const ludoConfig = gamesConfig.ludoDice || {};
                 const gameCost = ludoConfig.gameCost || 10;
                 await updateBalance(gameCost, 'refund', 'Ludo dice game refund - ad error');
@@ -3331,7 +3350,6 @@
                 diceResultPopup.style.display = 'none';
             }
             
-            // Reset UI
             diceClaimBtn.disabled = false;
             diceClaimBtn.innerHTML = '<i class="fas fa-check mr-3"></i> CLAIM POINTS';
             
@@ -3441,13 +3459,11 @@
             
             try {
                 showAdLoadingPopup("Loading ads for Watch & Earn...");
-                
-                // Run ad sequence for Watch & Earn - NO BONUSES
-                const adResult = await startAdSequence(0); // Base points = 0, only success count matters
+                const adResult = await startAdSequence(0);
                 
                 if (adResult.success) {
                     const baseReward = videoConfig.rewardPerPlay || appConfig.adWatchReward || 50;
-                    const totalReward = baseReward; // NO BONUSES, only base reward
+                    const totalReward = baseReward;
                     
                     await updateBalance(totalReward, 'ad_watch', `Watched ${adResult.successCount} ads for coins`);
                     hideAdLoadingPopup();
@@ -3484,14 +3500,12 @@
             
             try {
                 showAdLoadingPopup("Loading ads for color game...");
-                
-                // Run ad sequence for Color Game - NO BONUSES
-                const adResult = await startAdSequence(0); // Base points = 0, only success count matters
+                const adResult = await startAdSequence(0);
                 
                 if (adResult.success) {
                     const colorConfig = gamesConfig.colorGame || {};
                     const baseReward = colorConfig.rewardPerPlay || appConfig.colorGameReward || 100;
-                    const totalReward = baseReward; // NO BONUSES, only base reward
+                    const totalReward = baseReward;
                     
                     await updateBalance(totalReward, 'color_game', `Won color game with ${adResult.successCount} ads`);
                     
@@ -3595,9 +3609,7 @@
                 }
                 
                 showAdLoadingPopup("Loading ads before website visit...");
-                
-                // Run ad sequence for website visit - NO BONUSES
-                const adResult = await startAdSequence(0); // Base points = 0, only success count matters
+                const adResult = await startAdSequence(0);
                 
                 hideAdLoadingPopup();
                 
@@ -3637,7 +3649,7 @@
                             }
                             
                             const rewardAmount = parseInt(reward);
-                            const totalReward = rewardAmount; // NO BONUSES, only base reward
+                            const totalReward = rewardAmount;
                             
                             await updateBalance(totalReward, 'website_visit', `Visited website: ${siteName} with ${adResult.successCount} ads`);
                             
@@ -3740,9 +3752,7 @@
             button.disabled = true;
             try {
                 showAdLoadingPopup("Loading ads before social task...");
-                
-                // Run ad sequence for social task - NO BONUSES
-                const adResult = await startAdSequence(0); // Base points = 0, only success count matters
+                const adResult = await startAdSequence(0);
                 
                 hideAdLoadingPopup();
                 
@@ -3755,7 +3765,7 @@
                 window.open(link, '_blank');
                 
                 const rewardAmount = parseInt(reward);
-                const totalReward = rewardAmount; // NO BONUSES, only base reward
+                const totalReward = rewardAmount;
                 
                 await updateBalance(totalReward, 'social_task', `Completed social task: ${taskName} with ${adResult.successCount} ads`);
                 
@@ -4690,7 +4700,6 @@
                 }
             });
             
-            // Add OfferWall to features grid
             featuresGrid.innerHTML += `
                 <div onclick="navigateTo('offerwall-page')" class="feature-btn offerwall-card" style="order: 5">
                     <div class="mb-3">
@@ -4905,7 +4914,6 @@
                 }
             }
             
-            // OfferWall page display
             const offerwallPage = document.getElementById('offerwall-page');
             if (offerwallPage) {
                 if (!offerwallPage.classList.contains('active')) {
@@ -5243,7 +5251,6 @@
                 showWalletValidationWarning("Please add valid payment details to withdraw your earnings");
             }
             
-            // Update ad status
             updateAdStatus('gigapub');
         }
 
@@ -5432,13 +5439,16 @@
                 if (provider === 'gigapub') {
                     success = await showGigapubAd();
                 } else if (provider === 'adsgram') {
-                    // Try reward ad first, then interstitial
                     try {
                         success = await showAdsGramReward();
                     } catch (error) {
                         console.log("AdsGram reward failed, trying interstitial...");
                         success = await showAdsGramInterstitial();
                     }
+                } else if (provider === 'richads') {
+                    success = await showRichAd();
+                } else if (provider === 'adexium') {
+                    success = await showAdexiumInterstitial();
                 }
                 
                 hideAdLoadingPopup();
@@ -5447,8 +5457,6 @@
                     adStatus.shown = true;
                     adStatus.success = true;
                     tryYourLuckAdCount++;
-                    
-                    // NO BONUSES - just track ad completion
                     
                     document.getElementById('try-luck-ad-status').textContent = `✅ ${provider} ad completed!`;
                 } else {
@@ -5548,7 +5556,7 @@
             
             const tryLuckConfig = gamesConfig.tryYourLuck || {};
             const maxReward = tryLuckConfig.rewardPerPlay || 500;
-            const finalReward = maxReward; // Fixed reward, NO BONUSES based on ad count
+            const finalReward = maxReward;
             
             const claimBtn = document.getElementById('claim-try-luck-reward-btn');
             claimBtn.classList.remove('hidden');
