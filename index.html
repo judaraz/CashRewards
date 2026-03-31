@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini App Ads</title>
+
+  <!-- Telegram SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- TADS -->
+  <script src="https://cdn.tads.me/tads.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      text-align: center;
+      padding-top: 40px;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+    }
+
+    #balance {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #22c55e;
+    }
+
+    button {
+      padding: 12px 25px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      background: #3b82f6;
+      color: white;
+      cursor: pointer;
+    }
+
+    #ad-container {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Earn Coins</h2>
+<div id="balance">Balance: 0</div>
+
+<button onclick="watchAd()">Watch Ad & Earn</button>
+
+<div id="ad-container"></div>
+
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.expand();
+
+  let balance = 0;
+
+  // Init TADS (use FULLSCREEN ID here)
+  window.TADS = window.TADS || {};
+  TADS.init({
+    adUnitId: "9497"
+  });
+
+  // Load TGB banner automatically (second ID)
+  setTimeout(() => {
+    TADS.init({ adUnitId: "9603" });
+    TADS.showBanner({
+      container: "ad-container"
+    });
+  }, 800);
+
+  // Rewarded fullscreen ad
+  function watchAd() {
+    TADS.init({ adUnitId: "9497" });
+
+    TADS.showFullscreen()
+      .then(() => {
+        balance += 10;
+        document.getElementById("balance").innerText = "Balance: " + balance;
+      })
+      .catch(() => {
+        alert("Ad not completed");
+      });
+  }
+</script>
+
+</body>
+</html>
