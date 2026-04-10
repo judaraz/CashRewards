@@ -8,8 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Telegram Web App SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{
@@ -113,7 +111,7 @@
         .progress-fill{
             height:100%;
             background:linear-gradient(90deg,#ec4899,#8b5cf6);
-            transition:width 1s linear;
+            transition:width 0.1s linear;
         }
 
         /* Countdown animation */
@@ -125,9 +123,51 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.7; }
         }
+
+        /* Ad container styles */
+        .ad-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            max-width: 90%;
+            width: 400px;
+            background: rgba(0,0,0,0.9);
+            border-radius: 12px;
+            padding: 10px;
+            border: 1px solid rgba(236,72,153,0.3);
+            display: none;
+        }
+        
+        .ad-container.show {
+            display: block;
+        }
+        
+        .ad-content {
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body class="text-gray-100">
+
+    <!-- Ad Container -->
+    <div id="adContainer" class="ad-container">
+        <div class="flex justify-between items-center mb-2 px-2">
+            <span class="text-xs text-gray-400">Advertisement</span>
+            <button id="closeAdBtn" class="text-gray-400 hover:text-white">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="adContent" class="ad-content">
+            <!-- Ad will be injected here -->
+        </div>
+    </div>
 
     <div id="app" class="container mx-auto px-4 py-4 md:py-6 max-w-7xl">
         
@@ -230,6 +270,10 @@
         </div>
     </footer>
 
+    <!-- Ad scripts -->
+    <script async src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3940256099942544" crossorigin="anonymous"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -247,23 +291,20 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Initialize Telegram Web App
-        const tg = window.Telegram?.WebApp;
-        if (tg) {
-            tg.ready();
-            tg.expand();
-            console.log("✅ Telegram Web App initialized");
-        }
-
         const sliderWrapper = document.getElementById('slider-wrapper');
         const sliderDotsContainer = document.getElementById('slider-dots');
         const filesGrid = document.getElementById('files-grid');
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
         const noResultsMessage = document.getElementById('no-results');
+        const adContainer = document.getElementById('adContainer');
+        const adContent = document.getElementById('adContent');
+        const closeAdBtn = document.getElementById('closeAdBtn');
 
         let sliderInterval, currentSlide = 0, allFiles = [];
-        let activeTimers = new Map(); // Track active timers per file
+        let activeTimers = new Map();
+        let AdController = null;
+        let currentAdResolver = null;
 
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
@@ -275,34 +316,148 @@
             setTimeout(() => toast.classList.add('opacity-0', 'translate-y-4'), 2500);
         }
 
-        // Function to show Telegram native ad or fallback
-        async function showTelegramAd() {
+        // Initialize Adsgram
+        function initAdsgram() {
+            if (typeof window.Adsgram !== 'undefined') {
+                AdController = window.Adsgram.init({ blockId: "21145" });
+                console.log("✅ Adsgram initialized");
+                return true;
+            }
+            console.log("⚠️ Adsgram not loaded");
+            return false;
+        }
+
+        // Show ad using multiple methods
+        async function showAdvertisement() {
             return new Promise((resolve) => {
-                // In Telegram Mini Apps, we can use showPopup as a simulated ad
-                // or integrate with actual Telegram ads if available
-                if (tg && tg.showPopup) {
-                    tg.showPopup({
-                        title: '📺 Watch Ad',
-                        message: 'This helps support our content creators!\n\nAd will close in 3 seconds...',
-                        buttons: [{ type: 'ok' }]
-                    }, (buttonId) => {
-                        // Ad completed
-                        resolve(true);
-                    });
-                    
-                    // Auto-close popup after 3 seconds
-                    setTimeout(() => {
-                        // Try to close popup (Telegram handles this)
-                        resolve(true);
-                    }, 3000);
+                let adShown = false;
+                const timeout = setTimeout(() => {
+                    if (!adShown) {
+                        adShown = true;
+                        console.log("⏱️ Ad timeout - continuing");
+                        hideAdContainer();
+                        resolve(false);
+                    }
+                }, 5000);
+
+                // Method 1: Try Adsgram
+                if (AdController) {
+                    AdController.show()
+                        .then(() => {
+                            if (!adShown) {
+                                adShown = true;
+                                clearTimeout(timeout);
+                                console.log("✅ Adsgram ad shown");
+                                hideAdContainer();
+                                resolve(true);
+                            }
+                        })
+                        .catch(() => {
+                            console.log("❌ Adsgram failed, trying fallback");
+                            tryFallbackAd();
+                        });
                 } else {
-                    // Fallback: simulate ad with timeout
-                    setTimeout(() => {
-                        resolve(true);
-                    }, 1500);
+                    tryFallbackAd();
+                }
+
+                function tryFallbackAd() {
+                    // Method 2: Show custom ad container with AdSense
+                    showCustomAd().then(() => {
+                        if (!adShown) {
+                            adShown = true;
+                            clearTimeout(timeout);
+                            resolve(true);
+                        }
+                    }).catch(() => {
+                        // Method 3: Simulated ad
+                        if (!adShown) {
+                            simulateAd();
+                        }
+                    });
+                }
+
+                function simulateAd() {
+                    adContent.innerHTML = `
+                        <div class="text-center">
+                            <i class="fas fa-ad text-3xl mb-2 text-pink-400"></i>
+                            <p>Loading advertisement...</p>
+                            <p class="text-xs text-gray-400 mt-2">Please wait 3 seconds</p>
+                        </div>
+                    `;
+                    adContainer.classList.add('show');
+                    
+                    let seconds = 3;
+                    const countdown = setInterval(() => {
+                        seconds--;
+                        if (seconds <= 0) {
+                            clearInterval(countdown);
+                            if (!adShown) {
+                                adShown = true;
+                                clearTimeout(timeout);
+                                hideAdContainer();
+                                resolve(true);
+                            }
+                        }
+                    }, 1000);
+
+                    currentAdResolver = () => {
+                        clearInterval(countdown);
+                        if (!adShown) {
+                            adShown = true;
+                            clearTimeout(timeout);
+                            hideAdContainer();
+                            resolve(true);
+                        }
+                    };
                 }
             });
         }
+
+        function showCustomAd() {
+            return new Promise((resolve, reject) => {
+                adContent.innerHTML = `
+                    <div class="w-full">
+                        <ins class="adsbygoogle"
+                             style="display:block"
+                             data-ad-client="ca-pub-3940256099942544"
+                             data-ad-slot="6300978111"
+                             data-ad-format="auto"
+                             data-full-width-responsive="true"></ins>
+                    </div>
+                `;
+                adContainer.classList.add('show');
+                
+                try {
+                    (adsbygoogle = window.adsbygoogle || []).push({});
+                    console.log("✅ AdSense ad requested");
+                    
+                    // Auto-close after 4 seconds
+                    setTimeout(() => {
+                        hideAdContainer();
+                        resolve();
+                    }, 4000);
+                } catch (e) {
+                    console.error("AdSense error:", e);
+                    reject(e);
+                }
+            });
+        }
+
+        function hideAdContainer() {
+            adContainer.classList.remove('show');
+            adContent.innerHTML = '';
+            if (currentAdResolver) {
+                currentAdResolver = null;
+            }
+        }
+
+        closeAdBtn.addEventListener('click', () => {
+            hideAdContainer();
+            if (currentAdResolver) {
+                currentAdResolver();
+                currentAdResolver = null;
+            }
+        });
 
         async function loadAllData() {
             try {
@@ -455,89 +610,71 @@
             goTo(0);
         }
 
-        async function startUnlockTimer(btn, fileId, required) {
+        function startCountdown(btn, fileId, required) {
             const container = btn.closest('.space-y-2');
             const progressContainer = container.querySelector('.progress-container');
             const progressFill = progressContainer.querySelector('.progress-fill');
             const secondsSpan = progressContainer.querySelector('.seconds');
             const btnText = btn.querySelector('.btn-text');
             
-            // Hide button, show progress
             btn.classList.add('hidden');
             progressContainer.classList.remove('hidden');
             
             let secondsLeft = 10;
             const totalSeconds = 10;
+            let adCompleted = false;
             
-            // Start showing ad immediately (in parallel with countdown)
-            showTelegramAd().catch(err => {
-                console.log("Ad attempt result:", err);
+            // Start showing ad in parallel
+            showAdvertisement().then(() => {
+                adCompleted = true;
+                console.log("Ad completed during countdown");
             });
             
-            // Use setTimeout chain instead of setInterval for more reliable timing
-            const updateTimer = () => {
-                if (secondsLeft > 0) {
-                    secondsLeft--;
-                    const progress = ((totalSeconds - secondsLeft) / totalSeconds) * 100;
-                    progressFill.style.width = progress + '%';
-                    secondsSpan.textContent = secondsLeft;
-                    
-                    // Schedule next update
-                    setTimeout(updateTimer, 1000);
-                } else {
-                    // Countdown complete
-                    completeCountdown();
-                }
-            };
-            
-            const completeCountdown = () => {
-                // Clean up timer
-                activeTimers.delete(fileId);
+            const timer = setInterval(() => {
+                secondsLeft--;
+                const progress = ((totalSeconds - secondsLeft) / totalSeconds) * 100;
+                progressFill.style.width = progress + '%';
+                secondsSpan.textContent = secondsLeft;
                 
-                // Increment ad count
-                let watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
-                watched++;
-                localStorage.setItem(`adCount_${fileId}`, watched);
-                
-                console.log(`✅ Ad counted for ${fileId}: ${watched}/${required}`);
-                
-                if (watched >= required) {
-                    // Unlocked!
-                    showToast('🎉 Content Unlocked!');
-                    updateCardToUnlocked(fileId);
-                } else {
-                    // Not yet unlocked - reset button
-                    btn.classList.remove('hidden');
-                    progressContainer.classList.add('hidden');
-                    btnText.textContent = `Unlock (${watched}/${required})`;
-                    btn.disabled = false;
+                if (secondsLeft <= 0) {
+                    clearInterval(timer);
+                    activeTimers.delete(fileId);
                     
-                    // Reset progress bar for next time
-                    progressFill.style.width = '0%';
-                    secondsSpan.textContent = '10';
+                    // Count the ad view
+                    let watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
+                    watched++;
+                    localStorage.setItem(`adCount_${fileId}`, watched);
                     
-                    // Update badge
-                    const badgeSpan = document.querySelector(`#badge-${fileId} .ad-count`);
-                    if (badgeSpan) {
-                        badgeSpan.textContent = `${watched}/${required}`;
+                    console.log(`✅ Ad counted for ${fileId}: ${watched}/${required}`);
+                    
+                    if (watched >= required) {
+                        showToast('🎉 Content Unlocked!');
+                        updateCardToUnlocked(fileId);
+                    } else {
+                        btn.classList.remove('hidden');
+                        progressContainer.classList.add('hidden');
+                        btnText.textContent = `Unlock (${watched}/${required})`;
+                        btn.disabled = false;
+                        progressFill.style.width = '0%';
+                        secondsSpan.textContent = '10';
+                        
+                        const badgeSpan = document.querySelector(`#badge-${fileId} .ad-count`);
+                        if (badgeSpan) {
+                            badgeSpan.textContent = `${watched}/${required}`;
+                        }
+                        
+                        showToast(`📺 Progress: ${watched}/${required} ads`);
                     }
-                    
-                    showToast(`📺 Progress: ${watched}/${required} ads`);
                 }
-            };
+            }, 1000);
             
-            // Store timer reference
-            activeTimers.set(fileId, updateTimer);
-            
-            // Start the countdown
-            setTimeout(updateTimer, 1000);
+            activeTimers.set(fileId, timer);
         }
 
         function updateCardToUnlocked(fileId) {
             const file = allFiles.find(f => f.id === fileId);
             if (!file) return;
             
-            // Update badge
             const badgeDiv = document.getElementById(`badge-${fileId}`);
             if (badgeDiv) {
                 badgeDiv.innerHTML = `
@@ -547,7 +684,6 @@
                 `;
             }
             
-            // Update button container
             const btnContainer = document.getElementById(`btn-container-${fileId}`);
             if (btnContainer) {
                 btnContainer.innerHTML = `
@@ -566,14 +702,13 @@
             const fileId = btn.dataset.fileId;
             const required = parseInt(btn.dataset.required) || 5;
             
-            // Check if there's already an active timer
             if (activeTimers.has(fileId)) {
                 showToast('Already counting down...', 'error');
                 return;
             }
             
             btn.disabled = true;
-            startUnlockTimer(btn, fileId, required);
+            startCountdown(btn, fileId, required);
         }
 
         function handleOpen(btn) {
@@ -623,17 +758,13 @@
             location.reload();
         };
 
-        window.checkCounts = function() {
-            console.log("📊 Current ad counts:");
-            allFiles.forEach(f => {
-                const count = localStorage.getItem(`adCount_${f.id}`) || 0;
-                const required = f.requiredAds || 5;
-                console.log(`  ${f.id}: ${count}/${required}`);
-            });
-        };
-
         // Initialize
         loadAllData();
+        
+        // Try to initialize ads after a short delay
+        setTimeout(() => {
+            initAdsgram();
+        }, 1000);
         
         filesGrid.addEventListener('click', handleClick);
         searchInput.addEventListener('input', handleSearch);
