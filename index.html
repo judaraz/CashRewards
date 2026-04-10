@@ -2,12 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Premium Access</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{
@@ -111,7 +113,7 @@
         .progress-fill{
             height:100%;
             background:linear-gradient(90deg,#ec4899,#8b5cf6);
-            transition:width 0.1s linear;
+            transition:width 1s linear;
         }
 
         /* Countdown animation */
@@ -228,12 +230,9 @@
         </div>
     </footer>
 
-    <!-- Adsgram SDK -->
-    <script async src="https://sad.adsgram.ai/js/sad.min.js"></script>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBtqQvDCgqy5Tp01yajerWRSMfW6MKx-Gc",
@@ -248,6 +247,14 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // Initialize Telegram Web App
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            console.log("✅ Telegram Web App initialized");
+        }
+
         const sliderWrapper = document.getElementById('slider-wrapper');
         const sliderDotsContainer = document.getElementById('slider-dots');
         const filesGrid = document.getElementById('files-grid');
@@ -257,7 +264,6 @@
 
         let sliderInterval, currentSlide = 0, allFiles = [];
         let activeTimers = new Map(); // Track active timers per file
-        let AdController = null;
 
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
@@ -269,47 +275,32 @@
             setTimeout(() => toast.classList.add('opacity-0', 'translate-y-4'), 2500);
         }
 
-        // Initialize Adsgram
-        function initAdsgram() {
-            if (typeof window.Adsgram !== 'undefined') {
-                AdController = window.Adsgram.init({ blockId: "21145" });
-                console.log("✅ Adsgram initialized");
-                return true;
-            }
-            console.log("⚠️ Adsgram not loaded yet");
-            return false;
-        }
-
-        // Try to show ad - returns a promise that resolves/rejects based on ad result
-        async function showAdWithTimeout(timeoutMs = 3000) {
-            return new Promise((resolve, reject) => {
-                if (!AdController) {
-                    console.log("❌ Ad controller not available");
-                    reject(new Error("Ad controller not available"));
-                    return;
-                }
-
-                let adCompleted = false;
-                const timeout = setTimeout(() => {
-                    if (!adCompleted) {
-                        console.log("⏱️ Ad timed out after", timeoutMs, "ms");
-                        reject(new Error("Ad timeout"));
-                    }
-                }, timeoutMs);
-
-                AdController.show()
-                    .then(() => {
-                        adCompleted = true;
-                        clearTimeout(timeout);
-                        console.log("✅ Ad shown successfully");
-                        resolve();
-                    })
-                    .catch((error) => {
-                        adCompleted = true;
-                        clearTimeout(timeout);
-                        console.log("❌ Ad failed:", error);
-                        reject(error);
+        // Function to show Telegram native ad or fallback
+        async function showTelegramAd() {
+            return new Promise((resolve) => {
+                // In Telegram Mini Apps, we can use showPopup as a simulated ad
+                // or integrate with actual Telegram ads if available
+                if (tg && tg.showPopup) {
+                    tg.showPopup({
+                        title: '📺 Watch Ad',
+                        message: 'This helps support our content creators!\n\nAd will close in 3 seconds...',
+                        buttons: [{ type: 'ok' }]
+                    }, (buttonId) => {
+                        // Ad completed
+                        resolve(true);
                     });
+                    
+                    // Auto-close popup after 3 seconds
+                    setTimeout(() => {
+                        // Try to close popup (Telegram handles this)
+                        resolve(true);
+                    }, 3000);
+                } else {
+                    // Fallback: simulate ad with timeout
+                    setTimeout(() => {
+                        resolve(true);
+                    }, 1500);
+                }
             });
         }
 
@@ -464,7 +455,7 @@
             goTo(0);
         }
 
-        function startUnlockTimer(btn, fileId, required) {
+        async function startUnlockTimer(btn, fileId, required) {
             const container = btn.closest('.space-y-2');
             const progressContainer = container.querySelector('.progress-container');
             const progressFill = progressContainer.querySelector('.progress-fill');
@@ -477,71 +468,74 @@
             
             let secondsLeft = 10;
             const totalSeconds = 10;
-            let adAttempted = false;
-            let countdownCompleted = false;
             
-            // Try to show ad in background (doesn't block countdown)
-            const adPromise = showAdWithTimeout(3000).catch(err => {
-                console.log("Ad attempt result:", err.message);
-                return null;
+            // Start showing ad immediately (in parallel with countdown)
+            showTelegramAd().catch(err => {
+                console.log("Ad attempt result:", err);
             });
             
-            const timer = setInterval(() => {
-                secondsLeft--;
-                const progress = ((totalSeconds - secondsLeft) / totalSeconds) * 100;
-                progressFill.style.width = progress + '%';
-                secondsSpan.textContent = secondsLeft;
-                
-                if (secondsLeft <= 0 && !countdownCompleted) {
-                    countdownCompleted = true;
-                    clearInterval(timer);
-                    activeTimers.delete(fileId);
+            // Use setTimeout chain instead of setInterval for more reliable timing
+            const updateTimer = () => {
+                if (secondsLeft > 0) {
+                    secondsLeft--;
+                    const progress = ((totalSeconds - secondsLeft) / totalSeconds) * 100;
+                    progressFill.style.width = progress + '%';
+                    secondsSpan.textContent = secondsLeft;
                     
-                    // Increment ad count (always happens after countdown)
-                    let watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
-                    watched++;
-                    localStorage.setItem(`adCount_${fileId}`, watched);
-                    
-                    console.log(`✅ Ad counted for ${fileId}: ${watched}/${required}`);
-                    
-                    if (watched >= required) {
-                        // Unlocked!
-                        showToast('🎉 Content Unlocked!');
-                        updateCardToUnlocked(fileId);
-                    } else {
-                        // Not yet unlocked - reset button
-                        btn.classList.remove('hidden');
-                        progressContainer.classList.add('hidden');
-                        btnText.textContent = `Unlock (${watched}/${required})`;
-                        btn.disabled = false;
-                        
-                        // Update badge
-                        const badgeSpan = document.querySelector(`#badge-${fileId} .ad-count`);
-                        if (badgeSpan) {
-                            badgeSpan.textContent = `${watched}/${required}`;
-                        }
-                        
-                        showToast(`📺 Progress: ${watched}/${required} ads`);
-                    }
+                    // Schedule next update
+                    setTimeout(updateTimer, 1000);
+                } else {
+                    // Countdown complete
+                    completeCountdown();
                 }
-            }, 1000);
+            };
             
-            activeTimers.set(fileId, timer);
+            const completeCountdown = () => {
+                // Clean up timer
+                activeTimers.delete(fileId);
+                
+                // Increment ad count
+                let watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
+                watched++;
+                localStorage.setItem(`adCount_${fileId}`, watched);
+                
+                console.log(`✅ Ad counted for ${fileId}: ${watched}/${required}`);
+                
+                if (watched >= required) {
+                    // Unlocked!
+                    showToast('🎉 Content Unlocked!');
+                    updateCardToUnlocked(fileId);
+                } else {
+                    // Not yet unlocked - reset button
+                    btn.classList.remove('hidden');
+                    progressContainer.classList.add('hidden');
+                    btnText.textContent = `Unlock (${watched}/${required})`;
+                    btn.disabled = false;
+                    
+                    // Reset progress bar for next time
+                    progressFill.style.width = '0%';
+                    secondsSpan.textContent = '10';
+                    
+                    // Update badge
+                    const badgeSpan = document.querySelector(`#badge-${fileId} .ad-count`);
+                    if (badgeSpan) {
+                        badgeSpan.textContent = `${watched}/${required}`;
+                    }
+                    
+                    showToast(`📺 Progress: ${watched}/${required} ads`);
+                }
+            };
             
-            // Log ad result when it completes (but doesn't affect countdown)
-            adPromise.then(() => {
-                console.log("✅ Ad completed successfully during countdown");
-            }).catch(() => {
-                console.log("⚠️ Ad failed or timed out, but countdown continues");
-            });
+            // Store timer reference
+            activeTimers.set(fileId, updateTimer);
+            
+            // Start the countdown
+            setTimeout(updateTimer, 1000);
         }
 
         function updateCardToUnlocked(fileId) {
             const file = allFiles.find(f => f.id === fileId);
             if (!file) return;
-            
-            const required = file.requiredAds || 5;
-            const watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
             
             // Update badge
             const badgeDiv = document.getElementById(`badge-${fileId}`);
@@ -640,11 +634,6 @@
 
         // Initialize
         loadAllData();
-        
-        // Wait for Adsgram to load
-        setTimeout(() => {
-            initAdsgram();
-        }, 500);
         
         filesGrid.addEventListener('click', handleClick);
         searchInput.addEventListener('input', handleSearch);
