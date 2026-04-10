@@ -36,8 +36,7 @@
         }
         
         .gradient-premium{
-            background:linear-gradient(135deg,#ec4899,#8b5cf6,#ec4899);
-            background-size:200% 200%;
+            background:linear-gradient(135deg,#ec4899,#8b5cf6);
         }
         
         .gradient-unlocked{
@@ -97,10 +96,22 @@
         ::-webkit-scrollbar-track{background:#0a0a0f}
         ::-webkit-scrollbar-thumb{background:#ec4899;border-radius:10px}
         
-        /* Disabled button state */
         button:disabled{
             opacity:0.6;
             cursor:not-allowed;
+        }
+        
+        /* Progress bar */
+        .progress-bar{
+            height:3px;
+            background:rgba(236,72,153,0.2);
+            border-radius:3px;
+            overflow:hidden;
+        }
+        .progress-fill{
+            height:100%;
+            background:linear-gradient(90deg,#ec4899,#8b5cf6);
+            transition:width 0.1s linear;
         }
     </style>
 </head>
@@ -171,7 +182,7 @@
                     Premium Content
                 </h2>
                 <span class="text-xs text-gray-500 ml-auto">
-                    <i class="fas fa-lock mr-1"></i>Unlock with Ads
+                    <i class="fas fa-lock mr-1"></i>Unlock with 10s wait
                 </span>
             </div>
             
@@ -207,7 +218,7 @@
         </div>
     </footer>
 
-    <!-- Adsgram SDK -->
+    <!-- Adsgram SDK (kept for potential future use) -->
     <script async src="https://sad.adsgram.ai/js/sad.min.js"></script>
 
     <script type="module">
@@ -234,8 +245,9 @@
         const searchBtn = document.getElementById('searchBtn');
         const noResultsMessage = document.getElementById('no-results');
 
-        let sliderInterval, currentSlide = 0, timerDuration = 5, AdController = null, allFiles = [];
-        let activeTimers = new Map();
+        let sliderInterval, currentSlide = 0, allFiles = [];
+        let activeTimers = new Map(); // Track active timers per file
+        let AdController = null;
 
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
@@ -247,25 +259,21 @@
             setTimeout(() => toast.classList.add('opacity-0', 'translate-y-4'), 2500);
         }
 
+        // Initialize Adsgram (optional)
         function initAdsgram() {
             if (typeof window.Adsgram !== 'undefined') {
                 AdController = window.Adsgram.init({ blockId: "21145" });
-                console.log("✅ Adsgram initialized successfully");
-            } else {
-                console.log("⏳ Waiting for Adsgram...");
-                setTimeout(initAdsgram, 300);
+                console.log("✅ Adsgram ready (optional)");
             }
         }
 
         async function loadAllData() {
             try {
-                const [settingsSnap, slidersSnap, filesSnap] = await Promise.all([
-                    getDoc(doc(db, "settings", "general")),
+                const [slidersSnap, filesSnap] = await Promise.all([
                     getDocs(query(collection(db, "sliders"), orderBy("createdAt", "desc"), limit(8))),
                     getDocs(query(collection(db, "files"), orderBy("createdAt", "desc"), limit(40)))
                 ]);
                 
-                timerDuration = settingsSnap.exists() ? (settingsSnap.data().timerDuration || 5) : 5;
                 renderSliders(slidersSnap);
                 renderFiles(filesSnap);
             } catch (e) {
@@ -357,11 +365,19 @@
                         
                         <div class="button-container" id="btn-container-${f.id}">
                             ${!unlocked ? `
-                                <button data-file-id="${f.id}" data-required="${required}" 
-                                        class="watch-ad-btn w-full py-2.5 px-3 rounded-lg text-white text-sm font-semibold gradient-premium hover:opacity-90 transition flex items-center justify-center gap-2">
-                                    <i class="fas fa-play-circle"></i>
-                                    <span>Watch Ad (${watched}/${required})</span>
-                                </button>
+                                <div class="space-y-2">
+                                    <button data-file-id="${f.id}" data-required="${required}" 
+                                            class="unlock-btn w-full py-2.5 px-3 rounded-lg text-white text-sm font-semibold gradient-premium hover:opacity-90 transition flex items-center justify-center gap-2">
+                                        <i class="fas fa-play-circle"></i>
+                                        <span class="btn-text">Unlock (${watched}/${required})</span>
+                                    </button>
+                                    <div class="progress-container hidden">
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width:0%"></div>
+                                        </div>
+                                        <p class="timer-text text-center text-xs text-gray-400 mt-1">Wait <span class="seconds">10</span>s...</p>
+                                    </div>
+                                </div>
                             ` : `
                                 <button data-file-url="${f.downloadUrl}" 
                                         class="open-btn w-full py-2.5 px-3 rounded-lg text-white text-sm font-semibold gradient-unlocked hover:opacity-90 transition flex items-center justify-center gap-2 glow-pulse">
@@ -400,136 +416,111 @@
             goTo(0);
         }
 
-        function updateCardAfterAd(fileId) {
+        function startUnlockTimer(btn, fileId, required) {
+            const container = btn.closest('.space-y-2');
+            const progressContainer = container.querySelector('.progress-container');
+            const progressFill = progressContainer.querySelector('.progress-fill');
+            const secondsSpan = progressContainer.querySelector('.seconds');
+            const btnText = btn.querySelector('.btn-text');
+            
+            // Hide button, show progress
+            btn.classList.add('hidden');
+            progressContainer.classList.remove('hidden');
+            
+            let secondsLeft = 10;
+            const totalSeconds = 10;
+            
+            // Try to show ad in background (doesn't affect counting)
+            if (AdController) {
+                AdController.show().catch(() => {});
+            }
+            
+            const timer = setInterval(() => {
+                secondsLeft--;
+                const progress = ((totalSeconds - secondsLeft) / totalSeconds) * 100;
+                progressFill.style.width = progress + '%';
+                secondsSpan.textContent = secondsLeft;
+                
+                if (secondsLeft <= 0) {
+                    clearInterval(timer);
+                    activeTimers.delete(fileId);
+                    
+                    // Increment ad count
+                    let watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
+                    watched++;
+                    localStorage.setItem(`adCount_${fileId}`, watched);
+                    
+                    console.log(`✅ Ad counted for ${fileId}: ${watched}/${required}`);
+                    
+                    if (watched >= required) {
+                        // Unlocked!
+                        showToast('🎉 Content Unlocked!');
+                        updateCardToUnlocked(fileId);
+                    } else {
+                        // Not yet unlocked - reset button
+                        btn.classList.remove('hidden');
+                        progressContainer.classList.add('hidden');
+                        btnText.textContent = `Unlock (${watched}/${required})`;
+                        btn.disabled = false;
+                        
+                        // Update badge
+                        const badgeSpan = document.querySelector(`#badge-${fileId} .ad-count`);
+                        if (badgeSpan) {
+                            badgeSpan.textContent = `${watched}/${required}`;
+                        }
+                        
+                        showToast(`📺 Progress: ${watched}/${required}`);
+                    }
+                }
+            }, 1000);
+            
+            activeTimers.set(fileId, timer);
+        }
+
+        function updateCardToUnlocked(fileId) {
             const file = allFiles.find(f => f.id === fileId);
             if (!file) return;
             
             const required = file.requiredAds || 5;
             const watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
-            const unlocked = watched >= required;
-            
-            console.log(`📊 Updating card for ${fileId}: ${watched}/${required} (Unlocked: ${unlocked})`);
             
             // Update badge
             const badgeDiv = document.getElementById(`badge-${fileId}`);
             if (badgeDiv) {
-                if (!unlocked) {
-                    badgeDiv.innerHTML = `
-                        <span class="bg-black/70 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-bold border border-pink-500/40 text-pink-300">
-                            <i class="fas fa-lock mr-1"></i><span class="ad-count">${watched}/${required}</span>
-                        </span>
-                    `;
-                } else {
-                    badgeDiv.innerHTML = `
-                        <span class="gradient-unlocked px-2 py-1 rounded-lg text-xs font-bold shadow-lg">
-                            <i class="fas fa-check mr-1"></i>UNLOCKED
-                        </span>
-                    `;
-                }
+                badgeDiv.innerHTML = `
+                    <span class="gradient-unlocked px-2 py-1 rounded-lg text-xs font-bold shadow-lg">
+                        <i class="fas fa-check mr-1"></i>UNLOCKED
+                    </span>
+                `;
             }
             
-            // Update button
+            // Update button container
             const btnContainer = document.getElementById(`btn-container-${fileId}`);
             if (btnContainer) {
-                if (!unlocked) {
-                    btnContainer.innerHTML = `
-                        <button data-file-id="${fileId}" data-required="${required}" 
-                                class="watch-ad-btn w-full py-2.5 px-3 rounded-lg text-white text-sm font-semibold gradient-premium hover:opacity-90 transition flex items-center justify-center gap-2">
-                            <i class="fas fa-play-circle"></i>
-                            <span>Watch Ad (${watched}/${required})</span>
-                        </button>
-                    `;
-                } else {
-                    btnContainer.innerHTML = `
-                        <button data-file-url="${file.downloadUrl}" 
-                                class="open-btn w-full py-2.5 px-3 rounded-lg text-white text-sm font-semibold gradient-unlocked hover:opacity-90 transition flex items-center justify-center gap-2 glow-pulse">
-                            <i class="fas fa-unlock"></i>
-                            <span>Access Now</span>
-                        </button>
-                    `;
-                }
+                btnContainer.innerHTML = `
+                    <button data-file-url="${file.downloadUrl}" 
+                            class="open-btn w-full py-2.5 px-3 rounded-lg text-white text-sm font-semibold gradient-unlocked hover:opacity-90 transition flex items-center justify-center gap-2 glow-pulse">
+                        <i class="fas fa-unlock"></i>
+                        <span>Access Now</span>
+                    </button>
+                `;
             }
         }
 
-        async function handleWatchAd(btn) {
-            if (btn.disabled) {
-                console.log("⚠️ Button already disabled");
-                return;
-            }
+        function handleUnlock(btn) {
+            if (btn.disabled) return;
             
             const fileId = btn.dataset.fileId;
             const required = parseInt(btn.dataset.required) || 5;
             
-            // Clear any existing timer for this button
+            // Check if there's already an active timer
             if (activeTimers.has(fileId)) {
-                clearInterval(activeTimers.get(fileId));
-                activeTimers.delete(fileId);
+                showToast('Already counting down...', 'error');
+                return;
             }
             
             btn.disabled = true;
-            const span = btn.querySelector('span');
-            const originalText = span.textContent;
-            
-            try {
-                span.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Loading ad...';
-                
-                // Show ad
-                if (AdController) {
-                    console.log("📺 Showing ad via Adsgram...");
-                    await AdController.show();
-                    console.log("✅ Ad completed successfully");
-                } else {
-                    console.log("⚠️ Adsgram not available, simulating ad");
-                }
-                
-                // Get current count and increment
-                let watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
-                watched++;
-                localStorage.setItem(`adCount_${fileId}`, watched);
-                
-                console.log(`📈 Ad count updated: ${watched}/${required} for file ${fileId}`);
-                
-                if (watched >= required) {
-                    showToast('🎉 Content Unlocked!');
-                    updateCardAfterAd(fileId);
-                    btn.disabled = false;
-                    return;
-                }
-                
-                // Update the button text and badge immediately
-                span.innerHTML = `<i class="fas fa-play-circle mr-1"></i>Watch Ad (${watched}/${required})`;
-                const badgeSpan = document.querySelector(`#badge-${fileId} .ad-count`);
-                if (badgeSpan) {
-                    badgeSpan.textContent = `${watched}/${required}`;
-                }
-                
-                showToast(`📺 Progress: ${watched}/${required} ads watched`);
-                
-                // Start countdown timer
-                let countdown = timerDuration;
-                span.textContent = `Wait ${countdown}s`;
-                
-                const timer = setInterval(() => {
-                    countdown--;
-                    if (countdown > 0) {
-                        span.textContent = `Wait ${countdown}s`;
-                    } else {
-                        clearInterval(timer);
-                        activeTimers.delete(fileId);
-                        btn.disabled = false;
-                        span.innerHTML = `<i class="fas fa-play-circle mr-1"></i>Watch Ad (${watched}/${required})`;
-                        console.log(`⏰ Timer finished for ${fileId}, button re-enabled`);
-                    }
-                }, 1000);
-                
-                activeTimers.set(fileId, timer);
-                
-            } catch (err) {
-                console.error("❌ Ad error:", err);
-                showToast('Ad could not be loaded. Try again.', 'error');
-                btn.disabled = false;
-                span.textContent = originalText;
-            }
+            startUnlockTimer(btn, fileId, required);
         }
 
         function handleOpen(btn) {
@@ -541,13 +532,13 @@
         }
 
         function handleClick(e) {
-            const watch = e.target.closest('.watch-ad-btn');
+            const unlock = e.target.closest('.unlock-btn');
             const open = e.target.closest('.open-btn');
             
-            if (watch) {
+            if (unlock) {
                 e.preventDefault();
                 e.stopPropagation();
-                handleWatchAd(watch);
+                handleUnlock(unlock);
             } else if (open) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -570,13 +561,21 @@
             noResultsMessage.classList.toggle('hidden', visible > 0);
         }
 
-        // Debug function to check localStorage
-        window.checkAdCounts = function() {
-            console.log("📊 Current ad counts in localStorage:");
+        // Reset function for debugging
+        window.resetAdCounts = function() {
+            allFiles.forEach(f => {
+                localStorage.removeItem(`adCount_${f.id}`);
+            });
+            console.log("✅ All ad counts reset");
+            location.reload();
+        };
+
+        window.checkCounts = function() {
+            console.log("📊 Current ad counts:");
             allFiles.forEach(f => {
                 const count = localStorage.getItem(`adCount_${f.id}`) || 0;
                 const required = f.requiredAds || 5;
-                console.log(`  ${f.id}: ${count}/${required} ${count >= required ? '✅ UNLOCKED' : '🔒 LOCKED'}`);
+                console.log(`  ${f.id}: ${count}/${required}`);
             });
         };
 
@@ -587,13 +586,6 @@
         filesGrid.addEventListener('click', handleClick);
         searchInput.addEventListener('input', handleSearch);
         searchBtn.addEventListener('click', handleSearch);
-        
-        // Debug: Log ad counts after load
-        setTimeout(() => {
-            if (typeof window.checkAdCounts === 'function') {
-                window.checkAdCounts();
-            }
-        }, 2000);
     </script>
 </body>
 </html>
