@@ -124,45 +124,70 @@
             50% { opacity: 0.7; }
         }
 
-        /* Loading overlay */
-        .loading-overlay {
+        /* Ad container styles */
+        .ad-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            max-width: 90%;
+            width: 400px;
+            background: rgba(0,0,0,0.95);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(236,72,153,0.4);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            display: none;
+        }
+        
+        .ad-container.show {
+            display: block;
+        }
+        
+        .ad-content {
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        .ad-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.7);
+            z-index: 999;
             display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
+            backdrop-filter: blur(4px);
         }
         
-        .loading-overlay.show {
-            display: flex;
-        }
-        
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(236,72,153,0.3);
-            border-top-color: #ec4899;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .ad-overlay.show {
+            display: block;
         }
     </style>
 </head>
 <body class="text-gray-100">
 
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay">
-        <div class="text-center">
-            <div class="loading-spinner mb-4"></div>
-            <p class="text-white text-sm">Loading ad...</p>
+    <!-- Ad Overlay (Anti-cheat) -->
+    <div id="adOverlay" class="ad-overlay"></div>
+
+    <!-- Ad Container -->
+    <div id="adContainer" class="ad-container">
+        <div class="flex justify-between items-center mb-3 px-2">
+            <span class="text-xs text-gray-400 uppercase tracking-wider">
+                <i class="fas fa-ad mr-1"></i>Advertisement
+            </span>
+            <button id="closeAdBtn" class="text-gray-400 hover:text-white transition">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="adContent" class="ad-content">
+            <!-- Ad will be injected here -->
         </div>
     </div>
 
@@ -231,7 +256,7 @@
                     Premium Content
                 </h2>
                 <span class="text-xs text-gray-500 ml-auto">
-                    <i class="fas fa-lock mr-1"></i>Unlock with 10s wait
+                    <i class="fas fa-lock mr-1"></i>Watch ads to unlock
                 </span>
             </div>
             
@@ -269,6 +294,7 @@
 
     <!-- Ad scripts -->
     <script async src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3940256099942544" crossorigin="anonymous"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -287,33 +313,27 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // Configuration
+        const AD_WAIT_TIME = 5; // Seconds user must wait for ad
+        const COUNTDOWN_TIME = 10; // Total countdown seconds
+        
         const sliderWrapper = document.getElementById('slider-wrapper');
         const sliderDotsContainer = document.getElementById('slider-dots');
         const filesGrid = document.getElementById('files-grid');
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
         const noResultsMessage = document.getElementById('no-results');
-        const loadingOverlay = document.getElementById('loadingOverlay');
+        const adContainer = document.getElementById('adContainer');
+        const adOverlay = document.getElementById('adOverlay');
+        const adContent = document.getElementById('adContent');
+        const closeAdBtn = document.getElementById('closeAdBtn');
 
         let sliderInterval, currentSlide = 0, allFiles = [];
         let activeTimers = new Map();
         let AdController = null;
-
-        // Check if we need to complete a pending action after reload
-        const pendingAction = sessionStorage.getItem('pendingAdAction');
-        if (pendingAction) {
-            const { fileId, action } = JSON.parse(pendingAction);
-            sessionStorage.removeItem('pendingAdAction');
-            
-            if (action === 'complete') {
-                // Ad was shown successfully, increment count
-                let watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
-                watched++;
-                localStorage.setItem(`adCount_${fileId}`, watched);
-                console.log(`✅ Ad counted after reload: ${watched}`);
-            }
-            // Page will reload with updated counts
-        }
+        let currentAdResolver = null;
+        let adStartTime = null;
+        let adCompletedSuccessfully = false;
 
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
@@ -332,9 +352,189 @@
                 console.log("✅ Adsgram initialized");
                 return true;
             }
-            console.log("⚠️ Adsgram not loaded");
+            console.log("⚠️ Adsgram not loaded - using fallback");
             return false;
         }
+
+        // 🔥 IMPROVED: Reliable ad display with time verification
+        async function showAdvertisement() {
+            return new Promise((resolve) => {
+                adCompletedSuccessfully = false;
+                adStartTime = Date.now();
+                
+                // Show overlay to prevent interaction
+                adOverlay.classList.add('show');
+                
+                // Create manual timer that ensures minimum view time
+                const minViewTime = AD_WAIT_TIME * 1000;
+                let adTimerCompleted = false;
+                let displayInterval = null;
+                
+                // Manual timer (always reliable)
+                const manualTimer = setTimeout(() => {
+                    adTimerCompleted = true;
+                    console.log("✅ Manual ad timer completed");
+                    
+                    if (!adCompletedSuccessfully) {
+                        adCompletedSuccessfully = true;
+                        if (displayInterval) clearInterval(displayInterval);
+                        hideAdContainer();
+                        resolve(true);
+                    }
+                }, minViewTime);
+                
+                // Try to show network ad
+                if (AdController) {
+                    AdController.show()
+                        .then(() => {
+                            console.log("✅ Adsgram callback received");
+                            
+                            // Check if minimum time elapsed
+                            const timeElapsed = Date.now() - adStartTime;
+                            if (timeElapsed >= minViewTime) {
+                                if (!adCompletedSuccessfully) {
+                                    adCompletedSuccessfully = true;
+                                    clearTimeout(manualTimer);
+                                    if (displayInterval) clearInterval(displayInterval);
+                                    hideAdContainer();
+                                    resolve(true);
+                                }
+                            } else {
+                                // Wait remaining time
+                                const remaining = minViewTime - timeElapsed;
+                                setTimeout(() => {
+                                    if (!adCompletedSuccessfully) {
+                                        adCompletedSuccessfully = true;
+                                        clearTimeout(manualTimer);
+                                        if (displayInterval) clearInterval(displayInterval);
+                                        hideAdContainer();
+                                        resolve(true);
+                                    }
+                                }, remaining);
+                            }
+                        })
+                        .catch((error) => {
+                            console.log("❌ Adsgram failed:", error);
+                            // Manual timer will handle completion
+                        });
+                }
+                
+                // Show fallback ad UI with countdown
+                displayInterval = showFallbackAd();
+                
+                // Cleanup function
+                currentAdResolver = (forced) => {
+                    clearTimeout(manualTimer);
+                    if (displayInterval) clearInterval(displayInterval);
+                    if (!adCompletedSuccessfully) {
+                        adCompletedSuccessfully = true;
+                        hideAdContainer();
+                        resolve(forced || false);
+                    }
+                };
+            });
+        }
+
+        function showFallbackAd() {
+            adContent.innerHTML = `
+                <div class="text-center w-full">
+                    <div class="mb-4">
+                        <div class="w-16 h-16 mx-auto bg-gradient-to-br from-pink-500 to-purple-600 rounded-2xl flex items-center justify-center mb-3">
+                            <i class="fas fa-ad text-3xl text-white"></i>
+                        </div>
+                        <p class="text-white font-semibold text-lg">Supporting Creators</p>
+                        <p class="text-xs text-gray-400 mt-1">Please wait for the advertisement to complete</p>
+                    </div>
+                    <div class="bg-gradient-to-r from-pink-500/20 to-purple-600/20 rounded-xl p-4 border border-pink-500/30">
+                        <div class="flex items-center justify-center gap-3">
+                            <div class="flex gap-1">
+                                <div class="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
+                                <div class="w-2 h-2 bg-pink-500 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+                                <div class="w-2 h-2 bg-pink-500 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+                            </div>
+                            <span class="text-sm text-gray-300">Please wait </span>
+                            <span id="adTimerDisplay" class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">${AD_WAIT_TIME}</span>
+                            <span class="text-sm text-gray-300">seconds</span>
+                            <div class="flex gap-1">
+                                <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                                <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+                                <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+                            </div>
+                        </div>
+                        <div class="mt-3 progress-bar">
+                            <div id="adProgressFill" class="progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3">
+                        <i class="fas fa-lock mr-1"></i>Content unlocks after advertisement
+                    </p>
+                </div>
+            `;
+            
+            adContainer.classList.add('show');
+            
+            // Update timer display and progress bar
+            let secondsLeft = AD_WAIT_TIME;
+            const timerDisplay = document.getElementById('adTimerDisplay');
+            const progressFill = document.getElementById('adProgressFill');
+            
+            return setInterval(() => {
+                secondsLeft--;
+                if (timerDisplay && secondsLeft >= 0) {
+                    timerDisplay.textContent = secondsLeft;
+                    if (progressFill) {
+                        const progress = ((AD_WAIT_TIME - secondsLeft) / AD_WAIT_TIME) * 100;
+                        progressFill.style.width = progress + '%';
+                    }
+                }
+                if (secondsLeft <= 0) {
+                    clearInterval(this);
+                }
+            }, 1000);
+        }
+
+        function hideAdContainer() {
+            adContainer.classList.remove('show');
+            adOverlay.classList.remove('show');
+            adContent.innerHTML = '';
+            if (currentAdResolver) {
+                currentAdResolver = null;
+            }
+        }
+
+        // Handle manual close attempt (anti-cheat)
+        closeAdBtn.addEventListener('click', () => {
+            if (!adStartTime) return;
+            
+            const timeElapsed = Date.now() - adStartTime;
+            const minRequired = AD_WAIT_TIME * 1000;
+            
+            if (timeElapsed < minRequired) {
+                const remaining = Math.ceil((minRequired - timeElapsed) / 1000);
+                showToast(`⏱️ Please wait ${remaining} more seconds`, 'error');
+                
+                // Shake animation on close button
+                closeAdBtn.style.animation = 'shake 0.5s';
+                setTimeout(() => closeAdBtn.style.animation = '', 500);
+                return; // Prevent early closing
+            }
+            
+            if (currentAdResolver) {
+                currentAdResolver(false);
+                currentAdResolver = null;
+            }
+        });
+
+        // Add shake animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-5px); }
+                75% { transform: translateX(5px); }
+            }
+        `;
+        document.head.appendChild(style);
 
         async function loadAllData() {
             try {
@@ -395,6 +595,9 @@
                 const watched = parseInt(localStorage.getItem(`adCount_${f.id}`) || 0);
                 const unlocked = watched >= required;
                 
+                // Debug log for localStorage
+                console.log(`📊 File ${f.id}: ${watched}/${required} ads watched`);
+                
                 const card = document.createElement('div');
                 card.className = 'file-card group glass rounded-xl md:rounded-2xl overflow-hidden card-hover border border-pink-500/20';
                 card.dataset.title = f.title.toLowerCase();
@@ -445,7 +648,7 @@
                                             <div class="progress-fill" style="width:0%"></div>
                                         </div>
                                         <p class="timer-text text-center text-xs text-gray-400 mt-1">
-                                            <span class="countdown-pulse">⏳</span> Wait <span class="seconds font-bold text-pink-400">10</span>s...
+                                            <span class="countdown-pulse">⏳</span> Wait <span class="seconds font-bold text-pink-400">${COUNTDOWN_TIME}</span>s...
                                         </p>
                                     </div>
                                 </div>
@@ -487,57 +690,19 @@
             goTo(0);
         }
 
-        function showAdAndReload(fileId) {
-            loadingOverlay.classList.add('show');
-            
-            // Try to show ad
-            if (AdController) {
-                AdController.show()
-                    .then(() => {
-                        console.log("✅ Ad shown successfully");
-                        sessionStorage.setItem('pendingAdAction', JSON.stringify({
-                            fileId: fileId,
-                            action: 'complete'
-                        }));
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 500);
-                    })
-                    .catch((error) => {
-                        console.log("❌ Ad failed:", error);
-                        // Still count as ad view even if failed
-                        sessionStorage.setItem('pendingAdAction', JSON.stringify({
-                            fileId: fileId,
-                            action: 'complete'
-                        }));
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 500);
-                    });
-            } else {
-                // No ad controller, still count and reload
-                console.log("⚠️ No ad controller, counting anyway");
-                sessionStorage.setItem('pendingAdAction', JSON.stringify({
-                    fileId: fileId,
-                    action: 'complete'
-                }));
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            }
-        }
-
+        // 🔥 FIXED: Countdown now starts AFTER ad completion
         function startCountdown(btn, fileId, required) {
             const container = btn.closest('.space-y-2');
             const progressContainer = container.querySelector('.progress-container');
             const progressFill = progressContainer.querySelector('.progress-fill');
             const secondsSpan = progressContainer.querySelector('.seconds');
+            const btnText = btn.querySelector('.btn-text');
             
             btn.classList.add('hidden');
             progressContainer.classList.remove('hidden');
             
-            let secondsLeft = 10;
-            const totalSeconds = 10;
+            let secondsLeft = COUNTDOWN_TIME;
+            const totalSeconds = COUNTDOWN_TIME;
             
             const timer = setInterval(() => {
                 secondsLeft--;
@@ -549,15 +714,64 @@
                     clearInterval(timer);
                     activeTimers.delete(fileId);
                     
-                    // Countdown complete - show ad and reload
-                    showAdAndReload(fileId);
+                    // Count the ad view (only after successful completion)
+                    let watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
+                    watched++;
+                    localStorage.setItem(`adCount_${fileId}`, watched);
+                    
+                    console.log(`✅ Ad counted for ${fileId}: ${watched}/${required}`);
+                    
+                    if (watched >= required) {
+                        showToast('🎉 Content Unlocked!');
+                        updateCardToUnlocked(fileId);
+                    } else {
+                        btn.classList.remove('hidden');
+                        progressContainer.classList.add('hidden');
+                        btnText.textContent = `Unlock (${watched}/${required})`;
+                        btn.disabled = false;
+                        progressFill.style.width = '0%';
+                        secondsSpan.textContent = COUNTDOWN_TIME;
+                        
+                        const badgeSpan = document.querySelector(`#badge-${fileId} .ad-count`);
+                        if (badgeSpan) {
+                            badgeSpan.textContent = `${watched}/${required}`;
+                        }
+                        
+                        showToast(`📺 Progress: ${watched}/${required} ads`);
+                    }
                 }
             }, 1000);
             
             activeTimers.set(fileId, timer);
         }
 
-        function handleUnlock(btn) {
+        function updateCardToUnlocked(fileId) {
+            const file = allFiles.find(f => f.id === fileId);
+            if (!file) return;
+            
+            const badgeDiv = document.getElementById(`badge-${fileId}`);
+            if (badgeDiv) {
+                badgeDiv.innerHTML = `
+                    <span class="gradient-unlocked px-2 py-1 rounded-lg text-xs font-bold shadow-lg">
+                        <i class="fas fa-check mr-1"></i>UNLOCKED
+                    </span>
+                `;
+            }
+            
+            const btnContainer = document.getElementById(`btn-container-${fileId}`);
+            if (btnContainer) {
+                btnContainer.innerHTML = `
+                    <button data-file-url="${file.downloadUrl}" 
+                            class="open-btn w-full py-2.5 px-3 rounded-lg text-white text-sm font-semibold gradient-unlocked hover:opacity-90 transition flex items-center justify-center gap-2 glow-pulse">
+                        <i class="fas fa-unlock"></i>
+                        <span>Access Now</span>
+                    </button>
+                `;
+            }
+        }
+
+        // 🔥 FIXED: Sequential flow - Ad first, then countdown
+        async function handleUnlock(btn) {
             if (btn.disabled) return;
             
             const fileId = btn.dataset.fileId;
@@ -569,6 +783,19 @@
             }
             
             btn.disabled = true;
+            
+            // STEP 1: Show and verify ad completion FIRST
+            showToast('📺 Loading advertisement...');
+            const adSuccess = await showAdvertisement();
+            
+            if (!adSuccess) {
+                showToast('❌ Ad not completed. Please try again.', 'error');
+                btn.disabled = false;
+                return;
+            }
+            
+            // STEP 2: Only after successful ad, start countdown
+            showToast('✅ Ad completed! Continue waiting...');
             startCountdown(btn, fileId, required);
         }
 
@@ -610,12 +837,21 @@
             noResultsMessage.classList.toggle('hidden', visible > 0);
         }
 
-        // Reset function for debugging
+        // Debug tools
+        window.debugStorage = function() {
+            console.log("=== LocalStorage Debug ===");
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('adCount_')) {
+                    console.log(`${key}: ${localStorage.getItem(key)}`);
+                }
+            }
+        };
+        
         window.resetAdCounts = function() {
             allFiles.forEach(f => {
                 localStorage.removeItem(`adCount_${f.id}`);
             });
-            sessionStorage.clear();
             console.log("✅ All ad counts reset");
             location.reload();
         };
@@ -623,7 +859,7 @@
         // Initialize
         loadAllData();
         
-        // Try to initialize ads
+        // Try to initialize ads after a short delay
         setTimeout(() => {
             initAdsgram();
         }, 1000);
@@ -631,6 +867,13 @@
         filesGrid.addEventListener('click', handleClick);
         searchInput.addEventListener('input', handleSearch);
         searchBtn.addEventListener('click', handleSearch);
+        
+        // Keyboard shortcut for search
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSearch();
+            }
+        });
     </script>
 </body>
 </html>
