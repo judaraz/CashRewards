@@ -2,109 +2,131 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Premium Access</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Downloader</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{
-            background:linear-gradient(135deg,#0a0a0f 0%,#1a0a1a 50%,#0f0a1a 100%);
-            font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-        }
-        .glass{
-            background:rgba(15,15,25,0.85);
-            backdrop-filter:blur(12px);
-            -webkit-backdrop-filter:blur(12px);
-            border:1px solid rgba(236,72,153,0.15);
-        }
-        .gradient-premium{background:linear-gradient(135deg,#ec4899,#8b5cf6)}
-        .gradient-unlocked{background:linear-gradient(135deg,#10b981,#059669)}
-        .slider-wrapper{display:flex;transition:transform .5s;will-change:transform}
-        .slider-item{min-width:100%}
-        .slider-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.3);transition:all .3s;cursor:pointer}
-        .slider-dot.active{width:24px;border-radius:12px;background:linear-gradient(90deg,#ec4899,#8b5cf6)}
-        .skeleton{background:linear-gradient(90deg,#1a1a2a 25%,#2a2a3a 50%,#1a1a2a 75%);background-size:200% 100%;animation:shimmer 1.2s infinite}
-        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-        button:disabled{opacity:0.6;cursor:not-allowed}
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.8s ease-out forwards; }
+        .slide-up { animation: slideUp 0.6s ease-out forwards; opacity: 0; }
+        .animation-delay-200 { animation-delay: 0.2s; }
+        .animation-delay-400 { animation-delay: 0.4s; }
+        .slider-container { position: relative; overflow: hidden; }
+        .slider-wrapper { display: flex; transition: transform 0.5s ease-in-out; }
+        .slider-item { min-width: 100%; box-sizing: border-box; }
+        .slider-dots { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
+        .slider-dot { width: 10px; height: 10px; border-radius: 50%; background-color: rgba(255, 255, 255, 0.5); cursor: pointer; transition: background-color 0.3s; }
+        .slider-dot.active { background-color: white; }
+        body { scrollbar-width: none; }
+        body::-webkit-scrollbar { display: none; }
         
-        .ad-modal{
-            position:fixed;
-            top:0;left:0;right:0;bottom:0;
-            background:rgba(0,0,0,0.9);
-            z-index:1000;
-            display:none;
-            align-items:center;
-            justify-content:center;
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
         }
-        .ad-modal.show{display:flex}
-        .ad-box{
-            background:#1a1a2e;
-            border-radius:20px;
-            padding:30px;
-            max-width:350px;
-            width:90%;
-            text-align:center;
-            border:1px solid #ec4899;
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
         }
-        .countdown-number{
-            font-size:60px;
-            font-weight:bold;
-            background:linear-gradient(135deg,#ec4899,#8b5cf6);
-            -webkit-background-clip:text;
-            -webkit-text-fill-color:transparent;
+        
+        /* Ad Popup */
+        .ad-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            z-index: 1001;
+            text-align: center;
+            max-width: 350px;
+            width: 90%;
+            display: none;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
+        .ad-popup.show { display: block; }
+        .ad-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            display: none;
+            backdrop-filter: blur(4px);
+        }
+        .ad-overlay.show { display: block; }
     </style>
 </head>
-<body class="text-gray-100">
+<body class="bg-gray-50 font-sans">
 
-    <div id="adModal" class="ad-modal">
-        <div class="ad-box">
-            <i class="fas fa-ad text-4xl text-pink-400 mb-4"></i>
-            <h3 class="text-xl font-bold mb-2">Advertisement</h3>
-            <p class="text-gray-400 text-sm mb-4">Watch ad to unlock content</p>
-            <div id="countdownDisplay" class="countdown-number">5</div>
-            <p class="text-xs text-gray-500 mt-4">Please wait...</p>
-        </div>
+    <!-- Ad Overlay -->
+    <div id="adOverlay" class="ad-overlay"></div>
+    
+    <!-- Ad Popup -->
+    <div id="adPopup" class="ad-popup">
+        <i class="fas fa-ad text-5xl text-blue-500 mb-4"></i>
+        <h3 class="text-xl font-bold mb-2">Watch Advertisement</h3>
+        <p class="text-gray-500 text-sm mb-4">Ad is loading...</p>
+        <div id="adTimer" class="text-4xl font-bold text-blue-600 my-4">5</div>
+        <p class="text-xs text-gray-400">Please wait, file will open automatically</p>
     </div>
 
-    <div id="app" class="container mx-auto px-4 py-4 max-w-7xl">
-        
-        <header class="mb-6">
-            <div class="glass rounded-2xl p-5 border border-pink-500/20">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
-                        <i class="fas fa-crown text-white"></i>
+    <div id="app" class="container mx-auto p-4 max-w-7xl">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-xl shadow-lg mb-8 fade-in">
+            <h1 class="text-4xl font-extrabold text-center mb-4">Webapp Sikho</h1>
+            <p class="text-center text-lg text-blue-100 mb-6">Watch Ad, Get Your File!</p>
+            <div class="max-w-2xl mx-auto">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400"></i>
                     </div>
-                    <div>
-                        <h1 class="text-2xl font-black">
-                            <span class="bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">Premium</span>
-                            <span class="text-white">Hub</span>
-                        </h1>
-                        <p class="text-gray-400 text-xs">Exclusive Content • VIP Access</p>
-                    </div>
+                    <input type="text" id="searchInput" placeholder="Search for files..." class="w-full p-3 pl-10 rounded-full bg-white text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-300">
                 </div>
             </div>
         </header>
 
-        <div>
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-1 h-6 bg-gradient-to-b from-pink-500 to-purple-600 rounded-full"></div>
-                <h2 class="text-xl font-black text-white">Premium Content</h2>
+        <!-- Image Slider -->
+        <div id="slider" class="slider-container w-full h-48 md:h-80 bg-gray-300 rounded-xl shadow-lg mb-10 slide-up animation-delay-200">
+            <div id="slider-wrapper" class="slider-wrapper h-full">
+                <div class="slider-item skeleton w-full h-full"></div>
             </div>
-            
-            <div id="files-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                <div class="skeleton rounded-xl h-56"></div>
-                <div class="skeleton rounded-xl h-56"></div>
-                <div class="skeleton rounded-xl h-56"></div>
-                <div class="skeleton rounded-xl h-56"></div>
+            <div id="slider-dots" class="slider-dots"></div>
+        </div>
+
+        <!-- Files Section -->
+        <div class="slide-up animation-delay-400">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-4 border-blue-500 pb-2">Available Files</h2>
+            <div id="files-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <div class="skeleton rounded-xl h-64"></div>
+                <div class="skeleton rounded-xl h-64"></div>
+                <div class="skeleton rounded-xl h-64"></div>
+                <div class="skeleton rounded-xl h-64"></div>
+            </div>
+            <div id="no-results" class="hidden text-center py-12">
+                <i class="fas fa-file-excel text-5xl text-gray-400 mb-4"></i>
+                <p class="text-xl text-gray-600">No files found</p>
             </div>
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-5 right-5 glass px-5 py-3 rounded-xl opacity-0 transition-all duration-300 z-50">
-        <p id="toast-message" class="text-sm"></p>
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-gray-900 text-white py-3 px-5 rounded-lg shadow-2xl opacity-0 transform translate-y-10 transition-all duration-500 z-50">
+        <p id="toast-message"></p>
     </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 py-6 mt-10">
+        <div class="container mx-auto px-4">
+            <p class="text-center text-gray-600">&copy; 2025 Webapp Sikho. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Adsgram SDK -->
+    <script async src="https://sad.adsgram.ai/js/sad.min.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -123,131 +145,147 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        const sliderWrapper = document.getElementById('slider-wrapper');
+        const sliderDotsContainer = document.getElementById('slider-dots');
         const filesGrid = document.getElementById('files-grid');
-        const adModal = document.getElementById('adModal');
-        const countdownDisplay = document.getElementById('countdownDisplay');
-        
+        const searchInput = document.getElementById('searchInput');
+        const noResultsMessage = document.getElementById('no-results');
+        const adOverlay = document.getElementById('adOverlay');
+        const adPopup = document.getElementById('adPopup');
+        const adTimer = document.getElementById('adTimer');
+
+        let sliderInterval;
+        let currentSlide = 0;
+        let AdController = null;
         let allFiles = [];
+        let pendingUrl = null;
         let countdownInterval = null;
 
-        function showToast(msg) {
+        function showToast(message) {
             const toast = document.getElementById('toast');
-            document.getElementById('toast-message').textContent = msg;
-            toast.style.opacity = '1';
-            setTimeout(() => toast.style.opacity = '0', 2000);
+            document.getElementById('toast-message').textContent = message;
+            toast.classList.remove('opacity-0', 'translate-y-10');
+            setTimeout(() => toast.classList.add('opacity-0', 'translate-y-10'), 2000);
         }
 
-        // ✅ FIXED countdown (ONLY change)
-        function showAdAndCountdown(btn, fileId, required) {
-            if (countdownInterval) clearInterval(countdownInterval);
-
-            adModal.classList.add('show');
-            
-            let seconds = 5;
-            countdownDisplay.textContent = seconds;
-
+        // Initialize Adsgram
+        function initAdsgram() {
             if (typeof window.Adsgram !== 'undefined') {
-                try {
-                    window.Adsgram.init({ blockId: "21145" }).show();
-                } catch (e) {}
+                AdController = window.Adsgram.init({ blockId: "21145" });
+                console.log("✅ Adsgram ready");
+            } else {
+                setTimeout(initAdsgram, 500);
             }
+        }
 
+        // 🔥 SIMPLE: Show ad, then open file
+        function showAdAndOpenFile(url) {
+            pendingUrl = url;
+            
+            // Show popup
+            adOverlay.classList.add('show');
+            adPopup.classList.add('show');
+            
+            // Try to show Adsgram ad (doesn't matter if it fails)
+            if (AdController) {
+                AdController.show().catch(() => console.log('Ad skipped or failed'));
+            }
+            
+            // Start countdown
+            let seconds = 5;
+            adTimer.textContent = seconds;
+            
+            if (countdownInterval) clearInterval(countdownInterval);
+            
             countdownInterval = setInterval(() => {
                 seconds--;
-
+                adTimer.textContent = seconds;
+                
                 if (seconds <= 0) {
-                    seconds = 0;
-                    countdownDisplay.textContent = seconds;
-
                     clearInterval(countdownInterval);
-                    adModal.classList.remove('show');
-
-                    let watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
-                    watched++;
-                    localStorage.setItem(`adCount_${fileId}`, watched);
-
-                    if (watched >= required) {
-                        showToast('🎉 Content Unlocked!');
-                        updateCardToUnlocked(fileId);
-                    } else {
-                        btn.disabled = false;
-                        btn.querySelector('.btn-text').textContent = `Watch Ad (${watched}/${required})`;
-                        document.querySelector(`#badge-${fileId} .ad-count`).textContent = `${watched}/${required}`;
-                        showToast(`Progress: ${watched}/${required}`);
+                    
+                    // Hide popup
+                    adOverlay.classList.remove('show');
+                    adPopup.classList.remove('show');
+                    
+                    // 🔥 OPEN THE FILE
+                    if (pendingUrl) {
+                        showToast('📥 Opening file...');
+                        window.open(pendingUrl, '_blank');
+                        pendingUrl = null;
                     }
-                    return;
                 }
-
-                countdownDisplay.textContent = seconds;
-
             }, 1000);
         }
 
-        function updateCardToUnlocked(fileId) {
-            const file = allFiles.find(f => f.id === fileId);
-            if (!file) return;
-            
-            document.getElementById(`badge-${fileId}`).innerHTML = `
-                <span class="gradient-unlocked px-2 py-1 rounded-lg text-xs font-bold">
-                    <i class="fas fa-check mr-1"></i>UNLOCKED
-                </span>
-            `;
-            
-            document.getElementById(`btn-container-${fileId}`).innerHTML = `
-                <button data-file-url="${file.downloadUrl}" 
-                        class="open-btn w-full py-2.5 rounded-lg text-white text-sm gradient-unlocked">
-                    <i class="fas fa-unlock"></i> Access Now
-                </button>
-            `;
+        // Load all data
+        async function loadAllData() {
+            try {
+                const [slidersSnap, filesSnap] = await Promise.all([
+                    getDocs(query(collection(db, "sliders"), orderBy("createdAt", "desc"), limit(10))),
+                    getDocs(query(collection(db, "files"), orderBy("createdAt", "desc"), limit(50)))
+                ]);
+                
+                renderSliders(slidersSnap);
+                renderFiles(filesSnap);
+            } catch (error) {
+                console.error("Error loading:", error);
+                sliderWrapper.innerHTML = `<div class="slider-item flex items-center justify-center bg-red-100"><p class="text-red-600">Could not load slides.</p></div>`;
+                filesGrid.innerHTML = `<p class="col-span-full text-center text-red-500">Could not load files.</p>`;
+            }
         }
 
-        async function loadFiles() {
-            const snapshot = await getDocs(query(collection(db, "files"), orderBy("createdAt", "desc"), limit(40)));
+        function renderSliders(sliderSnapshot) {
+            sliderWrapper.innerHTML = '';
+            sliderDotsContainer.innerHTML = '';
+            const slides = [];
+            sliderSnapshot.forEach(doc => slides.push(doc.data()));
+            
+            if (slides.length > 0) {
+                slides.forEach((slide, index) => {
+                    const slideEl = document.createElement('div');
+                    slideEl.className = 'slider-item';
+                    slideEl.innerHTML = slide.linkUrl ? 
+                        `<a href="${slide.linkUrl}" target="_blank"><img src="${slide.imageUrl}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/1280x400'"></a>` :
+                        `<img src="${slide.imageUrl}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/1280x400'">`;
+                    sliderWrapper.appendChild(slideEl);
+                    
+                    const dotEl = document.createElement('div');
+                    dotEl.className = 'slider-dot';
+                    dotEl.dataset.index = index;
+                    sliderDotsContainer.appendChild(dotEl);
+                });
+                setupSlider(slides.length);
+            }
+        }
+
+        function renderFiles(filesSnapshot) {
             filesGrid.innerHTML = '';
             allFiles = [];
             
-            snapshot.forEach(d => allFiles.push({ id: d.id, ...d.data() }));
+            if (filesSnapshot.empty) {
+                filesGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">No files available.</p>`;
+                return;
+            }
             
-            allFiles.forEach(f => {
-                const required = f.requiredAds || 5;
-                const watched = parseInt(localStorage.getItem(`adCount_${f.id}`) || 0);
-                const unlocked = watched >= required;
-                
+            filesSnapshot.forEach(doc => allFiles.push({ id: doc.id, ...doc.data() }));
+            
+            allFiles.forEach(file => {
                 const card = document.createElement('div');
-                card.className = 'file-card glass rounded-xl overflow-hidden border border-pink-500/20';
+                card.className = 'file-card bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow';
+                card.dataset.title = file.title.toLowerCase();
+                card.dataset.description = file.description.toLowerCase();
+                
                 card.innerHTML = `
-                    <div class="relative aspect-[4/5]">
-                        <img src="${f.thumbnailUrl}" class="w-full h-full object-cover">
-                        <div class="absolute top-2 right-2" id="badge-${f.id}">
-                            ${!unlocked ? `
-                                <span class="bg-black/70 px-2 py-1 rounded-lg text-xs border border-pink-500/40 text-pink-300">
-                                    <i class="fas fa-lock mr-1"></i><span class="ad-count">${watched}/${required}</span>
-                                </span>
-                            ` : `
-                                <span class="gradient-unlocked px-2 py-1 rounded-lg text-xs">
-                                    <i class="fas fa-check mr-1"></i>UNLOCKED
-                                </span>
-                            `}
-                        </div>
-                        <div class="absolute bottom-0 left-0 right-0 p-3">
-                            <h3 class="font-bold text-sm text-white">${f.title}</h3>
-                        </div>
-                    </div>
-                    <div class="p-3">
-                        <p class="text-gray-400 text-xs mb-3">${f.description}</p>
-                        <div id="btn-container-${f.id}">
-                            ${!unlocked ? `
-                                <button data-file-id="${f.id}" data-required="${required}" 
-                                        class="unlock-btn w-full py-2.5 rounded-lg text-white text-sm gradient-premium">
-                                    <i class="fas fa-play-circle mr-2"></i>
-                                    <span class="btn-text">Watch Ad (${watched}/${required})</span>
-                                </button>
-                            ` : `
-                                <button data-file-url="${f.downloadUrl}" 
-                                        class="open-btn w-full py-2.5 rounded-lg text-white text-sm gradient-unlocked">
-                                    <i class="fas fa-unlock mr-2"></i>Access Now
-                                </button>
-                            `}
+                    <img src="${file.thumbnailUrl}" alt="${file.title}" class="w-full aspect-video object-cover" onerror="this.src='https://placehold.co/400x225'">
+                    <div class="p-4">
+                        <h3 class="text-lg font-bold text-gray-900 truncate">${file.title}</h3>
+                        <p class="text-gray-600 text-sm mt-1 h-10 overflow-hidden">${file.description}</p>
+                        <div class="mt-3">
+                            <button data-url="${file.downloadUrl}" class="access-btn w-full py-2.5 px-4 rounded-lg text-white font-semibold bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 flex items-center justify-center gap-2">
+                                <i class="fas fa-play-circle"></i>
+                                <span>Access Now</span>
+                            </button>
                         </div>
                     </div>
                 `;
@@ -255,25 +293,56 @@
             });
         }
 
-        filesGrid.addEventListener('click', (e) => {
-            const unlockBtn = e.target.closest('.unlock-btn');
-            const openBtn = e.target.closest('.open-btn');
+        function setupSlider(slideCount) {
+            if (slideCount <= 1) {
+                if(slideCount === 1) document.querySelector('.slider-dot')?.classList.add('active');
+                return;
+            }
+            const dots = document.querySelectorAll('.slider-dot');
+            function goToSlide(index) {
+                currentSlide = (index + slideCount) % slideCount;
+                sliderWrapper.style.transform = `translateX(-${currentSlide * 100}%)`;
+                dots.forEach(dot => dot.classList.remove('active'));
+                if(dots[currentSlide]) dots[currentSlide].classList.add('active');
+            }
+            if (sliderInterval) clearInterval(sliderInterval);
+            sliderInterval = setInterval(() => goToSlide(currentSlide + 1), 3000);
+            dots.forEach(dot => dot.addEventListener('click', (e) => goToSlide(parseInt(e.target.dataset.index))));
+            goToSlide(0);
+        }
+
+        function handleSearch() {
+            const term = searchInput.value.toLowerCase();
+            let visible = 0;
             
-            if (unlockBtn && !unlockBtn.disabled) {
-                unlockBtn.disabled = true;
-                showAdAndCountdown(unlockBtn, unlockBtn.dataset.fileId, parseInt(unlockBtn.dataset.required));
-            } else if (openBtn) {
-                window.open(openBtn.dataset.fileUrl, '_blank');
+            document.querySelectorAll('.file-card').forEach(card => {
+                const title = card.dataset.title;
+                const desc = card.dataset.description;
+                if (title.includes(term) || desc.includes(term)) {
+                    card.style.display = 'block';
+                    visible++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            noResultsMessage.style.display = visible === 0 ? 'block' : 'none';
+        }
+
+        // 🔥 Handle click - Show ad then open file
+        filesGrid.addEventListener('click', (e) => {
+            const accessBtn = e.target.closest('.access-btn');
+            if (accessBtn) {
+                const url = accessBtn.dataset.url;
+                showAdAndOpenFile(url);
             }
         });
 
-        loadFiles();
+        searchInput.addEventListener('input', handleSearch);
 
-        if (typeof window.Adsgram === 'undefined') {
-            const script = document.createElement('script');
-            script.src = 'https://sad.adsgram.ai/js/sad.min.js';
-            document.head.appendChild(script);
-        }
+        // Start
+        loadAllData();
+        initAdsgram();
     </script>
 </body>
 </html>
