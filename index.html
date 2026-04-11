@@ -138,27 +138,17 @@
             }
         }
 
-        // 🔥 Show BOTH ads one after another
-        async function showBothAds() {
+        // 🔥 Show interstitial ad only
+        async function showInterstitialAd() {
             if (!AdController) {
                 console.log('❌ Adsgram not ready');
                 return false;
             }
             
             try {
-                // Show interstitial first
                 console.log('📺 Showing Interstitial Ad...');
                 await AdController.show({ type: 'interstitial' });
                 console.log('✅ Interstitial completed');
-                
-                // Small delay between ads
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                // Show reward ad
-                console.log('🎁 Showing Reward Ad...');
-                await AdController.show({ type: 'reward' });
-                console.log('✅ Reward completed');
-                
                 return true;
             } catch (error) {
                 console.error('❌ Ad error:', error);
@@ -166,7 +156,7 @@
             }
         }
 
-        // 🔥 Open file after ads
+        // 🔥 Open file after ad
         function openPendingFile() {
             if (pendingUrl) {
                 showToast('📥 Opening file...');
@@ -206,7 +196,7 @@
             return endTime && parseInt(endTime) > Date.now();
         }
 
-        // 🔥 MAIN: Show ads FIRST, then open file
+        // 🔥 MAIN: Show ad FIRST, then open file
         async function handleAccessClick(fileId, url, button) {
             if (button.disabled) return;
             
@@ -219,12 +209,12 @@
             button.disabled = true;
             button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading Ad...';
             
-            showToast('📺 Loading ads...');
+            showToast('📺 Loading ad...');
             
-            // Show BOTH ads
-            const adsShown = await showBothAds();
+            // Show interstitial ad
+            await showInterstitialAd();
             
-            // After ads (whether successful or not), open file
+            // After ad, open file
             openPendingFile();
             
             // Start cooldown
