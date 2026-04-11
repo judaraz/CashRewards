@@ -356,7 +356,7 @@
             return false;
         }
 
-        // 🔥 IMPROVED: Reliable ad display with time verification
+        // Reliable ad display with time verification
         async function showAdvertisement() {
             return new Promise((resolve) => {
                 adCompletedSuccessfully = false;
@@ -367,12 +367,10 @@
                 
                 // Create manual timer that ensures minimum view time
                 const minViewTime = AD_WAIT_TIME * 1000;
-                let adTimerCompleted = false;
                 let displayInterval = null;
                 
                 // Manual timer (always reliable)
                 const manualTimer = setTimeout(() => {
-                    adTimerCompleted = true;
                     console.log("✅ Manual ad timer completed");
                     
                     if (!adCompletedSuccessfully) {
@@ -512,11 +510,7 @@
             if (timeElapsed < minRequired) {
                 const remaining = Math.ceil((minRequired - timeElapsed) / 1000);
                 showToast(`⏱️ Please wait ${remaining} more seconds`, 'error');
-                
-                // Shake animation on close button
-                closeAdBtn.style.animation = 'shake 0.5s';
-                setTimeout(() => closeAdBtn.style.animation = '', 500);
-                return; // Prevent early closing
+                return;
             }
             
             if (currentAdResolver) {
@@ -524,17 +518,6 @@
                 currentAdResolver = null;
             }
         });
-
-        // Add shake animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes shake {
-                0%, 100% { transform: translateX(0); }
-                25% { transform: translateX(-5px); }
-                75% { transform: translateX(5px); }
-            }
-        `;
-        document.head.appendChild(style);
 
         async function loadAllData() {
             try {
@@ -595,7 +578,6 @@
                 const watched = parseInt(localStorage.getItem(`adCount_${f.id}`) || 0);
                 const unlocked = watched >= required;
                 
-                // Debug log for localStorage
                 console.log(`📊 File ${f.id}: ${watched}/${required} ads watched`);
                 
                 const card = document.createElement('div');
@@ -690,7 +672,7 @@
             goTo(0);
         }
 
-        // 🔥 FIXED: Countdown now starts AFTER ad completion
+        // 🔥 FIXED: Proper timer cleanup and UI reset
         function startCountdown(btn, fileId, required) {
             const container = btn.closest('.space-y-2');
             const progressContainer = container.querySelector('.progress-container');
@@ -698,28 +680,55 @@
             const secondsSpan = progressContainer.querySelector('.seconds');
             const btnText = btn.querySelector('.btn-text');
             
+            // 🔥 STEP 1: Clear any existing timer for this file
+            if (activeTimers.has(fileId)) {
+                console.log(`⚠️ Clearing existing timer for ${fileId}`);
+                clearInterval(activeTimers.get(fileId));
+                activeTimers.delete(fileId);
+            }
+            
+            // 🔥 STEP 2: FORCE reset UI before starting
+            progressFill.style.width = '0%';
+            secondsSpan.textContent = COUNTDOWN_TIME;
+            
+            // Hide button, show progress
             btn.classList.add('hidden');
             progressContainer.classList.remove('hidden');
             
             let secondsLeft = COUNTDOWN_TIME;
             const totalSeconds = COUNTDOWN_TIME;
             
+            console.log(`⏱️ Starting timer for ${fileId}, seconds: ${secondsLeft}`);
+            
+            // 🔥 STEP 3: Clean timer logic
             const timer = setInterval(() => {
                 secondsLeft--;
+                
                 const progress = ((totalSeconds - secondsLeft) / totalSeconds) * 100;
                 progressFill.style.width = progress + '%';
-                secondsSpan.textContent = secondsLeft;
+                
+                // Update display with proper formatting
+                if (secondsLeft > 0) {
+                    secondsSpan.textContent = secondsLeft;
+                } else {
+                    secondsSpan.textContent = '0';
+                }
                 
                 if (secondsLeft <= 0) {
+                    console.log(`✅ Timer completed for ${fileId}`);
                     clearInterval(timer);
                     activeTimers.delete(fileId);
                     
-                    // Count the ad view (only after successful completion)
+                    // Count the ad view
                     let watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
                     watched++;
                     localStorage.setItem(`adCount_${fileId}`, watched);
                     
-                    console.log(`✅ Ad counted for ${fileId}: ${watched}/${required}`);
+                    console.log(`📊 Ad counted for ${fileId}: ${watched}/${required}`);
+                    
+                    // 🔥 STEP 4: Reset UI for next use
+                    progressFill.style.width = '0%';
+                    secondsSpan.textContent = COUNTDOWN_TIME;
                     
                     if (watched >= required) {
                         showToast('🎉 Content Unlocked!');
@@ -729,8 +738,6 @@
                         progressContainer.classList.add('hidden');
                         btnText.textContent = `Unlock (${watched}/${required})`;
                         btn.disabled = false;
-                        progressFill.style.width = '0%';
-                        secondsSpan.textContent = COUNTDOWN_TIME;
                         
                         const badgeSpan = document.querySelector(`#badge-${fileId} .ad-count`);
                         if (badgeSpan) {
@@ -770,29 +777,39 @@
             }
         }
 
-        // 🔥 FIXED: Sequential flow - Ad first, then countdown
+        // 🔥 FIXED: Sequential flow with proper button state management
         async function handleUnlock(btn) {
-            if (btn.disabled) return;
+            // Double-check button state
+            if (btn.disabled) {
+                console.log('⚠️ Button already disabled');
+                return;
+            }
             
             const fileId = btn.dataset.fileId;
             const required = parseInt(btn.dataset.required) || 5;
             
+            // Check if timer already running
             if (activeTimers.has(fileId)) {
                 showToast('Already counting down...', 'error');
                 return;
             }
             
+            // Disable immediately to prevent double-clicks
             btn.disabled = true;
+            console.log(`🔒 Unlock requested for ${fileId}`);
             
             // STEP 1: Show and verify ad completion FIRST
             showToast('📺 Loading advertisement...');
             const adSuccess = await showAdvertisement();
             
             if (!adSuccess) {
+                console.log('❌ Ad failed or was skipped');
                 showToast('❌ Ad not completed. Please try again.', 'error');
                 btn.disabled = false;
                 return;
             }
+            
+            console.log('✅ Ad completed successfully');
             
             // STEP 2: Only after successful ad, start countdown
             showToast('✅ Ad completed! Continue waiting...');
@@ -846,6 +863,14 @@
                     console.log(`${key}: ${localStorage.getItem(key)}`);
                 }
             }
+        };
+        
+        window.debugTimers = function() {
+            console.log("=== Active Timers ===");
+            console.log(`Count: ${activeTimers.size}`);
+            activeTimers.forEach((timer, fileId) => {
+                console.log(`File ${fileId}: Timer active`);
+            });
         };
         
         window.resetAdCounts = function() {
