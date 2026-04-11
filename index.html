@@ -45,33 +45,29 @@
             text-align: center;
             max-width: 350px;
             width: 90%;
-            display: none;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
-        .ad-popup.show { display: block; }
         .ad-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.8);
             z-index: 1000;
-            display: none;
             backdrop-filter: blur(4px);
         }
-        .ad-overlay.show { display: block; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body class="bg-gray-50 font-sans">
 
-    <!-- Ad Overlay -->
-    <div id="adOverlay" class="ad-overlay"></div>
-    
-    <!-- Ad Popup -->
-    <div id="adPopup" class="ad-popup">
+    <!-- Ad Overlay and Popup -->
+    <div id="adOverlay" class="ad-overlay hidden"></div>
+    <div id="adPopup" class="ad-popup hidden">
         <i class="fas fa-ad text-5xl text-blue-500 mb-4"></i>
-        <h3 class="text-xl font-bold mb-2">Watch Advertisement</h3>
-        <p class="text-gray-500 text-sm mb-4">Ad is loading...</p>
+        <h3 class="text-xl font-bold mb-2">Loading Ad...</h3>
+        <p id="adStatus" class="text-gray-500 text-sm mb-4">Please wait</p>
         <div id="adTimer" class="text-4xl font-bold text-blue-600 my-4">5</div>
-        <p class="text-xs text-gray-400">Please wait, file will open automatically</p>
+        <p class="text-xs text-gray-400">File will open automatically</p>
+        <button id="skipAdBtn" class="mt-4 text-sm text-gray-400 hover:text-gray-600">Skip Ad</button>
     </div>
 
     <div id="app" class="container mx-auto p-4 max-w-7xl">
@@ -153,6 +149,8 @@
         const adOverlay = document.getElementById('adOverlay');
         const adPopup = document.getElementById('adPopup');
         const adTimer = document.getElementById('adTimer');
+        const adStatus = document.getElementById('adStatus');
+        const skipAdBtn = document.getElementById('skipAdBtn');
 
         let sliderInterval;
         let currentSlide = 0;
@@ -160,6 +158,7 @@
         let allFiles = [];
         let pendingUrl = null;
         let countdownInterval = null;
+        let adCompleted = false;
 
         function showToast(message) {
             const toast = document.getElementById('toast');
@@ -178,45 +177,100 @@
             }
         }
 
-        // 🔥 SIMPLE: Show ad, then open file
+        // 🔥 Open file in new tab
+        function openFile(url) {
+            if (url) {
+                showToast('📥 Opening file...');
+                // Create anchor and click it (bypass popup blockers)
+                const a = document.createElement('a');
+                a.href = url;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+        }
+
+        // Hide ad popup
+        function hideAdPopup() {
+            adOverlay.classList.add('hidden');
+            adPopup.classList.add('hidden');
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+        }
+
+        // 🔥 Show ad and open file - GUARANTEED to open
         function showAdAndOpenFile(url) {
             pendingUrl = url;
+            adCompleted = false;
             
             // Show popup
-            adOverlay.classList.add('show');
-            adPopup.classList.add('show');
+            adOverlay.classList.remove('hidden');
+            adPopup.classList.remove('hidden');
+            adStatus.textContent = 'Loading ad...';
             
-            // Try to show Adsgram ad (doesn't matter if it fails)
+            // Try to show Adsgram ad
+            let adShown = false;
             if (AdController) {
-                AdController.show().catch(() => console.log('Ad skipped or failed'));
+                AdController.show()
+                    .then(() => {
+                        console.log('✅ Ad shown successfully');
+                        adShown = true;
+                        adStatus.textContent = 'Ad shown! Starting countdown...';
+                    })
+                    .catch((err) => {
+                        console.log('❌ Ad failed:', err);
+                        adStatus.textContent = 'Ad skipped, opening file...';
+                    })
+                    .finally(() => {
+                        // Whether ad shows or fails, start countdown
+                        startCountdown();
+                    });
+            } else {
+                // No Adsgram, just countdown
+                adStatus.textContent = 'Preparing your file...';
+                startCountdown();
             }
             
-            // Start countdown
-            let seconds = 5;
-            adTimer.textContent = seconds;
-            
-            if (countdownInterval) clearInterval(countdownInterval);
-            
-            countdownInterval = setInterval(() => {
-                seconds--;
+            function startCountdown() {
+                let seconds = 5;
                 adTimer.textContent = seconds;
                 
-                if (seconds <= 0) {
-                    clearInterval(countdownInterval);
+                if (countdownInterval) clearInterval(countdownInterval);
+                
+                countdownInterval = setInterval(() => {
+                    seconds--;
+                    adTimer.textContent = seconds;
                     
-                    // Hide popup
-                    adOverlay.classList.remove('show');
-                    adPopup.classList.remove('show');
-                    
-                    // 🔥 OPEN THE FILE
-                    if (pendingUrl) {
-                        showToast('📥 Opening file...');
-                        window.open(pendingUrl, '_blank');
-                        pendingUrl = null;
+                    if (seconds <= 0) {
+                        clearInterval(countdownInterval);
+                        countdownInterval = null;
+                        
+                        // 🔥 OPEN FILE - GUARANTEED
+                        if (!adCompleted) {
+                            adCompleted = true;
+                            hideAdPopup();
+                            openFile(pendingUrl);
+                            pendingUrl = null;
+                        }
                     }
-                }
-            }, 1000);
+                }, 1000);
+            }
         }
+
+        // Skip button - opens file immediately
+        skipAdBtn.addEventListener('click', () => {
+            if (!adCompleted && pendingUrl) {
+                adCompleted = true;
+                if (countdownInterval) clearInterval(countdownInterval);
+                hideAdPopup();
+                openFile(pendingUrl);
+                pendingUrl = null;
+            }
+        });
 
         // Load all data
         async function loadAllData() {
@@ -329,7 +383,7 @@
             noResultsMessage.style.display = visible === 0 ? 'block' : 'none';
         }
 
-        // 🔥 Handle click - Show ad then open file
+        // Handle click - Show ad then open file
         filesGrid.addEventListener('click', (e) => {
             const accessBtn = e.target.closest('.access-btn');
             if (accessBtn) {
