@@ -115,9 +115,7 @@
         let AdController = null;
         let allFiles = [];
         let waitTime = 10;
-        let pendingUrl = null;
-        let pendingFileId = null;
-        let pendingButton = null;
+        let isAdInProgress = false;
         
         const fileCooldowns = new Map();
 
@@ -138,30 +136,51 @@
             }
         }
 
-        // 🔥 Show interstitial ad only
-        async function showInterstitialAd() {
+        // 🔥 Reset button to original state
+        function resetButton(button, originalText) {
+            button.disabled = false;
+            button.innerHTML = originalText;
+            isAdInProgress = false;
+        }
+
+        // 🔥 Show interstitial ad
+        async function showInterstitialAd(fileId, url, button, card) {
             if (!AdController) {
-                console.log('❌ Adsgram not ready');
-                return false;
+                console.log('❌ Adsgram not ready, opening file directly');
+                window.open(url, '_blank');
+                startCooldown(fileId, button);
+                return;
             }
+            
+            const originalText = button.innerHTML;
+            isAdInProgress = true;
             
             try {
                 console.log('📺 Showing Interstitial Ad...');
+                
+                // Show ad and wait for it to close (automatically or manually)
                 await AdController.show({ type: 'interstitial' });
-                console.log('✅ Interstitial completed');
-                return true;
+                
+                console.log('✅ Ad closed - opening file');
+                
+                // Ad closed successfully - open file
+                window.open(url, '_blank');
+                
+                // Start cooldown
+                startCooldown(fileId, button);
+                
             } catch (error) {
-                console.error('❌ Ad error:', error);
-                return false;
-            }
-        }
-
-        // 🔥 Open file after ad
-        function openPendingFile() {
-            if (pendingUrl) {
-                showToast('📥 Opening file...');
-                window.open(pendingUrl, '_blank');
-                pendingUrl = null;
+                console.log('⚠️ Ad skipped or error:', error);
+                
+                // Even if ad fails, open the file
+                window.open(url, '_blank');
+                
+                // Start cooldown
+                startCooldown(fileId, button);
+                
+            } finally {
+                // Reset ad in progress flag
+                isAdInProgress = false;
             }
         }
 
@@ -172,7 +191,7 @@
             localStorage.setItem(cooldownKey, endTime);
             
             button.disabled = true;
-            const originalText = button.innerHTML;
+            const originalText = '<i class="fas fa-play-circle"></i><span>Access Now</span>';
             
             const updateTimer = () => {
                 const remaining = Math.ceil((endTime - Date.now()) / 1000);
@@ -196,33 +215,22 @@
             return endTime && parseInt(endTime) > Date.now();
         }
 
-        // 🔥 MAIN: Show ad FIRST, then open file
-        async function handleAccessClick(fileId, url, button) {
-            if (button.disabled) return;
+        // 🔥 Handle access click
+        async function handleAccessClick(fileId, url, button, card) {
+            // Prevent if button disabled or ad in progress
+            if (button.disabled || isAdInProgress) {
+                console.log('⏳ Already processing or on cooldown');
+                return;
+            }
             
-            // Store for later
-            pendingUrl = url;
-            pendingFileId = fileId;
-            pendingButton = button;
+            // Check cooldown
+            if (isFileOnCooldown(fileId)) {
+                showToast('⏳ Please wait for cooldown to finish');
+                return;
+            }
             
-            // Disable button during ad
-            button.disabled = true;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading Ad...';
-            
-            showToast('📺 Loading ad...');
-            
-            // Show interstitial ad
-            await showInterstitialAd();
-            
-            // After ad, open file
-            openPendingFile();
-            
-            // Start cooldown
-            startCooldown(fileId, button);
-            
-            pendingUrl = null;
-            pendingFileId = null;
-            pendingButton = null;
+            // Show ad and open file
+            await showInterstitialAd(fileId, url, button, card);
         }
 
         async function loadSettings() {
@@ -360,8 +368,9 @@
                 e.preventDefault();
                 const fileId = accessBtn.dataset.fileId;
                 const url = accessBtn.dataset.url;
+                const card = accessBtn.closest('.file-card');
                 
-                handleAccessClick(fileId, url, accessBtn);
+                handleAccessClick(fileId, url, accessBtn, card);
             }
         });
 
