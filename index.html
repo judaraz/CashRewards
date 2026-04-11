@@ -101,29 +101,6 @@
             cursor:not-allowed;
         }
         
-        /* Progress bar */
-        .progress-bar{
-            height:3px;
-            background:rgba(236,72,153,0.2);
-            border-radius:3px;
-            overflow:hidden;
-        }
-        .progress-fill{
-            height:100%;
-            background:linear-gradient(90deg,#ec4899,#8b5cf6);
-            transition:width 0.1s linear;
-        }
-
-        /* Countdown animation */
-        .countdown-pulse {
-            animation: countdownPulse 1s ease-in-out infinite;
-        }
-        
-        @keyframes countdownPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
         /* Ad container styles */
         .ad-container {
             position: fixed;
@@ -256,7 +233,7 @@
                     Premium Content
                 </h2>
                 <span class="text-xs text-gray-500 ml-auto">
-                    <i class="fas fa-lock mr-1"></i>Watch ads to unlock
+                    <i class="fas fa-lock mr-1"></i>Watch 5s ad to unlock
                 </span>
             </div>
             
@@ -313,9 +290,8 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Configuration
-        const AD_WAIT_TIME = 5; // Seconds user must wait for ad
-        const COUNTDOWN_TIME = 10; // Total countdown seconds
+        // Configuration - SIMPLIFIED: Single 5-second ad = reward
+        const AD_WAIT_TIME = 5; // Seconds user must watch ad
         
         const sliderWrapper = document.getElementById('slider-wrapper');
         const sliderDotsContainer = document.getElementById('slider-dots');
@@ -329,11 +305,11 @@
         const closeAdBtn = document.getElementById('closeAdBtn');
 
         let sliderInterval, currentSlide = 0, allFiles = [];
-        let activeTimers = new Map();
         let AdController = null;
         let currentAdResolver = null;
         let adStartTime = null;
         let adCompletedSuccessfully = false;
+        let currentFileId = null;
 
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
@@ -356,11 +332,12 @@
             return false;
         }
 
-        // Reliable ad display with time verification
-        async function showAdvertisement() {
+        // 🔥 FIXED: Clean ad display with proper interval cleanup
+        async function showAdvertisement(fileId) {
             return new Promise((resolve) => {
                 adCompletedSuccessfully = false;
                 adStartTime = Date.now();
+                currentFileId = fileId;
                 
                 // Show overlay to prevent interaction
                 adOverlay.classList.add('show');
@@ -433,6 +410,7 @@
             });
         }
 
+        // 🔥 FIXED: Proper interval cleanup - no more "this" bug
         function showFallbackAd() {
             adContent.innerHTML = `
                 <div class="text-center w-full">
@@ -441,30 +419,20 @@
                             <i class="fas fa-ad text-3xl text-white"></i>
                         </div>
                         <p class="text-white font-semibold text-lg">Supporting Creators</p>
-                        <p class="text-xs text-gray-400 mt-1">Please wait for the advertisement to complete</p>
+                        <p class="text-xs text-gray-400 mt-1">Watch ad to unlock premium content</p>
                     </div>
                     <div class="bg-gradient-to-r from-pink-500/20 to-purple-600/20 rounded-xl p-4 border border-pink-500/30">
                         <div class="flex items-center justify-center gap-3">
-                            <div class="flex gap-1">
-                                <div class="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
-                                <div class="w-2 h-2 bg-pink-500 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
-                                <div class="w-2 h-2 bg-pink-500 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
-                            </div>
-                            <span class="text-sm text-gray-300">Please wait </span>
-                            <span id="adTimerDisplay" class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">${AD_WAIT_TIME}</span>
+                            <span class="text-sm text-gray-300">Unlocking in </span>
+                            <span id="adTimerDisplay" class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">${AD_WAIT_TIME}</span>
                             <span class="text-sm text-gray-300">seconds</span>
-                            <div class="flex gap-1">
-                                <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                                <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
-                                <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
-                            </div>
                         </div>
-                        <div class="mt-3 progress-bar">
-                            <div id="adProgressFill" class="progress-fill" style="width: 0%"></div>
+                        <div class="mt-3 h-2 bg-gray-700 rounded-full overflow-hidden">
+                            <div id="adProgressFill" class="h-full bg-gradient-to-r from-pink-500 to-purple-600 rounded-full" style="width: 0%"></div>
                         </div>
                     </div>
                     <p class="text-xs text-gray-500 mt-3">
-                        <i class="fas fa-lock mr-1"></i>Content unlocks after advertisement
+                        <i class="fas fa-lock mr-1"></i>Do not close this window
                     </p>
                 </div>
             `;
@@ -476,8 +444,10 @@
             const timerDisplay = document.getElementById('adTimerDisplay');
             const progressFill = document.getElementById('adProgressFill');
             
-            return setInterval(() => {
+            // 🔥 FIXED: Store interval ID properly and clean up
+            const interval = setInterval(() => {
                 secondsLeft--;
+                
                 if (timerDisplay && secondsLeft >= 0) {
                     timerDisplay.textContent = secondsLeft;
                     if (progressFill) {
@@ -485,10 +455,13 @@
                         progressFill.style.width = progress + '%';
                     }
                 }
+                
                 if (secondsLeft <= 0) {
-                    clearInterval(this);
+                    clearInterval(interval); // ✅ CORRECT: Clear by ID, not "this"
                 }
             }, 1000);
+            
+            return interval; // Return the actual interval ID
         }
 
         function hideAdContainer() {
@@ -619,21 +592,11 @@
                         
                         <div class="button-container" id="btn-container-${f.id}">
                             ${!unlocked ? `
-                                <div class="space-y-2">
-                                    <button data-file-id="${f.id}" data-required="${required}" 
-                                            class="unlock-btn w-full py-2.5 px-3 rounded-lg text-white text-sm font-semibold gradient-premium hover:opacity-90 transition flex items-center justify-center gap-2">
-                                        <i class="fas fa-play-circle"></i>
-                                        <span class="btn-text">Unlock (${watched}/${required})</span>
-                                    </button>
-                                    <div class="progress-container hidden">
-                                        <div class="progress-bar">
-                                            <div class="progress-fill" style="width:0%"></div>
-                                        </div>
-                                        <p class="timer-text text-center text-xs text-gray-400 mt-1">
-                                            <span class="countdown-pulse">⏳</span> Wait <span class="seconds font-bold text-pink-400">${COUNTDOWN_TIME}</span>s...
-                                        </p>
-                                    </div>
-                                </div>
+                                <button data-file-id="${f.id}" data-required="${required}" 
+                                        class="unlock-btn w-full py-2.5 px-3 rounded-lg text-white text-sm font-semibold gradient-premium hover:opacity-90 transition flex items-center justify-center gap-2">
+                                    <i class="fas fa-play-circle"></i>
+                                    <span class="btn-text">Watch Ad (${watched}/${required})</span>
+                                </button>
                             ` : `
                                 <button data-file-url="${f.downloadUrl}" 
                                         class="open-btn w-full py-2.5 px-3 rounded-lg text-white text-sm font-semibold gradient-unlocked hover:opacity-90 transition flex items-center justify-center gap-2 glow-pulse">
@@ -672,84 +635,30 @@
             goTo(0);
         }
 
-        // 🔥 FIXED: Proper timer cleanup and UI reset
-        function startCountdown(btn, fileId, required) {
-            const container = btn.closest('.space-y-2');
-            const progressContainer = container.querySelector('.progress-container');
-            const progressFill = progressContainer.querySelector('.progress-fill');
-            const secondsSpan = progressContainer.querySelector('.seconds');
-            const btnText = btn.querySelector('.btn-text');
+        // 🔥 SIMPLIFIED: Reward immediately after ad completion
+        function rewardUser(btn, fileId, required) {
+            // Count the ad view
+            let watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
+            watched++;
+            localStorage.setItem(`adCount_${fileId}`, watched);
             
-            // 🔥 STEP 1: Clear any existing timer for this file
-            if (activeTimers.has(fileId)) {
-                console.log(`⚠️ Clearing existing timer for ${fileId}`);
-                clearInterval(activeTimers.get(fileId));
-                activeTimers.delete(fileId);
+            console.log(`✅ Ad counted for ${fileId}: ${watched}/${required}`);
+            
+            if (watched >= required) {
+                showToast('🎉 Content Unlocked!');
+                updateCardToUnlocked(fileId);
+            } else {
+                const btnText = btn.querySelector('.btn-text');
+                btnText.textContent = `Watch Ad (${watched}/${required})`;
+                btn.disabled = false;
+                
+                const badgeSpan = document.querySelector(`#badge-${fileId} .ad-count`);
+                if (badgeSpan) {
+                    badgeSpan.textContent = `${watched}/${required}`;
+                }
+                
+                showToast(`📺 Progress: ${watched}/${required} ads`);
             }
-            
-            // 🔥 STEP 2: FORCE reset UI before starting
-            progressFill.style.width = '0%';
-            secondsSpan.textContent = COUNTDOWN_TIME;
-            
-            // Hide button, show progress
-            btn.classList.add('hidden');
-            progressContainer.classList.remove('hidden');
-            
-            let secondsLeft = COUNTDOWN_TIME;
-            const totalSeconds = COUNTDOWN_TIME;
-            
-            console.log(`⏱️ Starting timer for ${fileId}, seconds: ${secondsLeft}`);
-            
-            // 🔥 STEP 3: Clean timer logic
-            const timer = setInterval(() => {
-                secondsLeft--;
-                
-                const progress = ((totalSeconds - secondsLeft) / totalSeconds) * 100;
-                progressFill.style.width = progress + '%';
-                
-                // Update display with proper formatting
-                if (secondsLeft > 0) {
-                    secondsSpan.textContent = secondsLeft;
-                } else {
-                    secondsSpan.textContent = '0';
-                }
-                
-                if (secondsLeft <= 0) {
-                    console.log(`✅ Timer completed for ${fileId}`);
-                    clearInterval(timer);
-                    activeTimers.delete(fileId);
-                    
-                    // Count the ad view
-                    let watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
-                    watched++;
-                    localStorage.setItem(`adCount_${fileId}`, watched);
-                    
-                    console.log(`📊 Ad counted for ${fileId}: ${watched}/${required}`);
-                    
-                    // 🔥 STEP 4: Reset UI for next use
-                    progressFill.style.width = '0%';
-                    secondsSpan.textContent = COUNTDOWN_TIME;
-                    
-                    if (watched >= required) {
-                        showToast('🎉 Content Unlocked!');
-                        updateCardToUnlocked(fileId);
-                    } else {
-                        btn.classList.remove('hidden');
-                        progressContainer.classList.add('hidden');
-                        btnText.textContent = `Unlock (${watched}/${required})`;
-                        btn.disabled = false;
-                        
-                        const badgeSpan = document.querySelector(`#badge-${fileId} .ad-count`);
-                        if (badgeSpan) {
-                            badgeSpan.textContent = `${watched}/${required}`;
-                        }
-                        
-                        showToast(`📺 Progress: ${watched}/${required} ads`);
-                    }
-                }
-            }, 1000);
-            
-            activeTimers.set(fileId, timer);
         }
 
         function updateCardToUnlocked(fileId) {
@@ -777,9 +686,8 @@
             }
         }
 
-        // 🔥 FIXED: Sequential flow with proper button state management
+        // 🔥 SIMPLIFIED: Single flow - Ad → Reward
         async function handleUnlock(btn) {
-            // Double-check button state
             if (btn.disabled) {
                 console.log('⚠️ Button already disabled');
                 return;
@@ -788,19 +696,13 @@
             const fileId = btn.dataset.fileId;
             const required = parseInt(btn.dataset.required) || 5;
             
-            // Check if timer already running
-            if (activeTimers.has(fileId)) {
-                showToast('Already counting down...', 'error');
-                return;
-            }
-            
             // Disable immediately to prevent double-clicks
             btn.disabled = true;
             console.log(`🔒 Unlock requested for ${fileId}`);
             
-            // STEP 1: Show and verify ad completion FIRST
+            // Show ad and wait for completion
             showToast('📺 Loading advertisement...');
-            const adSuccess = await showAdvertisement();
+            const adSuccess = await showAdvertisement(fileId);
             
             if (!adSuccess) {
                 console.log('❌ Ad failed or was skipped');
@@ -809,11 +711,10 @@
                 return;
             }
             
-            console.log('✅ Ad completed successfully');
+            console.log('✅ Ad completed successfully - rewarding user');
             
-            // STEP 2: Only after successful ad, start countdown
-            showToast('✅ Ad completed! Continue waiting...');
-            startCountdown(btn, fileId, required);
+            // 🔥 REWARD IMMEDIATELY - No second countdown
+            rewardUser(btn, fileId, required);
         }
 
         function handleOpen(btn) {
@@ -863,14 +764,6 @@
                     console.log(`${key}: ${localStorage.getItem(key)}`);
                 }
             }
-        };
-        
-        window.debugTimers = function() {
-            console.log("=== Active Timers ===");
-            console.log(`Count: ${activeTimers.size}`);
-            activeTimers.forEach((timer, fileId) => {
-                console.log(`File ${fileId}: Timer active`);
-            });
         };
         
         window.resetAdCounts = function() {
