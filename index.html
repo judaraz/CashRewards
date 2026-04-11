@@ -13,6 +13,7 @@
         body{
             background:linear-gradient(135deg,#0a0a0f 0%,#1a0a1a 50%,#0f0a1a 100%);
             font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+            min-height:100vh;
         }
         
         @keyframes softGlow{
@@ -101,7 +102,6 @@
             cursor:not-allowed;
         }
         
-        /* Ad container styles */
         .ad-container {
             position: fixed;
             bottom: 20px;
@@ -146,11 +146,25 @@
         .ad-overlay.show {
             display: block;
         }
+
+        .line-clamp-1 {
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 1;
+        }
+        
+        .line-clamp-2 {
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+        }
     </style>
 </head>
 <body class="text-gray-100">
 
-    <!-- Ad Overlay (Anti-cheat) -->
+    <!-- Ad Overlay -->
     <div id="adOverlay" class="ad-overlay"></div>
 
     <!-- Ad Container -->
@@ -164,7 +178,7 @@
             </button>
         </div>
         <div id="adContent" class="ad-content">
-            <!-- Ad will be injected here -->
+            <!-- Ad content injected here -->
         </div>
     </div>
 
@@ -233,7 +247,7 @@
                     Premium Content
                 </h2>
                 <span class="text-xs text-gray-500 ml-auto">
-                    <i class="fas fa-lock mr-1"></i>Watch 5s ad to unlock
+                    <i class="fas fa-lock mr-1"></i>Watch ad to unlock
                 </span>
             </div>
             
@@ -269,10 +283,7 @@
         </div>
     </footer>
 
-    <!-- Ad scripts -->
-    <script async src="https://sad.adsgram.ai/js/sad.min.js"></script>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3940256099942544" crossorigin="anonymous"></script>
-
+    <!-- Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -290,8 +301,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Configuration - SIMPLIFIED: Single 5-second ad = reward
-        const AD_WAIT_TIME = 5; // Seconds user must watch ad
+        const AD_WAIT_TIME = 5;
         
         const sliderWrapper = document.getElementById('slider-wrapper');
         const sliderDotsContainer = document.getElementById('slider-dots');
@@ -305,11 +315,8 @@
         const closeAdBtn = document.getElementById('closeAdBtn');
 
         let sliderInterval, currentSlide = 0, allFiles = [];
-        let AdController = null;
         let currentAdResolver = null;
         let adStartTime = null;
-        let adCompletedSuccessfully = false;
-        let currentFileId = null;
 
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
@@ -321,96 +328,6 @@
             setTimeout(() => toast.classList.add('opacity-0', 'translate-y-4'), 2500);
         }
 
-        // Initialize Adsgram
-        function initAdsgram() {
-            if (typeof window.Adsgram !== 'undefined') {
-                AdController = window.Adsgram.init({ blockId: "21145" });
-                console.log("✅ Adsgram initialized");
-                return true;
-            }
-            console.log("⚠️ Adsgram not loaded - using fallback");
-            return false;
-        }
-
-        // 🔥 FIXED: Clean ad display with proper interval cleanup
-        async function showAdvertisement(fileId) {
-            return new Promise((resolve) => {
-                adCompletedSuccessfully = false;
-                adStartTime = Date.now();
-                currentFileId = fileId;
-                
-                // Show overlay to prevent interaction
-                adOverlay.classList.add('show');
-                
-                // Create manual timer that ensures minimum view time
-                const minViewTime = AD_WAIT_TIME * 1000;
-                let displayInterval = null;
-                
-                // Manual timer (always reliable)
-                const manualTimer = setTimeout(() => {
-                    console.log("✅ Manual ad timer completed");
-                    
-                    if (!adCompletedSuccessfully) {
-                        adCompletedSuccessfully = true;
-                        if (displayInterval) clearInterval(displayInterval);
-                        hideAdContainer();
-                        resolve(true);
-                    }
-                }, minViewTime);
-                
-                // Try to show network ad
-                if (AdController) {
-                    AdController.show()
-                        .then(() => {
-                            console.log("✅ Adsgram callback received");
-                            
-                            // Check if minimum time elapsed
-                            const timeElapsed = Date.now() - adStartTime;
-                            if (timeElapsed >= minViewTime) {
-                                if (!adCompletedSuccessfully) {
-                                    adCompletedSuccessfully = true;
-                                    clearTimeout(manualTimer);
-                                    if (displayInterval) clearInterval(displayInterval);
-                                    hideAdContainer();
-                                    resolve(true);
-                                }
-                            } else {
-                                // Wait remaining time
-                                const remaining = minViewTime - timeElapsed;
-                                setTimeout(() => {
-                                    if (!adCompletedSuccessfully) {
-                                        adCompletedSuccessfully = true;
-                                        clearTimeout(manualTimer);
-                                        if (displayInterval) clearInterval(displayInterval);
-                                        hideAdContainer();
-                                        resolve(true);
-                                    }
-                                }, remaining);
-                            }
-                        })
-                        .catch((error) => {
-                            console.log("❌ Adsgram failed:", error);
-                            // Manual timer will handle completion
-                        });
-                }
-                
-                // Show fallback ad UI with countdown
-                displayInterval = showFallbackAd();
-                
-                // Cleanup function
-                currentAdResolver = (forced) => {
-                    clearTimeout(manualTimer);
-                    if (displayInterval) clearInterval(displayInterval);
-                    if (!adCompletedSuccessfully) {
-                        adCompletedSuccessfully = true;
-                        hideAdContainer();
-                        resolve(forced || false);
-                    }
-                };
-            });
-        }
-
-        // 🔥 FIXED: Proper interval cleanup - no more "this" bug
         function showFallbackAd() {
             adContent.innerHTML = `
                 <div class="text-center w-full">
@@ -439,12 +356,10 @@
             
             adContainer.classList.add('show');
             
-            // Update timer display and progress bar
             let secondsLeft = AD_WAIT_TIME;
             const timerDisplay = document.getElementById('adTimerDisplay');
             const progressFill = document.getElementById('adProgressFill');
             
-            // 🔥 FIXED: Store interval ID properly and clean up
             const interval = setInterval(() => {
                 secondsLeft--;
                 
@@ -457,11 +372,11 @@
                 }
                 
                 if (secondsLeft <= 0) {
-                    clearInterval(interval); // ✅ CORRECT: Clear by ID, not "this"
+                    clearInterval(interval);
                 }
             }, 1000);
             
-            return interval; // Return the actual interval ID
+            return interval;
         }
 
         function hideAdContainer() {
@@ -473,7 +388,31 @@
             }
         }
 
-        // Handle manual close attempt (anti-cheat)
+        async function showAdvertisement() {
+            return new Promise((resolve) => {
+                adStartTime = Date.now();
+                adOverlay.classList.add('show');
+                
+                const minViewTime = AD_WAIT_TIME * 1000;
+                let displayInterval = null;
+                
+                const manualTimer = setTimeout(() => {
+                    if (displayInterval) clearInterval(displayInterval);
+                    hideAdContainer();
+                    resolve(true);
+                }, minViewTime);
+                
+                displayInterval = showFallbackAd();
+                
+                currentAdResolver = (forced) => {
+                    clearTimeout(manualTimer);
+                    if (displayInterval) clearInterval(displayInterval);
+                    hideAdContainer();
+                    resolve(forced || false);
+                };
+            });
+        }
+
         closeAdBtn.addEventListener('click', () => {
             if (!adStartTime) return;
             
@@ -482,7 +421,7 @@
             
             if (timeElapsed < minRequired) {
                 const remaining = Math.ceil((minRequired - timeElapsed) / 1000);
-                showToast(`⏱️ Please wait ${remaining} more seconds`, 'error');
+                showToast(`Please wait ${remaining} more seconds`, 'error');
                 return;
             }
             
@@ -550,8 +489,6 @@
                 const required = f.requiredAds || 5;
                 const watched = parseInt(localStorage.getItem(`adCount_${f.id}`) || 0);
                 const unlocked = watched >= required;
-                
-                console.log(`📊 File ${f.id}: ${watched}/${required} ads watched`);
                 
                 const card = document.createElement('div');
                 card.className = 'file-card group glass rounded-xl md:rounded-2xl overflow-hidden card-hover border border-pink-500/20';
@@ -635,17 +572,15 @@
             goTo(0);
         }
 
-        // 🔥 SIMPLIFIED: Reward immediately after ad completion
         function rewardUser(btn, fileId, required) {
-            // Count the ad view
             let watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
             watched++;
             localStorage.setItem(`adCount_${fileId}`, watched);
             
-            console.log(`✅ Ad counted for ${fileId}: ${watched}/${required}`);
+            console.log(`Ad counted for ${fileId}: ${watched}/${required}`);
             
             if (watched >= required) {
-                showToast('🎉 Content Unlocked!');
+                showToast('Content Unlocked!');
                 updateCardToUnlocked(fileId);
             } else {
                 const btnText = btn.querySelector('.btn-text');
@@ -657,7 +592,7 @@
                     badgeSpan.textContent = `${watched}/${required}`;
                 }
                 
-                showToast(`📺 Progress: ${watched}/${required} ads`);
+                showToast(`Progress: ${watched}/${required} ads`);
             }
         }
 
@@ -686,41 +621,33 @@
             }
         }
 
-        // 🔥 SIMPLIFIED: Single flow - Ad → Reward
         async function handleUnlock(btn) {
-            if (btn.disabled) {
-                console.log('⚠️ Button already disabled');
-                return;
-            }
+            if (btn.disabled) return;
             
             const fileId = btn.dataset.fileId;
             const required = parseInt(btn.dataset.required) || 5;
             
-            // Disable immediately to prevent double-clicks
             btn.disabled = true;
-            console.log(`🔒 Unlock requested for ${fileId}`);
+            console.log(`Unlock requested for ${fileId}`);
             
-            // Show ad and wait for completion
-            showToast('📺 Loading advertisement...');
-            const adSuccess = await showAdvertisement(fileId);
+            showToast('Loading advertisement...');
+            const adSuccess = await showAdvertisement();
             
             if (!adSuccess) {
-                console.log('❌ Ad failed or was skipped');
-                showToast('❌ Ad not completed. Please try again.', 'error');
+                console.log('Ad failed or was skipped');
+                showToast('Ad not completed. Please try again.', 'error');
                 btn.disabled = false;
                 return;
             }
             
-            console.log('✅ Ad completed successfully - rewarding user');
-            
-            // 🔥 REWARD IMMEDIATELY - No second countdown
+            console.log('Ad completed successfully - rewarding user');
             rewardUser(btn, fileId, required);
         }
 
         function handleOpen(btn) {
             const url = btn.dataset.fileUrl;
             if (url) {
-                showToast('🚀 Opening content...');
+                showToast('Opening content...');
                 window.open(url, '_blank');
             }
         }
@@ -755,38 +682,21 @@
             noResultsMessage.classList.toggle('hidden', visible > 0);
         }
 
-        // Debug tools
-        window.debugStorage = function() {
-            console.log("=== LocalStorage Debug ===");
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith('adCount_')) {
-                    console.log(`${key}: ${localStorage.getItem(key)}`);
-                }
-            }
-        };
-        
         window.resetAdCounts = function() {
             allFiles.forEach(f => {
                 localStorage.removeItem(`adCount_${f.id}`);
             });
-            console.log("✅ All ad counts reset");
+            console.log("All ad counts reset");
             location.reload();
         };
 
         // Initialize
         loadAllData();
         
-        // Try to initialize ads after a short delay
-        setTimeout(() => {
-            initAdsgram();
-        }, 1000);
-        
         filesGrid.addEventListener('click', handleClick);
         searchInput.addEventListener('input', handleSearch);
         searchBtn.addEventListener('click', handleSearch);
         
-        // Keyboard shortcut for search
         searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 handleSearch();
