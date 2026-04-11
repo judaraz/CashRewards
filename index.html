@@ -43,7 +43,7 @@
     <div id="app" class="container mx-auto p-4 max-w-7xl">
         <header class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-xl shadow-lg mb-8 fade-in">
             <h1 class="text-4xl font-extrabold text-center mb-4">Webapp Sikho</h1>
-            <p class="text-center text-lg text-blue-100 mb-6">Click Access Now - File Opens Instantly!</p>
+            <p class="text-center text-lg text-blue-100 mb-6">Watch Ad - File Opens Automatically</p>
             <div class="max-w-2xl mx-auto">
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -86,7 +86,6 @@
         </div>
     </footer>
 
-    <!-- Adsgram SDK -->
     <script async src="https://sad.adsgram.ai/js/sad.min.js"></script>
 
     <script type="module">
@@ -116,7 +115,9 @@
         let AdController = null;
         let allFiles = [];
         let waitTime = 10;
-        let adCounter = 0;
+        let pendingUrl = null;
+        let pendingFileId = null;
+        let pendingButton = null;
         
         const fileCooldowns = new Map();
 
@@ -137,39 +138,45 @@
             }
         }
 
-        // 🔥 Show ad - try both types, use whichever works
-        async function showAd() {
-            if (!AdController) return;
-            
-            adCounter++;
+        // 🔥 Show BOTH ads one after another
+        async function showBothAds() {
+            if (!AdController) {
+                console.log('❌ Adsgram not ready');
+                return false;
+            }
             
             try {
-                if (adCounter % 2 === 1) {
-                    // Try interstitial first
-                    await AdController.show({ type: 'interstitial' });
-                    console.log('✅ Interstitial shown');
-                } else {
-                    // Try reward
-                    await AdController.show({ type: 'reward' });
-                    console.log('✅ Reward shown');
-                }
-            } catch (e) {
-                // If one fails, try the other
-                console.log('First ad type failed, trying alternative...');
-                try {
-                    if (adCounter % 2 === 1) {
-                        await AdController.show({ type: 'reward' });
-                    } else {
-                        await AdController.show({ type: 'interstitial' });
-                    }
-                } catch (e2) {
-                    console.log('Both ad types failed');
-                }
+                // Show interstitial first
+                console.log('📺 Showing Interstitial Ad...');
+                await AdController.show({ type: 'interstitial' });
+                console.log('✅ Interstitial completed');
+                
+                // Small delay between ads
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Show reward ad
+                console.log('🎁 Showing Reward Ad...');
+                await AdController.show({ type: 'reward' });
+                console.log('✅ Reward completed');
+                
+                return true;
+            } catch (error) {
+                console.error('❌ Ad error:', error);
+                return false;
+            }
+        }
+
+        // 🔥 Open file after ads
+        function openPendingFile() {
+            if (pendingUrl) {
+                showToast('📥 Opening file...');
+                window.open(pendingUrl, '_blank');
+                pendingUrl = null;
             }
         }
 
         // Cooldown functions
-        function startCooldown(fileId, button, card) {
+        function startCooldown(fileId, button) {
             const cooldownKey = `cooldown_${fileId}`;
             const endTime = Date.now() + (waitTime * 1000);
             localStorage.setItem(cooldownKey, endTime);
@@ -199,19 +206,33 @@
             return endTime && parseInt(endTime) > Date.now();
         }
 
-        // 🔥 SIMPLE: Open file → Show ad → Start cooldown
-        async function handleAccessClick(fileId, url, button, card) {
+        // 🔥 MAIN: Show ads FIRST, then open file
+        async function handleAccessClick(fileId, url, button) {
             if (button.disabled) return;
             
-            // 1. OPEN FILE IMMEDIATELY
-            showToast('📥 Opening file...');
-            window.open(url, '_blank');
+            // Store for later
+            pendingUrl = url;
+            pendingFileId = fileId;
+            pendingButton = button;
             
-            // 2. SHOW AD (in background)
-            showAd();
+            // Disable button during ad
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading Ad...';
             
-            // 3. START COOLDOWN
-            startCooldown(fileId, button, card);
+            showToast('📺 Loading ads...');
+            
+            // Show BOTH ads
+            const adsShown = await showBothAds();
+            
+            // After ads (whether successful or not), open file
+            openPendingFile();
+            
+            // Start cooldown
+            startCooldown(fileId, button);
+            
+            pendingUrl = null;
+            pendingFileId = null;
+            pendingButton = null;
         }
 
         async function loadSettings() {
@@ -238,8 +259,6 @@
                 renderFiles(filesSnap);
             } catch (error) {
                 console.error("Error loading:", error);
-                sliderWrapper.innerHTML = `<div class="slider-item flex items-center justify-center bg-red-100"><p class="text-red-600">Could not load slides.</p></div>`;
-                filesGrid.innerHTML = `<p class="col-span-full text-center text-red-500">Could not load files.</p>`;
             }
         }
 
@@ -294,7 +313,7 @@
                         <p class="text-gray-600 text-sm mt-1 h-10 overflow-hidden">${file.description || ''}</p>
                         <div class="mt-3">
                             <button data-file-id="${file.id}" data-url="${file.downloadUrl}" class="access-btn w-full py-2.5 px-4 rounded-lg text-white font-semibold bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 flex items-center justify-center gap-2" ${isOnCooldown ? 'disabled' : ''}>
-                                <i class="fas fa-download"></i>
+                                <i class="fas fa-play-circle"></i>
                                 <span>${isOnCooldown ? 'Wait...' : 'Access Now'}</span>
                             </button>
                         </div>
@@ -304,7 +323,7 @@
                 
                 if (isOnCooldown) {
                     const button = card.querySelector('.access-btn');
-                    startCooldown(file.id, button, card);
+                    startCooldown(file.id, button);
                 }
             });
         }
@@ -351,9 +370,8 @@
                 e.preventDefault();
                 const fileId = accessBtn.dataset.fileId;
                 const url = accessBtn.dataset.url;
-                const card = accessBtn.closest('.file-card');
                 
-                handleAccessClick(fileId, url, accessBtn, card);
+                handleAccessClick(fileId, url, accessBtn);
             }
         });
 
