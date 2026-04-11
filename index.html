@@ -32,84 +32,18 @@
             animation: shimmer 1.5s infinite;
         }
         
-        /* Ad Overlay */
-        .ad-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 9999;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(8px);
-        }
-        .ad-overlay.show { display: flex; }
-        .ad-container {
-            background: white;
-            border-radius: 24px;
-            padding: 30px;
-            max-width: 400px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            border: 2px solid #3b82f6;
-        }
-        .ad-timer {
-            font-size: 64px;
-            font-weight: bold;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin: 20px 0;
-        }
-        
-        /* Cooldown overlay on card */
-        .cooldown-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 12px;
-            backdrop-filter: blur(2px);
-        }
-        .file-card {
-            position: relative;
+        .access-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body class="bg-gray-50 font-sans">
 
-    <!-- Ad Overlay -->
-    <div id="adOverlay" class="ad-overlay">
-        <div class="ad-container">
-            <div class="mb-4">
-                <i class="fas fa-ad text-5xl text-blue-500"></i>
-            </div>
-            <h3 class="text-2xl font-bold text-gray-800 mb-2">Advertisement</h3>
-            <p class="text-gray-500 mb-4">Your file is opening in a new tab</p>
-            <div id="adTimer" class="ad-timer">5</div>
-            <p class="text-sm text-gray-400">Please wait...</p>
-            <div class="mt-6">
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                    <div id="adProgress" class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-1000" style="width: 0%"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div id="app" class="container mx-auto p-4 max-w-7xl">
         <header class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-xl shadow-lg mb-8 fade-in">
             <h1 class="text-4xl font-extrabold text-center mb-4">Webapp Sikho</h1>
-            <p class="text-center text-lg text-blue-100 mb-6">Click Access Now - File Opens + Ad Shows</p>
+            <p class="text-center text-lg text-blue-100 mb-6">Click Access Now - File Opens Instantly!</p>
             <div class="max-w-2xl mx-auto">
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -176,19 +110,14 @@
         const filesGrid = document.getElementById('files-grid');
         const searchInput = document.getElementById('searchInput');
         const noResultsMessage = document.getElementById('no-results');
-        const adOverlay = document.getElementById('adOverlay');
-        const adTimer = document.getElementById('adTimer');
-        const adProgress = document.getElementById('adProgress');
 
         let sliderInterval;
         let currentSlide = 0;
         let AdController = null;
         let allFiles = [];
-        let countdownInterval = null;
-        let waitTime = 10; // Default from admin settings
-        let adCounter = 0; // For alternating ads
+        let waitTime = 10;
+        let adCounter = 0;
         
-        // Cooldown tracking per file
         const fileCooldowns = new Map();
 
         function showToast(message) {
@@ -201,146 +130,101 @@
         // Initialize Adsgram
         function initAdsgram() {
             if (typeof window.Adsgram !== 'undefined') {
-                // Use block ID from admin panel: int-21144
                 AdController = window.Adsgram.init({ blockId: "int-21144" });
-                console.log("✅ Adsgram ready with block ID: int-21144");
+                console.log("✅ Adsgram ready");
             } else {
                 setTimeout(initAdsgram, 500);
             }
         }
 
-        // 🔥 Show Ad - Alternates between interstitial and reward
-        function showAd() {
+        // 🔥 Show ad - try both types, use whichever works
+        async function showAd() {
             if (!AdController) return;
             
             adCounter++;
             
-            // Alternate between ad types
-            if (adCounter % 2 === 1) {
-                // Show interstitial
-                AdController.show({ type: 'interstitial' }).catch(err => console.log('Interstitial ad error:', err));
-            } else {
-                // Show reward
-                AdController.show({ type: 'reward' }).catch(err => console.log('Reward ad error:', err));
-            }
-        }
-
-        // 🔥 Show Ad Overlay with countdown
-        function showAdOverlay(duration) {
-            adOverlay.classList.add('show');
-            
-            let seconds = duration;
-            adTimer.textContent = seconds;
-            adProgress.style.width = '0%';
-            
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-            }
-            
-            countdownInterval = setInterval(() => {
-                seconds--;
-                adTimer.textContent = seconds;
-                
-                const progress = ((duration - seconds) / duration) * 100;
-                adProgress.style.width = progress + '%';
-                
-                if (seconds <= 0) {
-                    clearInterval(countdownInterval);
-                    countdownInterval = null;
-                    adOverlay.classList.remove('show');
+            try {
+                if (adCounter % 2 === 1) {
+                    // Try interstitial first
+                    await AdController.show({ type: 'interstitial' });
+                    console.log('✅ Interstitial shown');
+                } else {
+                    // Try reward
+                    await AdController.show({ type: 'reward' });
+                    console.log('✅ Reward shown');
                 }
-            }, 1000);
+            } catch (e) {
+                // If one fails, try the other
+                console.log('First ad type failed, trying alternative...');
+                try {
+                    if (adCounter % 2 === 1) {
+                        await AdController.show({ type: 'reward' });
+                    } else {
+                        await AdController.show({ type: 'interstitial' });
+                    }
+                } catch (e2) {
+                    console.log('Both ad types failed');
+                }
+            }
         }
 
-        // 🔥 Start cooldown for a file
-        function startCooldown(fileId, card, button, duration) {
-            const cooldownKey = `${fileId}_cooldown`;
-            const endTime = Date.now() + (duration * 1000);
+        // Cooldown functions
+        function startCooldown(fileId, button, card) {
+            const cooldownKey = `cooldown_${fileId}`;
+            const endTime = Date.now() + (waitTime * 1000);
             localStorage.setItem(cooldownKey, endTime);
             
-            // Disable button
             button.disabled = true;
+            const originalText = button.innerHTML;
             
-            // Show cooldown overlay
-            const overlay = document.createElement('div');
-            overlay.className = 'cooldown-overlay';
-            overlay.id = `cooldown-${fileId}`;
-            
-            const timerSpan = document.createElement('span');
-            timerSpan.className = 'text-white text-2xl font-bold bg-black/50 px-4 py-2 rounded-full';
-            timerSpan.id = `cooldown-timer-${fileId}`;
-            overlay.appendChild(timerSpan);
-            
-            card.style.position = 'relative';
-            card.appendChild(overlay);
-            
-            // Update timer
-            const updateCooldown = () => {
+            const updateTimer = () => {
                 const remaining = Math.ceil((endTime - Date.now()) / 1000);
                 if (remaining <= 0) {
-                    // Cooldown finished
-                    const oldOverlay = document.getElementById(`cooldown-${fileId}`);
-                    if (oldOverlay) oldOverlay.remove();
                     button.disabled = false;
+                    button.innerHTML = originalText;
                     fileCooldowns.delete(fileId);
                     localStorage.removeItem(cooldownKey);
                 } else {
-                    timerSpan.textContent = remaining + 's';
-                    fileCooldowns.set(fileId, setTimeout(updateCooldown, 100));
+                    button.innerHTML = `<i class="fas fa-clock mr-2"></i>Wait ${remaining}s`;
+                    fileCooldowns.set(fileId, setTimeout(updateTimer, 100));
                 }
             };
             
-            updateCooldown();
+            updateTimer();
         }
 
-        // 🔥 Check if file is on cooldown
         function isFileOnCooldown(fileId) {
-            const cooldownKey = `${fileId}_cooldown`;
+            const cooldownKey = `cooldown_${fileId}`;
             const endTime = localStorage.getItem(cooldownKey);
-            if (endTime && parseInt(endTime) > Date.now()) {
-                return true;
-            }
-            return false;
+            return endTime && parseInt(endTime) > Date.now();
         }
 
-        // 🔥 Open file + show ad + start cooldown
+        // 🔥 SIMPLE: Open file → Show ad → Start cooldown
         async function handleAccessClick(fileId, url, button, card) {
             if (button.disabled) return;
             
-            // Check cooldown
-            if (isFileOnCooldown(fileId)) {
-                showToast('⏳ Please wait for cooldown to finish');
-                return;
-            }
-            
-            // Open file immediately
+            // 1. OPEN FILE IMMEDIATELY
             showToast('📥 Opening file...');
             window.open(url, '_blank');
             
-            // Show ad (Adsgram interstitial/reward)
+            // 2. SHOW AD (in background)
             showAd();
             
-            // Show ad overlay with wait time
-            showAdOverlay(waitTime);
-            
-            // Start cooldown
-            startCooldown(fileId, card, button, waitTime);
+            // 3. START COOLDOWN
+            startCooldown(fileId, button, card);
         }
 
-        // Load wait time from admin settings
         async function loadSettings() {
             try {
                 const docSnap = await getDoc(doc(db, "settings", "general"));
                 if (docSnap.exists()) {
                     waitTime = docSnap.data().timerDuration || 10;
-                    console.log(`⏱️ Wait time loaded: ${waitTime}s`);
                 }
             } catch (error) {
                 console.error("Error loading settings:", error);
             }
         }
 
-        // Load all data
         async function loadAllData() {
             try {
                 await loadSettings();
@@ -418,10 +302,9 @@
                 `;
                 filesGrid.appendChild(card);
                 
-                // If on cooldown, restore the overlay
                 if (isOnCooldown) {
                     const button = card.querySelector('.access-btn');
-                    startCooldown(file.id, card, button, waitTime);
+                    startCooldown(file.id, button, card);
                 }
             });
         }
@@ -462,7 +345,6 @@
             noResultsMessage.classList.toggle('hidden', visible > 0);
         }
 
-        // Handle click
         filesGrid.addEventListener('click', (e) => {
             const accessBtn = e.target.closest('.access-btn');
             if (accessBtn && !accessBtn.disabled) {
@@ -477,7 +359,6 @@
 
         searchInput.addEventListener('input', handleSearch);
 
-        // Start
         loadAllData();
         initAdsgram();
     </script>
