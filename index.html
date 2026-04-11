@@ -10,105 +10,75 @@
         *{margin:0;padding:0;box-sizing:border-box}
         body{
             background:linear-gradient(135deg,#0a0a0f 0%,#1a0a1a 50%,#0f0a1a 100%);
-            font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+            font-family:system-ui,sans-serif;
+            min-height:100vh;
         }
         .glass{
             background:rgba(15,15,25,0.85);
             backdrop-filter:blur(12px);
-            -webkit-backdrop-filter:blur(12px);
             border:1px solid rgba(236,72,153,0.15);
         }
         .gradient-premium{background:linear-gradient(135deg,#ec4899,#8b5cf6)}
         .gradient-unlocked{background:linear-gradient(135deg,#10b981,#059669)}
-        .slider-wrapper{display:flex;transition:transform .5s;will-change:transform}
-        .slider-item{min-width:100%}
-        .slider-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.3);transition:all .3s;cursor:pointer}
-        .slider-dot.active{width:24px;border-radius:12px;background:linear-gradient(90deg,#ec4899,#8b5cf6)}
-        .skeleton{background:linear-gradient(90deg,#1a1a2a 25%,#2a2a3a 50%,#1a1a2a 75%);background-size:200% 100%;animation:shimmer 1.2s infinite}
-        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-        button:disabled{opacity:0.6;cursor:not-allowed}
         
-        /* Simple ad modal */
-        .ad-modal{
+        .ad-popup{
             position:fixed;
-            top:0;left:0;right:0;bottom:0;
-            background:rgba(0,0,0,0.9);
-            z-index:1000;
-            display:none;
-            align-items:center;
-            justify-content:center;
-        }
-        .ad-modal.show{display:flex}
-        .ad-box{
+            top:50%;
+            left:50%;
+            transform:translate(-50%,-50%);
             background:#1a1a2e;
             border-radius:20px;
             padding:30px;
-            max-width:350px;
-            width:90%;
-            text-align:center;
+            z-index:1000;
             border:1px solid #ec4899;
+            text-align:center;
+            display:none;
         }
-        .countdown-number{
-            font-size:60px;
-            font-weight:bold;
-            background:linear-gradient(135deg,#ec4899,#8b5cf6);
-            -webkit-background-clip:text;
-            -webkit-text-fill-color:transparent;
+        .ad-popup.show{display:block}
+        .overlay{
+            position:fixed;
+            top:0;left:0;right:0;bottom:0;
+            background:rgba(0,0,0,0.8);
+            z-index:999;
+            display:none;
         }
+        .overlay.show{display:block}
     </style>
 </head>
-<body class="text-gray-100">
+<body class="text-gray-100 p-4">
 
-    <!-- Simple Ad Modal -->
-    <div id="adModal" class="ad-modal">
-        <div class="ad-box">
-            <i class="fas fa-ad text-4xl text-pink-400 mb-4"></i>
-            <h3 class="text-xl font-bold mb-2">Advertisement</h3>
-            <p class="text-gray-400 text-sm mb-4">Watch ad to unlock content</p>
-            <div id="countdownDisplay" class="countdown-number">5</div>
-            <p class="text-xs text-gray-500 mt-4">Please wait...</p>
-        </div>
+    <!-- Overlay -->
+    <div id="overlay" class="overlay"></div>
+    
+    <!-- Ad Popup -->
+    <div id="adPopup" class="ad-popup">
+        <i class="fas fa-ad text-4xl text-pink-400 mb-4"></i>
+        <h3 class="text-xl font-bold mb-2">Watch Ad</h3>
+        <p id="adTimer" class="text-5xl font-bold text-pink-400 my-4">5</p>
+        <p class="text-gray-400 text-sm">Watching ad...</p>
     </div>
 
-    <div id="app" class="container mx-auto px-4 py-4 max-w-7xl">
+    <div class="max-w-7xl mx-auto">
         
         <!-- Header -->
-        <header class="mb-6">
-            <div class="glass rounded-2xl p-5 border border-pink-500/20">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
-                        <i class="fas fa-crown text-white"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-2xl font-black">
-                            <span class="bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">Premium</span>
-                            <span class="text-white">Hub</span>
-                        </h1>
-                        <p class="text-gray-400 text-xs">Exclusive Content • VIP Access</p>
-                    </div>
+        <div class="glass rounded-2xl p-5 mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
+                    <i class="fas fa-crown text-white"></i>
                 </div>
+                <h1 class="text-2xl font-bold text-white">Premium Content</h1>
             </div>
-        </header>
+        </div>
 
         <!-- Content Grid -->
-        <div>
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-1 h-6 bg-gradient-to-b from-pink-500 to-purple-600 rounded-full"></div>
-                <h2 class="text-xl font-black text-white">Premium Content</h2>
-            </div>
-            
-            <div id="files-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                <div class="skeleton rounded-xl h-56"></div>
-                <div class="skeleton rounded-xl h-56"></div>
-                <div class="skeleton rounded-xl h-56"></div>
-                <div class="skeleton rounded-xl h-56"></div>
-            </div>
+        <div id="contentGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="text-center text-gray-400 col-span-full py-8">Loading...</div>
         </div>
     </div>
 
     <!-- Toast -->
-    <div id="toast" class="fixed bottom-5 right-5 glass px-5 py-3 rounded-xl opacity-0 transition-all duration-300 z-50">
-        <p id="toast-message" class="text-sm"></p>
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 glass px-5 py-3 rounded-xl opacity-0 transition-all z-50">
+        <p id="toastMsg" class="text-sm"></p>
     </div>
 
     <!-- Firebase -->
@@ -116,10 +86,10 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+        // Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyBtqQvDCgqy5Tp01yajerWRSMfW6MKx-Gc",
             authDomain: "visit-1f400.firebaseapp.com",
-            databaseURL: "https://visit-1f400-default-rtdb.firebaseio.com",
             projectId: "visit-1f400",
             storageBucket: "visit-1f400.firebasestorage.app",
             messagingSenderId: "226827389556",
@@ -129,100 +99,139 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        const filesGrid = document.getElementById('files-grid');
-        const adModal = document.getElementById('adModal');
-        const countdownDisplay = document.getElementById('countdownDisplay');
-        
-        let allFiles = [];
-        let currentBtn = null;
-        let countdownInterval = null;
+        // Elements
+        const contentGrid = document.getElementById('contentGrid');
+        const overlay = document.getElementById('overlay');
+        const adPopup = document.getElementById('adPopup');
+        const adTimer = document.getElementById('adTimer');
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
 
+        let allFiles = [];
+        let currentFileId = null;
+        let currentRequired = 0;
+        let timerInterval = null;
+
+        // Show toast
         function showToast(msg) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-message').textContent = msg;
+            toastMsg.textContent = msg;
             toast.style.opacity = '1';
             setTimeout(() => toast.style.opacity = '0', 2000);
         }
 
-        // 🔥 SIMPLE: Just show ad and countdown
-        function showAdAndCountdown(btn, fileId, required) {
-            currentBtn = btn;
-            adModal.classList.add('show');
+        // 🔥 SIMPLE: Show ad popup and countdown
+        function startAdCountdown(fileId, required) {
+            currentFileId = fileId;
+            currentRequired = required;
             
-            let seconds = 5;
-            countdownDisplay.textContent = seconds;
+            // Show popup
+            overlay.classList.add('show');
+            adPopup.classList.add('show');
             
-            // Try to show Adsgram (optional)
-            if (typeof window.Adsgram !== 'undefined') {
+            // Try to show Adsgram ad (doesn't matter if it fails)
+            if (window.Adsgram) {
                 window.Adsgram.init({ blockId: "21145" }).show().catch(() => {});
             }
             
-            // Simple countdown
-            countdownInterval = setInterval(() => {
+            // Start countdown
+            let seconds = 5;
+            adTimer.textContent = seconds;
+            
+            if (timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
                 seconds--;
-                countdownDisplay.textContent = seconds;
+                adTimer.textContent = seconds;
                 
                 if (seconds <= 0) {
-                    clearInterval(countdownInterval);
-                    adModal.classList.remove('show');
+                    clearInterval(timerInterval);
                     
-                    // Reward user
-                    let watched = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
+                    // Hide popup
+                    overlay.classList.remove('show');
+                    adPopup.classList.remove('show');
+                    
+                    // 🔥 COUNT +1 AND UPDATE
+                    let watched = parseInt(localStorage.getItem(`ad_${currentFileId}`) || '0');
                     watched++;
-                    localStorage.setItem(`adCount_${fileId}`, watched);
+                    localStorage.setItem(`ad_${currentFileId}`, watched);
                     
-                    if (watched >= required) {
-                        showToast('🎉 Content Unlocked!');
-                        updateCardToUnlocked(fileId);
-                    } else {
+                    console.log(`Ad ${watched}/${currentRequired} for ${currentFileId}`);
+                    
+                    // Update button text
+                    const btn = document.querySelector(`[data-file-id="${currentFileId}"]`);
+                    if (btn) {
+                        const btnText = btn.querySelector('.btn-text');
+                        btnText.textContent = `Watch Ad (${watched}/${currentRequired})`;
                         btn.disabled = false;
-                        btn.querySelector('.btn-text').textContent = `Watch Ad (${watched}/${required})`;
-                        document.querySelector(`#badge-${fileId} .ad-count`).textContent = `${watched}/${required}`;
-                        showToast(`Progress: ${watched}/${required}`);
+                    }
+                    
+                    // Update badge
+                    const badge = document.querySelector(`#badge-${currentFileId} .ad-count`);
+                    if (badge) {
+                        badge.textContent = `${watched}/${currentRequired}`;
+                    }
+                    
+                    // Check if unlocked
+                    if (watched >= currentRequired) {
+                        unlockContent(currentFileId);
+                        showToast('🎉 Content Unlocked!');
+                    } else {
+                        showToast(`📺 Progress: ${watched}/${currentRequired}`);
                     }
                 }
             }, 1000);
         }
 
-        function updateCardToUnlocked(fileId) {
+        // Unlock content
+        function unlockContent(fileId) {
             const file = allFiles.find(f => f.id === fileId);
             if (!file) return;
             
-            document.getElementById(`badge-${fileId}`).innerHTML = `
-                <span class="gradient-unlocked px-2 py-1 rounded-lg text-xs font-bold">
-                    <i class="fas fa-check mr-1"></i>UNLOCKED
-                </span>
-            `;
+            // Update badge
+            const badge = document.getElementById(`badge-${fileId}`);
+            if (badge) {
+                badge.innerHTML = `<span class="gradient-unlocked px-2 py-1 rounded-lg text-xs"><i class="fas fa-check mr-1"></i>UNLOCKED</span>`;
+            }
             
-            document.getElementById(`btn-container-${fileId}`).innerHTML = `
-                <button data-file-url="${file.downloadUrl}" 
-                        class="open-btn w-full py-2.5 px-3 rounded-lg text-white text-sm font-semibold gradient-unlocked">
-                    <i class="fas fa-unlock"></i> Access Now
-                </button>
-            `;
+            // Update button
+            const btnContainer = document.getElementById(`btn-${fileId}`);
+            if (btnContainer) {
+                btnContainer.innerHTML = `
+                    <button onclick="window.open('${file.downloadUrl}', '_blank')" 
+                            class="w-full py-2.5 rounded-lg text-white text-sm gradient-unlocked">
+                        <i class="fas fa-unlock mr-2"></i>Access Now
+                    </button>
+                `;
+            }
         }
 
+        // Load files from Firebase
         async function loadFiles() {
             try {
-                const snapshot = await getDocs(query(collection(db, "files"), orderBy("createdAt", "desc"), limit(40)));
-                filesGrid.innerHTML = '';
+                const q = query(collection(db, "files"), orderBy("createdAt", "desc"), limit(40));
+                const snapshot = await getDocs(q);
+                
+                contentGrid.innerHTML = '';
                 allFiles = [];
                 
-                snapshot.forEach(d => allFiles.push({ id: d.id, ...d.data() }));
+                snapshot.forEach(doc => {
+                    allFiles.push({ id: doc.id, ...doc.data() });
+                });
                 
-                allFiles.forEach(f => {
-                    const required = f.requiredAds || 5;
-                    const watched = parseInt(localStorage.getItem(`adCount_${f.id}`) || 0);
+                allFiles.forEach(file => {
+                    const required = file.requiredAds || 5;
+                    const watched = parseInt(localStorage.getItem(`ad_${file.id}`) || '0');
                     const unlocked = watched >= required;
                     
                     const card = document.createElement('div');
-                    card.className = 'file-card glass rounded-xl overflow-hidden border border-pink-500/20';
+                    card.className = 'glass rounded-xl overflow-hidden';
                     card.innerHTML = `
-                        <div class="relative aspect-[4/5]">
-                            <img src="${f.thumbnailUrl}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/1a1a2e/ec4899?text=Premium'">
-                            <div class="absolute top-2 right-2" id="badge-${f.id}">
+                        <div class="relative aspect-[3/4]">
+                            <img src="${file.thumbnailUrl}" class="w-full h-full object-cover" 
+                                 onerror="this.src='https://placehold.co/400x600/1a1a2e/ec4899?text=Premium'">
+                            <div class="absolute top-2 right-2" id="badge-${file.id}">
                                 ${!unlocked ? `
-                                    <span class="bg-black/70 px-2 py-1 rounded-lg text-xs border border-pink-500/40 text-pink-300">
+                                    <span class="bg-black/70 px-2 py-1 rounded-lg text-xs border border-pink-500/40">
                                         <i class="fas fa-lock mr-1"></i><span class="ad-count">${watched}/${required}</span>
                                     </span>
                                 ` : `
@@ -232,61 +241,63 @@
                                 `}
                             </div>
                             <div class="absolute top-2 left-2">
-                                <span class="bg-gradient-to-r from-pink-500/90 to-purple-600/90 px-2 py-1 rounded-lg text-[10px]">
+                                <span class="bg-pink-500/90 px-2 py-1 rounded-lg text-[10px]">
                                     <i class="fas fa-crown mr-1"></i>PREMIUM
                                 </span>
                             </div>
-                            <div class="absolute bottom-0 left-0 right-0 p-3">
-                                <h3 class="font-bold text-sm text-white">${f.title}</h3>
+                            <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black">
+                                <h3 class="font-bold text-sm">${file.title}</h3>
                             </div>
                         </div>
                         <div class="p-3">
-                            <p class="text-gray-400 text-xs mb-3">${f.description}</p>
-                            <div id="btn-container-${f.id}">
+                            <p class="text-gray-400 text-xs mb-3 line-clamp-2">${file.description}</p>
+                            <div id="btn-${file.id}">
                                 ${!unlocked ? `
-                                    <button data-file-id="${f.id}" data-required="${required}" 
+                                    <button data-file-id="${file.id}" data-required="${required}" 
                                             class="unlock-btn w-full py-2.5 rounded-lg text-white text-sm gradient-premium">
                                         <i class="fas fa-play-circle mr-2"></i>
                                         <span class="btn-text">Watch Ad (${watched}/${required})</span>
                                     </button>
                                 ` : `
-                                    <button data-file-url="${f.downloadUrl}" 
-                                            class="open-btn w-full py-2.5 rounded-lg text-white text-sm gradient-unlocked">
+                                    <button onclick="window.open('${file.downloadUrl}', '_blank')" 
+                                            class="w-full py-2.5 rounded-lg text-white text-sm gradient-unlocked">
                                         <i class="fas fa-unlock mr-2"></i>Access Now
                                     </button>
                                 `}
                             </div>
                         </div>
                     `;
-                    filesGrid.appendChild(card);
+                    contentGrid.appendChild(card);
                 });
-            } catch (e) {
-                console.error("Load error:", e);
+                
+                // Add click listeners
+                document.querySelectorAll('.unlock-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        if (btn.disabled) return;
+                        
+                        btn.disabled = true;
+                        const fileId = btn.dataset.fileId;
+                        const required = parseInt(btn.dataset.required);
+                        
+                        startAdCountdown(fileId, required);
+                    });
+                });
+                
+            } catch (error) {
+                console.error('Error loading:', error);
+                contentGrid.innerHTML = '<div class="col-span-full text-center py-8 text-red-400">Failed to load content</div>';
             }
         }
 
-        // Handle clicks
-        filesGrid.addEventListener('click', (e) => {
-            const unlockBtn = e.target.closest('.unlock-btn');
-            const openBtn = e.target.closest('.open-btn');
-            
-            if (unlockBtn && !unlockBtn.disabled) {
-                unlockBtn.disabled = true;
-                showAdAndCountdown(unlockBtn, unlockBtn.dataset.fileId, parseInt(unlockBtn.dataset.required));
-            } else if (openBtn) {
-                window.open(openBtn.dataset.fileUrl, '_blank');
-            }
-        });
+        // Load Adsgram
+        const script = document.createElement('script');
+        script.src = 'https://sad.adsgram.ai/js/sad.min.js';
+        script.onload = () => console.log('Adsgram loaded');
+        document.head.appendChild(script);
 
-        // Initialize
+        // Start
         loadFiles();
-        
-        // Load Adsgram (optional)
-        if (typeof window.Adsgram === 'undefined') {
-            const script = document.createElement('script');
-            script.src = 'https://sad.adsgram.ai/js/sad.min.js';
-            document.head.appendChild(script);
-        }
     </script>
 </body>
 </html>
