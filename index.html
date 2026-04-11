@@ -19,6 +19,8 @@
         .slider-dots { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
         .slider-dot { width: 10px; height: 10px; border-radius: 50%; background-color: rgba(255, 255, 255, 0.5); cursor: pointer; transition: background-color 0.3s; }
         .slider-dot.active { background-color: white; }
+        body { scrollbar-width: none; }
+        body::-webkit-scrollbar { display: none; }
         
         @keyframes shimmer {
             0% { background-position: -200% 0; }
@@ -29,45 +31,15 @@
             background-size: 200% 100%;
             animation: shimmer 1.5s infinite;
         }
-        
-        .ad-popup {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.9);
-            z-index: 1000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-        }
-        .ad-popup.show { display: flex; }
-        .ad-box {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            max-width: 350px;
-            width: 90%;
-            text-align: center;
-        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans">
 
-    <div id="adPopup" class="ad-popup">
-        <div class="ad-box">
-            <i class="fas fa-ad text-5xl text-blue-500 mb-4"></i>
-            <h3 class="text-xl font-bold mb-2">Advertisement</h3>
-            <p class="text-gray-500 text-sm mb-4">Please wait...</p>
-            <div id="adTimer" class="text-5xl font-bold text-blue-600 my-4">5</div>
-            <button id="skipAdBtn" class="w-full py-2 bg-gray-200 rounded-lg text-gray-700 hover:bg-gray-300 transition">
-                Skip Ad
-            </button>
-        </div>
-    </div>
-
     <div id="app" class="container mx-auto p-4 max-w-7xl">
+        <!-- Header -->
         <header class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-xl shadow-lg mb-8 fade-in">
             <h1 class="text-4xl font-extrabold text-center mb-4">Webapp Sikho</h1>
-            <p class="text-center text-lg text-blue-100 mb-6">Watch Ad, Get Your File!</p>
+            <p class="text-center text-lg text-blue-100 mb-6">Click Access Now - File Opens Instantly!</p>
             <div class="max-w-2xl mx-auto">
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -78,6 +50,7 @@
             </div>
         </header>
 
+        <!-- Image Slider -->
         <div id="slider" class="slider-container w-full h-48 md:h-80 bg-gray-300 rounded-xl shadow-lg mb-10 slide-up animation-delay-200">
             <div id="slider-wrapper" class="slider-wrapper h-full">
                 <div class="slider-item skeleton w-full h-full"></div>
@@ -85,6 +58,7 @@
             <div id="slider-dots" class="slider-dots"></div>
         </div>
 
+        <!-- Files Section -->
         <div class="slide-up animation-delay-400">
             <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-4 border-blue-500 pb-2">Available Files</h2>
             <div id="files-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -100,10 +74,19 @@
         </div>
     </div>
 
+    <!-- Toast -->
     <div id="toast" class="fixed bottom-5 right-5 bg-gray-900 text-white py-3 px-5 rounded-lg shadow-2xl opacity-0 transform translate-y-10 transition-all duration-500 z-50">
         <p id="toast-message"></p>
     </div>
 
+    <!-- Footer -->
+    <footer class="bg-gray-100 py-6 mt-10">
+        <div class="container mx-auto px-4">
+            <p class="text-center text-gray-600">&copy; 2025 Webapp Sikho. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Adsgram SDK -->
     <script async src="https://sad.adsgram.ai/js/sad.min.js"></script>
 
     <script type="module">
@@ -127,16 +110,11 @@
         const filesGrid = document.getElementById('files-grid');
         const searchInput = document.getElementById('searchInput');
         const noResultsMessage = document.getElementById('no-results');
-        const adPopup = document.getElementById('adPopup');
-        const adTimer = document.getElementById('adTimer');
-        const skipAdBtn = document.getElementById('skipAdBtn');
 
         let sliderInterval;
         let currentSlide = 0;
         let AdController = null;
         let allFiles = [];
-        let pendingUrl = null;
-        let countdownInterval = null;
 
         function showToast(message) {
             const toast = document.getElementById('toast');
@@ -145,109 +123,36 @@
             setTimeout(() => toast.classList.add('opacity-0', 'translate-y-10'), 2000);
         }
 
+        // Initialize Adsgram
         function initAdsgram() {
             if (typeof window.Adsgram !== 'undefined') {
                 AdController = window.Adsgram.init({ blockId: "21145" });
                 console.log("✅ Adsgram ready");
-            }
-        }
-
-        // 🔥 FIXED: Open file - guaranteed to work
-        function openFile(url) {
-            console.log('🔗 Opening URL:', url);
-            if (!url) {
-                console.error('❌ No URL provided!');
-                showToast('Error: No file URL');
-                return;
-            }
-            
-            showToast('📥 Opening file...');
-            
-            // Try multiple methods to open
-            try {
-                // Method 1: window.open
-                const newWindow = window.open(url, '_blank');
-                
-                // Method 2: If blocked, use anchor tag
-                if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-                    console.log('⚠️ Popup blocked, using anchor fallback');
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.target = '_blank';
-                    a.rel = 'noopener noreferrer';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                }
-            } catch (e) {
-                console.error('❌ Error opening file:', e);
-                // Method 3: Direct location
-                window.location.href = url;
-            }
-        }
-
-        // 🔥 FIXED: Finish and open - with state check
-        function finishAndOpen() {
-            console.log('🏁 finishAndOpen called, pendingUrl:', pendingUrl);
-            
-            // Clear timer
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-            }
-            
-            // Hide popup
-            adPopup.classList.remove('show');
-            
-            // Open file if URL exists
-            if (pendingUrl) {
-                const urlToOpen = pendingUrl;
-                pendingUrl = null; // Clear before opening
-                openFile(urlToOpen);
             } else {
-                console.error('❌ No pending URL to open!');
-                showToast('Error: No file to open');
+                setTimeout(initAdsgram, 500);
             }
         }
 
-        function showAdPopup(url) {
-            console.log('📢 Showing ad popup for:', url);
-            pendingUrl = url;
-            
-            // Show popup
-            adPopup.classList.add('show');
-            
-            // Try to show Adsgram ad
+        // 🔥 Show ad (doesn't block anything)
+        function showAd() {
             if (AdController) {
-                AdController.show().catch(err => console.log('Ad error (ignored):', err));
+                AdController.show().catch(err => console.log('Ad error:', err));
             }
-            
-            // Reset and start countdown
-            let seconds = 5;
-            adTimer.textContent = seconds;
-            
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-            }
-            
-            countdownInterval = setInterval(() => {
-                seconds--;
-                adTimer.textContent = seconds;
-                console.log('⏰ Countdown:', seconds);
-                
-                if (seconds <= 0) {
-                    console.log('✅ Countdown finished, opening file');
-                    finishAndOpen();
-                }
-            }, 1000);
         }
 
-        // Skip button
-        skipAdBtn.addEventListener('click', () => {
-            console.log('⏭️ Skip button clicked');
-            finishAndOpen();
-        });
+        // 🔥 Open file FIRST, then show ad
+        function openFileAndShowAd(url) {
+            // Open file immediately
+            showToast('📥 Opening file...');
+            window.open(url, '_blank');
+            
+            // Show ad after a tiny delay (so file opens first)
+            setTimeout(() => {
+                showAd();
+            }, 100);
+        }
 
+        // Load all data
         async function loadAllData() {
             try {
                 const [slidersSnap, filesSnap] = await Promise.all([
@@ -297,11 +202,7 @@
                 return;
             }
             
-            filesSnapshot.forEach(doc => {
-                const data = doc.data();
-                console.log('📁 File loaded:', data.title, data.downloadUrl);
-                allFiles.push({ id: doc.id, ...data });
-            });
+            filesSnapshot.forEach(doc => allFiles.push({ id: doc.id, ...doc.data() }));
             
             allFiles.forEach(file => {
                 const card = document.createElement('div');
@@ -316,7 +217,7 @@
                         <p class="text-gray-600 text-sm mt-1 h-10 overflow-hidden">${file.description || ''}</p>
                         <div class="mt-3">
                             <button data-url="${file.downloadUrl}" class="access-btn w-full py-2.5 px-4 rounded-lg text-white font-semibold bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 flex items-center justify-center gap-2">
-                                <i class="fas fa-play-circle"></i>
+                                <i class="fas fa-download"></i>
                                 <span>Access Now</span>
                             </button>
                         </div>
@@ -359,16 +260,16 @@
                 }
             });
             
-            noResultsMessage.style.display = visible === 0 ? 'block' : 'none';
+            noResultsMessage.classList.toggle('hidden', visible > 0);
         }
 
-        // Handle click
+        // 🔥 Handle click - OPEN FIRST, then ad
         filesGrid.addEventListener('click', (e) => {
             const accessBtn = e.target.closest('.access-btn');
             if (accessBtn) {
+                e.preventDefault();
                 const url = accessBtn.dataset.url;
-                console.log('🖱️ Access button clicked, URL:', url);
-                showAdPopup(url);
+                openFileAndShowAd(url);
             }
         });
 
@@ -376,10 +277,7 @@
 
         // Start
         loadAllData();
-        setTimeout(initAdsgram, 1000);
-        
-        // Debug: Check if Firebase data has downloadUrl
-        console.log('🔥 App started. Check console for logs.');
+        initAdsgram();
     </script>
 </body>
 </html>
