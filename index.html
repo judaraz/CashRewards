@@ -32,7 +32,7 @@
             animation: shimmer 1.5s infinite;
         }
         
-        /* Ad Overlay - Full screen */
+        /* Ad Overlay */
         .ad-overlay {
             position: fixed;
             top: 0;
@@ -46,9 +46,7 @@
             justify-content: center;
             backdrop-filter: blur(8px);
         }
-        .ad-overlay.show {
-            display: flex;
-        }
+        .ad-overlay.show { display: flex; }
         .ad-container {
             background: white;
             border-radius: 24px;
@@ -68,12 +66,23 @@
             background-clip: text;
             margin: 20px 0;
         }
-        .pulse {
-            animation: pulse 2s infinite;
+        
+        /* Cooldown overlay on card */
+        .cooldown-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            backdrop-filter: blur(2px);
         }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .file-card {
+            position: relative;
         }
     </style>
 </head>
@@ -88,20 +97,16 @@
             <h3 class="text-2xl font-bold text-gray-800 mb-2">Advertisement</h3>
             <p class="text-gray-500 mb-4">Your file is opening in a new tab</p>
             <div id="adTimer" class="ad-timer">5</div>
-            <p class="text-sm text-gray-400">Please wait while we show this ad</p>
+            <p class="text-sm text-gray-400">Please wait...</p>
             <div class="mt-6">
                 <div class="w-full bg-gray-200 rounded-full h-2">
                     <div id="adProgress" class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-1000" style="width: 0%"></div>
                 </div>
             </div>
-            <button id="closeAdBtn" class="mt-6 text-sm text-gray-400 hover:text-gray-600 transition">
-                Close Ad
-            </button>
         </div>
     </div>
 
     <div id="app" class="container mx-auto p-4 max-w-7xl">
-        <!-- Header -->
         <header class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-xl shadow-lg mb-8 fade-in">
             <h1 class="text-4xl font-extrabold text-center mb-4">Webapp Sikho</h1>
             <p class="text-center text-lg text-blue-100 mb-6">Click Access Now - File Opens + Ad Shows</p>
@@ -115,7 +120,6 @@
             </div>
         </header>
 
-        <!-- Image Slider -->
         <div id="slider" class="slider-container w-full h-48 md:h-80 bg-gray-300 rounded-xl shadow-lg mb-10 slide-up animation-delay-200">
             <div id="slider-wrapper" class="slider-wrapper h-full">
                 <div class="slider-item skeleton w-full h-full"></div>
@@ -123,7 +127,6 @@
             <div id="slider-dots" class="slider-dots"></div>
         </div>
 
-        <!-- Files Section -->
         <div class="slide-up animation-delay-400">
             <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-4 border-blue-500 pb-2">Available Files</h2>
             <div id="files-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -139,12 +142,10 @@
         </div>
     </div>
 
-    <!-- Toast -->
     <div id="toast" class="fixed bottom-5 right-5 bg-gray-900 text-white py-3 px-5 rounded-lg shadow-2xl opacity-0 transform translate-y-10 transition-all duration-500 z-50">
         <p id="toast-message"></p>
     </div>
 
-    <!-- Footer -->
     <footer class="bg-gray-100 py-6 mt-10">
         <div class="container mx-auto px-4">
             <p class="text-center text-gray-600">&copy; 2025 Webapp Sikho. All rights reserved.</p>
@@ -156,7 +157,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBtqQvDCgqy5Tp01yajerWRSMfW6MKx-Gc",
@@ -178,14 +179,17 @@
         const adOverlay = document.getElementById('adOverlay');
         const adTimer = document.getElementById('adTimer');
         const adProgress = document.getElementById('adProgress');
-        const closeAdBtn = document.getElementById('closeAdBtn');
 
         let sliderInterval;
         let currentSlide = 0;
         let AdController = null;
         let allFiles = [];
         let countdownInterval = null;
-        let adSeconds = 5;
+        let waitTime = 10; // Default from admin settings
+        let adCounter = 0; // For alternating ads
+        
+        // Cooldown tracking per file
+        const fileCooldowns = new Map();
 
         function showToast(message) {
             const toast = document.getElementById('toast');
@@ -197,25 +201,37 @@
         // Initialize Adsgram
         function initAdsgram() {
             if (typeof window.Adsgram !== 'undefined') {
-                AdController = window.Adsgram.init({ blockId: "21145" });
-                console.log("✅ Adsgram ready");
+                // Use block ID from admin panel: int-21144
+                AdController = window.Adsgram.init({ blockId: "int-21144" });
+                console.log("✅ Adsgram ready with block ID: int-21144");
             } else {
                 setTimeout(initAdsgram, 500);
             }
         }
 
-        // 🔥 Show Ad Overlay
-        function showAdOverlay() {
+        // 🔥 Show Ad - Alternates between interstitial and reward
+        function showAd() {
+            if (!AdController) return;
+            
+            adCounter++;
+            
+            // Alternate between ad types
+            if (adCounter % 2 === 1) {
+                // Show interstitial
+                AdController.show({ type: 'interstitial' }).catch(err => console.log('Interstitial ad error:', err));
+            } else {
+                // Show reward
+                AdController.show({ type: 'reward' }).catch(err => console.log('Reward ad error:', err));
+            }
+        }
+
+        // 🔥 Show Ad Overlay with countdown
+        function showAdOverlay(duration) {
             adOverlay.classList.add('show');
             
-            let seconds = adSeconds;
+            let seconds = duration;
             adTimer.textContent = seconds;
             adProgress.style.width = '0%';
-            
-            // Try to show Adsgram ad
-            if (AdController) {
-                AdController.show().catch(err => console.log('Ad error:', err));
-            }
             
             if (countdownInterval) {
                 clearInterval(countdownInterval);
@@ -225,7 +241,7 @@
                 seconds--;
                 adTimer.textContent = seconds;
                 
-                const progress = ((adSeconds - seconds) / adSeconds) * 100;
+                const progress = ((duration - seconds) / duration) * 100;
                 adProgress.style.width = progress + '%';
                 
                 if (seconds <= 0) {
@@ -236,33 +252,99 @@
             }, 1000);
         }
 
-        // 🔥 Hide Ad Overlay
-        function hideAdOverlay() {
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-            }
-            adOverlay.classList.remove('show');
+        // 🔥 Start cooldown for a file
+        function startCooldown(fileId, card, button, duration) {
+            const cooldownKey = `${fileId}_cooldown`;
+            const endTime = Date.now() + (duration * 1000);
+            localStorage.setItem(cooldownKey, endTime);
+            
+            // Disable button
+            button.disabled = true;
+            
+            // Show cooldown overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'cooldown-overlay';
+            overlay.id = `cooldown-${fileId}`;
+            
+            const timerSpan = document.createElement('span');
+            timerSpan.className = 'text-white text-2xl font-bold bg-black/50 px-4 py-2 rounded-full';
+            timerSpan.id = `cooldown-timer-${fileId}`;
+            overlay.appendChild(timerSpan);
+            
+            card.style.position = 'relative';
+            card.appendChild(overlay);
+            
+            // Update timer
+            const updateCooldown = () => {
+                const remaining = Math.ceil((endTime - Date.now()) / 1000);
+                if (remaining <= 0) {
+                    // Cooldown finished
+                    const oldOverlay = document.getElementById(`cooldown-${fileId}`);
+                    if (oldOverlay) oldOverlay.remove();
+                    button.disabled = false;
+                    fileCooldowns.delete(fileId);
+                    localStorage.removeItem(cooldownKey);
+                } else {
+                    timerSpan.textContent = remaining + 's';
+                    fileCooldowns.set(fileId, setTimeout(updateCooldown, 100));
+                }
+            };
+            
+            updateCooldown();
         }
 
-        // 🔥 Open file FIRST, then show ad overlay
-        function openFileAndShowAd(url) {
-            // Open file immediately in new tab
+        // 🔥 Check if file is on cooldown
+        function isFileOnCooldown(fileId) {
+            const cooldownKey = `${fileId}_cooldown`;
+            const endTime = localStorage.getItem(cooldownKey);
+            if (endTime && parseInt(endTime) > Date.now()) {
+                return true;
+            }
+            return false;
+        }
+
+        // 🔥 Open file + show ad + start cooldown
+        async function handleAccessClick(fileId, url, button, card) {
+            if (button.disabled) return;
+            
+            // Check cooldown
+            if (isFileOnCooldown(fileId)) {
+                showToast('⏳ Please wait for cooldown to finish');
+                return;
+            }
+            
+            // Open file immediately
             showToast('📥 Opening file...');
             window.open(url, '_blank');
             
-            // Show ad overlay
-            showAdOverlay();
+            // Show ad (Adsgram interstitial/reward)
+            showAd();
+            
+            // Show ad overlay with wait time
+            showAdOverlay(waitTime);
+            
+            // Start cooldown
+            startCooldown(fileId, card, button, waitTime);
         }
 
-        // Close ad button
-        closeAdBtn.addEventListener('click', () => {
-            hideAdOverlay();
-        });
+        // Load wait time from admin settings
+        async function loadSettings() {
+            try {
+                const docSnap = await getDoc(doc(db, "settings", "general"));
+                if (docSnap.exists()) {
+                    waitTime = docSnap.data().timerDuration || 10;
+                    console.log(`⏱️ Wait time loaded: ${waitTime}s`);
+                }
+            } catch (error) {
+                console.error("Error loading settings:", error);
+            }
+        }
 
         // Load all data
         async function loadAllData() {
             try {
+                await loadSettings();
+                
                 const [slidersSnap, filesSnap] = await Promise.all([
                     getDocs(query(collection(db, "sliders"), orderBy("createdAt", "desc"), limit(10))),
                     getDocs(query(collection(db, "files"), orderBy("createdAt", "desc"), limit(50)))
@@ -317,6 +399,9 @@
                 card.className = 'file-card bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow';
                 card.dataset.title = file.title.toLowerCase();
                 card.dataset.description = (file.description || '').toLowerCase();
+                card.id = `card-${file.id}`;
+                
+                const isOnCooldown = isFileOnCooldown(file.id);
                 
                 card.innerHTML = `
                     <img src="${file.thumbnailUrl}" alt="${file.title}" class="w-full aspect-video object-cover" onerror="this.src='https://placehold.co/400x225'">
@@ -324,14 +409,20 @@
                         <h3 class="text-lg font-bold text-gray-900 truncate">${file.title}</h3>
                         <p class="text-gray-600 text-sm mt-1 h-10 overflow-hidden">${file.description || ''}</p>
                         <div class="mt-3">
-                            <button data-url="${file.downloadUrl}" class="access-btn w-full py-2.5 px-4 rounded-lg text-white font-semibold bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 flex items-center justify-center gap-2">
+                            <button data-file-id="${file.id}" data-url="${file.downloadUrl}" class="access-btn w-full py-2.5 px-4 rounded-lg text-white font-semibold bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 flex items-center justify-center gap-2" ${isOnCooldown ? 'disabled' : ''}>
                                 <i class="fas fa-download"></i>
-                                <span>Access Now</span>
+                                <span>${isOnCooldown ? 'Wait...' : 'Access Now'}</span>
                             </button>
                         </div>
                     </div>
                 `;
                 filesGrid.appendChild(card);
+                
+                // If on cooldown, restore the overlay
+                if (isOnCooldown) {
+                    const button = card.querySelector('.access-btn');
+                    startCooldown(file.id, card, button, waitTime);
+                }
             });
         }
 
@@ -371,13 +462,16 @@
             noResultsMessage.classList.toggle('hidden', visible > 0);
         }
 
-        // Handle click - Open file + Show ad overlay
+        // Handle click
         filesGrid.addEventListener('click', (e) => {
             const accessBtn = e.target.closest('.access-btn');
-            if (accessBtn) {
+            if (accessBtn && !accessBtn.disabled) {
                 e.preventDefault();
+                const fileId = accessBtn.dataset.fileId;
                 const url = accessBtn.dataset.url;
-                openFileAndShowAd(url);
+                const card = accessBtn.closest('.file-card');
+                
+                handleAccessClick(fileId, url, accessBtn, card);
             }
         });
 
