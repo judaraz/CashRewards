@@ -5,19 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
-    <title>Webapp Sikho • File Downloader</title>
+    <title>File Downloader • Free Downloads</title>
 
-    <!-- Tailwind CSS -->
+    <!-- Load critical CSS first -->
+    <style>
+        /* Critical CSS to prevent white screen */
+        body {
+            background: #f9fafb;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            color: #1f2937;
+        }
+        
+        #app {
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        
+        .loading-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(59, 130, 246, 0.2);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+    
+    <!-- Load Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Font Awesome -->
+    <!-- Load Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <!-- AdsGram SDK -->
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
         
         * {
             font-family: 'Inter', sans-serif;
@@ -25,7 +63,6 @@
         
         body {
             scrollbar-width: none;
-            background: #f9fafb;
         }
         
         body::-webkit-scrollbar {
@@ -38,14 +75,25 @@
         }
         
         @keyframes slideUp { 
-            from { opacity: 0; transform: translateY(20px); } 
+            from { opacity: 0; transform: translateY(30px); } 
             to { opacity: 1; transform: translateY(0); } 
         }
         
-        .fade-in { animation: fadeIn 0.8s ease-out forwards; }
-        .slide-up { animation: slideUp 0.6s ease-out forwards; opacity: 0; }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), 0 0 40px rgba(147, 51, 234, 0.1); }
+            50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.5), 0 0 60px rgba(147, 51, 234, 0.2); }
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        .fade-in { animation: fadeIn 1s ease-out forwards; }
+        .slide-up { animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
         .animation-delay-200 { animation-delay: 0.2s; }
         .animation-delay-400 { animation-delay: 0.4s; }
+        .animation-delay-600 { animation-delay: 0.6s; }
         
         .slider-container { 
             position: relative; 
@@ -56,7 +104,7 @@
         
         .slider-wrapper { 
             display: flex; 
-            transition: transform 0.5s ease-in-out; 
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); 
         }
         
         .slider-item { 
@@ -77,28 +125,55 @@
         .slider-dot { 
             width: 8px; 
             height: 8px; 
-            border-radius: 50%; 
+            border-radius: 4px; 
             background: rgba(255, 255, 255, 0.6);
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
             cursor: pointer; 
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .slider-dot.active { 
             width: 24px;
-            border-radius: 4px;
+            background: linear-gradient(90deg, #3b82f6, #9333ea);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+        
+        .glass-card {
             background: white;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+        }
+        
+        .glass-header {
+            background: linear-gradient(135deg, #3b82f6, #9333ea);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .premium-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #9333ea 50%, #3b82f6 100%);
+            background-size: 200% 200%;
+            animation: gradient-shift 3s ease infinite;
+        }
+        
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
         
         .card-hover {
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .card-hover:hover {
-            transform: translateY(-4px);
+            transform: translateY(-6px);
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+        
+        .skeleton {
+            background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
         }
         
         .access-btn {
@@ -109,10 +184,44 @@
         }
         
         .access-btn:disabled {
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: not-allowed;
         }
         
+        .badge-premium {
+            background: linear-gradient(135deg, #3b82f6, #9333ea);
+            clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);
+        }
+        
+        .badge-hot {
+            background: linear-gradient(90deg, #ef4444, #f97316);
+            animation: pulse-glow 2s infinite;
+        }
+        
+        .search-input {
+            background: white;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        
+        .search-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+        }
+        
+        .toast-sexy {
+            background: #1f2937;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        .glow-text {
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+        
+        .overlay-gradient {
+            background: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 100%);
+        }
+
         .timer-badge {
             background: linear-gradient(135deg, #3b82f6, #9333ea);
             color: white;
@@ -120,24 +229,15 @@
             padding: 0.2rem 0.5rem;
             border-radius: 9999px;
             margin-left: 0.5rem;
-            font-weight: 500;
-        }
-        
-        .banner-ad {
-            min-height: 50px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: transparent;
         }
 
-        /* Popup styles */
+        /* POPUP STYLES */
         .popup-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -155,6 +255,7 @@
         
         .popup-card {
             background: white;
+            border: 1px solid rgba(59, 130, 246, 0.2);
             border-radius: 20px;
             width: 100%;
             max-width: 420px;
@@ -188,6 +289,7 @@
             width: 36px; height: 36px;
             border-radius: 50%;
             background: #f3f4f6;
+            border: 1px solid #e5e7eb;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -199,6 +301,7 @@
         .popup-close:hover {
             background: #e5e7eb;
             color: #374151;
+            border-color: #3b82f6;
         }
         
         .link-preview-box {
@@ -238,68 +341,136 @@
         
         .btn-copy {
             background: #f3f4f6;
+            border: 1px solid #e5e7eb;
             color: #374151;
         }
         
         .btn-copy:hover {
             background: #e5e7eb;
+            border-color: #3b82f6;
         }
         
         .btn-open {
             background: linear-gradient(135deg, #3b82f6, #9333ea);
             color: white;
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
         }
         
         .btn-open:hover {
             filter: brightness(1.1);
+            transform: scale(1.02);
         }
     </style>
 </head>
 <body class="text-gray-800">
 
-    <div id="app" class="container mx-auto p-4 max-w-7xl">
+    <!-- Loading indicator that shows immediately -->
+    <div id="initialLoading" class="loading-indicator">
+        <div class="spinner"></div>
+    </div>
+
+    <div id="app" class="container mx-auto p-4 md:p-6 max-w-7xl" style="display: none;">
         <!-- Header -->
-        <header class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-xl shadow-lg mb-8 fade-in">
-            <h1 class="text-4xl font-extrabold text-center mb-4">Webapp Sikho</h1>
-            <p class="text-center text-lg text-blue-100 mb-6">Watch Ads, Unlock, and Download Files for Free!</p>
-            <div class="max-w-2xl mx-auto">
+        <header class="relative glass-header p-6 md:p-8 rounded-2xl shadow-2xl mb-8 fade-in text-white">
+            <div class="absolute top-0 right-0 p-4">
+                <div class="badge-hot px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider">
+                    <i class="fas fa-download mr-2"></i>FREE DOWNLOADS
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-12 h-12 md:w-16 md:h-16 rounded-2xl premium-gradient flex items-center justify-center">
+                    <i class="fas fa-cloud-download-alt text-white text-xl md:text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-4xl md:text-5xl font-black">
+                        <span class="text-white glow-text">
+                            File Downloader
+                        </span>
+                    </h1>
+                    <p class="text-blue-100 text-sm md:text-base flex items-center gap-2">
+                        <i class="fas fa-lock text-white text-xs"></i>
+                        <span>Watch Ads • Unlock • Download Free</span>
+                    </p>
+                </div>
+            </div>
+            
+            <p class="text-blue-50 text-base md:text-lg mb-6 max-w-2xl">
+                <i class="fas fa-play-circle text-white mr-2"></i>
+                Watch short ads to unlock your downloads • Files ready instantly
+            </p>
+            
+            <div class="max-w-2xl">
                 <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-search text-gray-400"></i>
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-blue-400"></i>
                     </div>
-                    <input type="text" id="searchInput" placeholder="Search for files..." class="w-full p-3 pl-10 rounded-full bg-white text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-shadow duration-300">
+                    <input type="text" id="searchInput" 
+                           placeholder="Search files..." 
+                           class="search-input w-full p-4 pl-12 pr-20 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none text-base">
+                    <div class="absolute inset-y-0 right-2 flex items-center">
+                        <span class="text-xs text-gray-500 px-3 py-1.5 bg-gray-100 rounded-xl">
+                            <i class="fas fa-keyboard mr-1"></i>Search
+                        </span>
+                    </div>
                 </div>
             </div>
         </header>
 
-        <!-- Banner Ad Slot 1 -->
-        <div id="ad-container-1" class="banner-ad my-6"></div>
-
-        <!-- Image Slider -->
-        <div class="slide-up animation-delay-200">
-            <div id="slider" class="slider-container w-full h-48 md:h-80 bg-gray-200 mb-10">
-                <div id="slider-wrapper" class="slider-wrapper h-full"></div>
+        <!-- Slider Section -->
+        <div class="mb-10 slide-up animation-delay-200">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-1.5 h-6 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
+                <h2 class="text-xl font-bold text-gray-800">
+                    <i class="fas fa-star text-blue-500 mr-2"></i>
+                    Featured Files
+                </h2>
+            </div>
+            
+            <div id="slider" class="slider-container w-full h-52 md:h-96 bg-gray-200">
+                <div id="slider-wrapper" class="slider-wrapper h-full">
+                    <div class="slider-item skeleton w-full h-full"></div>
+                </div>
                 <div id="slider-dots" class="slider-dots"></div>
+                <div class="absolute top-4 left-4 z-10">
+                    <span class="badge-premium px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white">
+                        <i class="fas fa-fire mr-1"></i> HOT
+                    </span>
+                </div>
+                <div class="absolute inset-0 overlay-gradient pointer-events-none"></div>
             </div>
         </div>
 
-        <!-- Banner Ad Slot 2 -->
-        <div id="ad-container-2" class="banner-ad my-6"></div>
-
-        <!-- Files Section -->
+        <!-- Files Grid -->
         <div class="slide-up animation-delay-400">
-            <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-4 border-blue-500 pb-2">Available Files</h2>
-            <div id="files-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                <!-- File cards will be injected here -->
+            <div class="flex items-center justify-between mb-5">
+                <div class="flex items-center gap-3">
+                    <div class="w-1.5 h-6 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
+                    <h2 class="text-2xl font-black text-gray-800">
+                        <i class="fas fa-folder-open text-blue-500 mr-2"></i>
+                        Available Files
+                    </h2>
+                </div>
+                <span class="text-xs text-gray-500 px-3 py-1.5 glass-card rounded-full border border-gray-200">
+                    <i class="fas fa-lock mr-1"></i>Unlock with ads
+                </span>
             </div>
-            <div id="no-results" class="hidden text-center py-12">
-                <i class="fas fa-file-excel text-5xl text-gray-400 mb-4"></i>
-                <p class="text-xl text-gray-600">No files found matching your search.</p>
+            
+            <div id="files-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                <!-- Content will be loaded here -->
+            </div>
+            
+            <div id="no-results" class="hidden text-center py-16">
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl glass-card border border-gray-200 mb-4">
+                    <i class="fas fa-search text-3xl text-gray-400"></i>
+                </div>
+                <p class="text-xl text-gray-500 font-semibold">No files found</p>
+                <p class="text-sm text-gray-400 mt-2">Try searching for something else</p>
             </div>
         </div>
     </div>
 
-    <!-- Link Popup -->
+    <!-- Popup -->
     <div id="linkPopup" class="popup-overlay">
         <div class="popup-card">
             <div class="popup-header">
@@ -322,26 +493,51 @@
         </div>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-5 right-5 bg-gray-900 text-white py-3 px-5 rounded-lg shadow-2xl opacity-0 transform translate-y-10 transition-all duration-500 z-50">
-        <p id="toast-message"></p>
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 toast-sexy py-4 px-6 rounded-xl opacity-0 transform translate-y-10 transition-all duration-500 z-50 text-white">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-check-circle text-blue-400 text-lg"></i>
+            <p id="toast-message" class="text-sm font-medium"></p>
+        </div>
     </div>
 
-    <!-- Footer with Banner Ad Slot 3 -->
-    <footer class="bg-gray-100 py-6 mt-10">
+    <!-- Footer -->
+    <footer class="mt-12 py-8 border-t border-gray-200">
         <div class="container mx-auto px-4">
-            <div id="ad-container-3" class="banner-ad my-4"></div>
-            <p class="text-center text-gray-600">&copy; 2025 Webapp Sikho. All rights reserved.</p>
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-cloud-download-alt text-blue-500"></i>
+                    <span class="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent font-bold">File Downloader</span>
+                </div>
+                <p class="text-gray-500 text-xs">
+                    © 2025 File Downloader • All Rights Reserved
+                </p>
+                <div class="flex gap-3">
+                    <i class="fas fa-shield-alt text-gray-400"></i>
+                    <i class="fas fa-lock text-gray-400"></i>
+                    <i class="fas fa-download text-gray-400"></i>
+                </div>
+            </div>
         </div>
     </footer>
 
-    <!-- Firebase -->
+    <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <script>
+        // Show app after a short delay to ensure everything is loaded
+        setTimeout(function() {
+            document.getElementById('initialLoading').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+        }, 500);
+
         // Main application code
         (function() {
+            // Check if we're in Telegram
+            const isTelegram = navigator.userAgent.includes('Telegram');
+            console.log('Running in Telegram:', isTelegram);
+            
             // Initialize Firebase
             const firebaseConfig = {
                 apiKey: "AIzaSyCPJR-Zkkkh4Y-aQQ8H1J7N2Edo0HWM14k",
@@ -362,7 +558,6 @@
             const searchInput = document.getElementById('searchInput');
             const noResultsMessage = document.getElementById('no-results');
 
-            // Popup elements
             const popupOverlay = document.getElementById('linkPopup');
             const popupLinkDisplay = document.getElementById('popupLinkDisplay');
             const closePopupBtn = document.getElementById('closePopupBtn');
@@ -370,26 +565,27 @@
             const openLinkBtn = document.getElementById('openLinkBtn');
 
             let currentPopupLink = '';
-            let currentFileId = '';
+            let currentFileId = ''; // Track current file ID for view counting
             let sliderInterval;
             let currentSlide = 0;
+            let AdController = null;
+            let allFiles = [];
             let timerDuration = 10;
             let unlockDuration = 10;
-            
-            // Adsgram controller
-            let AdController = null;
-            let adsgramReady = false;
             let isAdInProgress = false;
+            let currentProcessingButton = null;
             
             const unlockTimers = new Map();
-            const viewedFiles = new Set();
             const fileCooldowns = new Map();
+            
+            // Track viewed files to avoid double counting
+            const viewedFiles = new Set();
 
             function showToast(message) {
                 const toast = document.getElementById('toast');
                 document.getElementById('toast-message').textContent = message;
                 toast.classList.remove('opacity-0', 'translate-y-10');
-                setTimeout(() => {
+                setTimeout(function() {
                     toast.classList.add('opacity-0', 'translate-y-10');
                 }, 2000);
             }
@@ -410,7 +606,21 @@
                 }
             }
 
-            // Popup functions
+            // Track slider view in Firebase
+            async function trackSliderView(sliderId) {
+                if (!sliderId) return;
+                
+                try {
+                    const sliderRef = db.collection("sliders").doc(sliderId);
+                    await sliderRef.update({
+                        views: firebase.firestore.FieldValue.increment(1)
+                    });
+                    console.log(`✅ Slider view tracked: ${sliderId}`);
+                } catch (error) {
+                    console.error('Error tracking slider view:', error);
+                }
+            }
+
             function showLinkPopup(link, fileId) {
                 if (!link) return;
                 currentPopupLink = link;
@@ -418,6 +628,7 @@
                 popupLinkDisplay.textContent = link;
                 popupOverlay.classList.add('active');
                 
+                // Track file view when popup is shown
                 if (fileId) {
                     trackFileView(fileId);
                 }
@@ -430,9 +641,9 @@
 
             function copyToClipboard(text) {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(text).then(() => {
+                    navigator.clipboard.writeText(text).then(function() {
                         showToast('🔗 Link copied to clipboard');
-                    }).catch(() => {
+                    }).catch(function() {
                         fallbackCopy(text);
                     });
                 } else {
@@ -463,16 +674,20 @@
                     link = 'https://' + link;
                 }
                 
-                window.open(link, '_blank');
+                if (isTelegram) {
+                    window.location.href = link;
+                } else {
+                    window.open(link, '_blank');
+                }
             }
 
             // Popup event listeners
             closePopupBtn.addEventListener('click', hidePopup);
-            popupOverlay.addEventListener('click', (e) => {
+            popupOverlay.addEventListener('click', function(e) {
                 if (e.target === popupOverlay) hidePopup();
             });
             
-            copyLinkBtn.addEventListener('click', (e) => {
+            copyLinkBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 if (currentPopupLink) {
                     copyToClipboard(currentPopupLink);
@@ -480,7 +695,7 @@
                 }
             });
             
-            openLinkBtn.addEventListener('click', (e) => {
+            openLinkBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 if (currentPopupLink) {
                     openLinkInBrowser(currentPopupLink);
@@ -488,24 +703,16 @@
                 }
             });
 
-            // Initialize Adsgram with int-21144
+            // Initialize AdsGram with block ID 21144
             function initAdsGram() {
                 if (typeof window.Adsgram !== 'undefined') {
-                    try {
-                        AdController = window.Adsgram.init({ blockId: "int-21144" });
-                        console.log("✅ AdsGram initialized with blockId: int-21144");
-                        adsgramReady = true;
-                    } catch (e) {
-                        console.log("❌ AdsGram init failed:", e);
-                        adsgramReady = false;
-                    }
+                    AdController = window.Adsgram.init({ blockId: "21144" });
+                    console.log("✅ AdsGram initialized with blockId: 21144");
                 } else {
-                    console.log("⏳ AdsGram SDK not loaded, retrying...");
                     setTimeout(initAdsGram, 500);
                 }
             }
 
-            // Check if unlock is still valid
             function checkUnlockExpiry(fileId) {
                 const unlockData = JSON.parse(localStorage.getItem('unlock_' + fileId) || '{}');
                 if (unlockData.expiryTime && Date.now() > unlockData.expiryTime) {
@@ -516,14 +723,13 @@
                 return unlockData.expiryTime && Date.now() <= unlockData.expiryTime;
             }
 
-            // Start unlock timer display
             function startUnlockTimer(fileId, button) {
                 if (unlockTimers.has(fileId)) {
                     clearInterval(unlockTimers.get(fileId));
                     unlockTimers.delete(fileId);
                 }
                 
-                const timer = setInterval(() => {
+                const timer = setInterval(function() {
                     const unlockData = JSON.parse(localStorage.getItem('unlock_' + fileId) || '{}');
                     if (!unlockData.expiryTime || Date.now() > unlockData.expiryTime) {
                         clearInterval(timer);
@@ -541,14 +747,13 @@
                     
                     const existingBadge = button.querySelector('.timer-badge');
                     if (existingBadge) {
-                        existingBadge.textContent = `${minutes}m ${seconds}s`;
+                        existingBadge.textContent = minutes + 'm ' + seconds + 's';
                     }
                 }, 1000);
 
                 unlockTimers.set(fileId, timer);
             }
 
-            // Update button appearance based on unlock state
             function updateButtonState(button) {
                 const fileId = button.dataset.fileId;
                 const requiredCount = parseInt(button.dataset.requiredAds || 1);
@@ -556,22 +761,13 @@
                 const adCount = parseInt(localStorage.getItem('adCount_' + fileId) || 0);
                 
                 button.disabled = false;
-                const buttonTextEl = button.querySelector('span');
-                const buttonIconEl = button.querySelector('i');
                 
                 let existingBadge = button.querySelector('.timer-badge');
                 
-                const lockedClasses = ['bg-gradient-to-r', 'from-blue-500', 'to-purple-600', 'hover:from-blue-600', 'hover:to-purple-700'];
-                const unlockedClasses = ['bg-gradient-to-r', 'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700'];
-                
-                // Remove all gradient classes
-                button.classList.remove('bg-gradient-to-r', 'from-blue-500', 'to-purple-600', 'hover:from-blue-600', 'hover:to-purple-700',
-                                            'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700');
-                
                 if (isUnlocked) {
-                    buttonTextEl.textContent = 'Download Now';
-                    buttonIconEl.className = 'fas fa-download';
-                    button.classList.add('bg-gradient-to-r', 'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700');
+                    button.innerHTML = '<i class="fas fa-download"></i><span>Download</span>';
+                    button.classList.add('from-green-400', 'to-green-600');
+                    button.classList.remove('from-blue-500', 'to-purple-600');
                     
                     if (!existingBadge) {
                         existingBadge = document.createElement('span');
@@ -582,9 +778,9 @@
                     
                     startUnlockTimer(fileId, button);
                 } else {
-                    buttonTextEl.textContent = `Unlock (${adCount}/${requiredCount})`;
-                    buttonIconEl.className = 'fas fa-lock';
-                    button.classList.add('bg-gradient-to-r', 'from-blue-500', 'to-purple-600', 'hover:from-blue-600', 'hover:to-purple-700');
+                    button.innerHTML = '<i class="fas fa-lock"></i><span>Unlock (' + adCount + '/' + requiredCount + ')</span>';
+                    button.classList.add('from-blue-500', 'to-purple-600');
+                    button.classList.remove('from-green-400', 'to-green-600');
                     
                     if (existingBadge) {
                         existingBadge.style.display = 'none';
@@ -597,52 +793,15 @@
                 }
             }
 
-            // Show interstitial ad
-            function showInterstitialAd() {
-                return new Promise((resolve) => {
-                    if (!adsgramReady || !AdController) {
-                        console.log("⚠️ AdsGram not ready");
-                        resolve({ done: false });
-                        return;
-                    }
-                    
-                    const adTimeout = setTimeout(() => {
-                        console.log("⏱️ Ad timeout");
-                        resolve({ done: false });
-                    }, 5000);
-                    
-                    try {
-                        AdController.show()
-                            .then((result) => {
-                                clearTimeout(adTimeout);
-                                console.log("✅ Ad shown successfully");
-                                resolve({ done: true, ...result });
-                            })
-                            .catch((error) => {
-                                clearTimeout(adTimeout);
-                                console.log("❌ Ad failed:", error?.message || error);
-                                resolve({ done: false });
-                            });
-                    } catch (e) {
-                        clearTimeout(adTimeout);
-                        console.log("❌ Ad exception:", e);
-                        resolve({ done: false });
-                    }
-                });
-            }
-
-            // Start cooldown timer between ads
             function startCooldownTimer(button) {
                 const buttonTextEl = button.querySelector('span');
-                const originalIcon = button.querySelector('i').className;
                 let countdown = timerDuration;
-                buttonTextEl.textContent = `Wait ${countdown}s`;
-                button.disabled = true;
+                buttonTextEl.textContent = 'Wait ' + countdown + 's';
                 
-                const timerInterval = setInterval(() => {
+                const timerInterval = setInterval(function() {
                     countdown--;
                     if (countdown > 0) {
-                        buttonTextEl.textContent = `Wait ${countdown}s`;
+                        buttonTextEl.textContent = 'Wait ' + countdown + 's';
                     } else {
                         clearInterval(timerInterval);
                         button.disabled = false;
@@ -651,88 +810,67 @@
                 }, 1000);
             }
 
-            // Process ad unlock flow
-            async function processAdUnlock(button) {
-                if (isAdInProgress) return;
+            function showInterstitialAd(button) {
+                if (!AdController) {
+                    console.error('AdsGram not initialized');
+                    showToast('❌ Ad service unavailable');
+                    updateButtonState(button);
+                    return;
+                }
                 
                 isAdInProgress = true;
-                button.disabled = true;
+                currentProcessingButton = button;
                 
                 const buttonTextEl = button.querySelector('span');
-                const buttonIconEl = button.querySelector('i');
-                const fileId = button.dataset.fileId;
-                const requiredCount = parseInt(button.dataset.requiredAds || 1);
                 const originalText = buttonTextEl.textContent;
-                const originalIcon = buttonIconEl.className;
+                buttonTextEl.textContent = 'Loading Ad...';
                 
-                buttonTextEl.textContent = 'Loading ad...';
-                
-                try {
-                    const result = await showInterstitialAd();
+                AdController.show().then(function(result) {
+                    console.log('Ad result:', result);
                     
                     if (result.done) {
+                        const fileId = button.dataset.fileId;
+                        const requiredCount = parseInt(button.dataset.requiredAds || 1);
                         let adCount = parseInt(localStorage.getItem('adCount_' + fileId) || 0);
+                        
                         adCount++;
                         localStorage.setItem('adCount_' + fileId, adCount);
                         
-                        showToast(`✅ Ad completed! Progress: ${adCount}/${requiredCount}`);
+                        showToast('✅ Ad completed! Progress: ' + adCount + '/' + requiredCount);
                         
                         if (adCount >= requiredCount) {
                             const expiryTime = Date.now() + (unlockDuration * 60 * 1000);
-                            localStorage.setItem('unlock_' + fileId, JSON.stringify({ expiryTime }));
-                            showToast(`🎉 Unlocked for ${unlockDuration} minutes!`);
+                            localStorage.setItem('unlock_' + fileId, JSON.stringify({ expiryTime: expiryTime }));
+                            showToast('🎉 Unlocked for ' + unlockDuration + ' minutes!');
+                            updateButtonState(button);
                             
-                            // Update button to show Download Now
-                            button.disabled = false;
-                            buttonTextEl.textContent = 'Download Now';
-                            buttonIconEl.className = 'fas fa-download';
-                            button.classList.remove('from-blue-500', 'to-purple-600', 'hover:from-blue-600', 'hover:to-purple-700');
-                            button.classList.add('from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700');
-                            
-                            // Add timer badge
-                            let existingBadge = button.querySelector('.timer-badge');
-                            if (!existingBadge) {
-                                existingBadge = document.createElement('span');
-                                existingBadge.className = 'timer-badge';
-                                button.appendChild(existingBadge);
-                            }
-                            existingBadge.style.display = 'inline-block';
-                            
-                            startUnlockTimer(fileId, button);
-                            
-                            // Show the link popup
+                            // Show the link popup and track view
                             const url = button.dataset.url;
                             if (url) {
                                 showLinkPopup(url, fileId);
                             }
                         } else {
-                            // Update button with new progress
-                            button.disabled = false;
-                            buttonTextEl.textContent = `Unlock (${adCount}/${requiredCount})`;
-                            buttonIconEl.className = 'fas fa-lock';
-                            
+                            updateButtonState(button);
                             startCooldownTimer(button);
                         }
                     } else {
                         showToast('⏭️ Ad skipped. Watch full ad for progress.');
-                        button.disabled = false;
-                        buttonTextEl.textContent = originalText;
-                        buttonIconEl.className = originalIcon;
+                        updateButtonState(button);
                     }
-                } catch (err) {
-                    console.error("Ad error:", err);
-                    showToast('❌ Could not load ad. Please try again.');
-                    button.disabled = false;
-                    buttonTextEl.textContent = originalText;
-                    buttonIconEl.className = originalIcon;
-                }
-                
-                isAdInProgress = false;
+                    
+                    isAdInProgress = false;
+                    currentProcessingButton = null;
+                }).catch(function(error) {
+                    console.error('Ad error:', error);
+                    showToast('❌ Ad error. Try again.');
+                    updateButtonState(button);
+                    isAdInProgress = false;
+                    currentProcessingButton = null;
+                });
             }
 
-            function handleAccessClick(e) {
-                const button = e.target.closest('.access-btn');
-                if (!button || button.disabled || isAdInProgress) return;
+            function handleAccessClick(button) {
+                if (button.disabled || isAdInProgress) return;
                 
                 const fileId = button.dataset.fileId;
                 const isUnlocked = checkUnlockExpiry(fileId);
@@ -745,152 +883,150 @@
                     return;
                 }
                 
-                processAdUnlock(button);
+                button.disabled = true;
+                showInterstitialAd(button);
             }
 
-            // Render banner ad
-            function renderBannerAd(containerId, adCode) {
-                if (!adCode) return;
-                const container = document.getElementById(containerId);
-                if (!container) return;
-                container.innerHTML = adCode;
-                
-                const scripts = Array.from(container.getElementsByTagName('script'));
-                scripts.forEach(oldScript => {
-                    const newScript = document.createElement('script');
-                    Array.from(oldScript.attributes).forEach(attr => {
-                        newScript.setAttribute(attr.name, attr.value);
+            function attachButtonListeners() {
+                document.querySelectorAll('.access-btn').forEach(function(btn) {
+                    const newBtn = btn.cloneNode(true);
+                    btn.parentNode.replaceChild(newBtn, btn);
+                    
+                    newBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAccessClick(this);
                     });
-                    newScript.textContent = oldScript.textContent;
-                    oldScript.parentNode.replaceChild(newScript, oldScript);
                 });
             }
 
-            // Load banner ads
-            async function loadBannerAds() {
-                try {
-                    const docRef = db.collection("settings").doc("ads");
-                    const docSnap = await docRef.get();
-                    if (docSnap.exists) {
-                        const adData = docSnap.data();
-                        renderBannerAd('ad-container-1', adData.adSlot1);
-                        renderBannerAd('ad-container-2', adData.adSlot2);
-                        renderBannerAd('ad-container-3', adData.adSlot3);
-                        console.log("✅ Banner ads loaded");
-                    }
-                } catch (error) {
-                    console.error("Error loading banner ads:", error);
-                }
-            }
-
-            // Load settings
-            async function loadSettings() {
-                try {
-                    const docRef = db.collection("settings").doc("general");
-                    const docSnap = await docRef.get();
+            function loadSettings() {
+                return db.collection("settings").doc("general").get().then(function(docSnap) {
                     if (docSnap.exists) {
                         timerDuration = docSnap.data().timerDuration || 10;
                         unlockDuration = docSnap.data().unlockDuration || 10;
                     }
-                } catch (error) {
+                }).catch(function(error) {
                     console.error("Error loading settings:", error);
+                });
+            }
+
+            function loadAllData() {
+                loadSettings().then(function() {
+                    return Promise.all([
+                        db.collection("sliders").orderBy("createdAt", "desc").limit(10).get(),
+                        db.collection("files").orderBy("createdAt", "desc").limit(50).get()
+                    ]);
+                }).then(function(results) {
+                    renderSliders(results[0]);
+                    renderFiles(results[1]);
+                    setTimeout(attachButtonListeners, 100);
+                }).catch(function(error) {
+                    console.error("Error loading:", error);
+                    filesGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">Loading content...</p>';
+                });
+            }
+
+            function renderSliders(sliderSnapshot) {
+                sliderWrapper.innerHTML = '';
+                sliderDotsContainer.innerHTML = '';
+                const slides = [];
+                const sliderIds = [];
+                
+                sliderSnapshot.forEach(function(doc) {
+                    slides.push(doc.data());
+                    sliderIds.push(doc.id);
+                });
+                
+                if (slides.length > 0) {
+                    slides.forEach(function(slide, index) {
+                        const slideEl = document.createElement('div');
+                        slideEl.className = 'slider-item';
+                        slideEl.dataset.sliderId = sliderIds[index];
+                        
+                        if (slide.linkUrl) {
+                            slideEl.innerHTML = '<a href="' + slide.linkUrl + '" target="_blank" class="slider-link" data-slider-id="' + sliderIds[index] + '"><img src="' + slide.imageUrl + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/1280x400/e5e7eb/6b7280?text=File\'"></a>';
+                        } else {
+                            slideEl.innerHTML = '<img src="' + slide.imageUrl + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/1280x400/e5e7eb/6b7280?text=File\'">';
+                        }
+                        sliderWrapper.appendChild(slideEl);
+                        
+                        const dotEl = document.createElement('div');
+                        dotEl.className = 'slider-dot';
+                        dotEl.dataset.index = index;
+                        sliderDotsContainer.appendChild(dotEl);
+                    });
+                    
+                    // Add click listeners to slider links for tracking
+                    document.querySelectorAll('.slider-link').forEach(function(link) {
+                        link.addEventListener('click', function(e) {
+                            const sliderId = this.dataset.sliderId;
+                            if (sliderId) {
+                                trackSliderView(sliderId);
+                            }
+                        });
+                    });
+                    
+                    setupSlider(slides.length);
                 }
             }
 
-            // Load all data
-            async function loadAllData() {
-                await loadSettings();
-                await loadBannerAds();
+            function renderFiles(filesSnapshot) {
+                filesGrid.innerHTML = '';
+                allFiles = [];
                 
-                // Load sliders
-                try {
-                    const sliderSnapshot = await db.collection("sliders").orderBy("createdAt", "desc").limit(10).get();
-                    sliderWrapper.innerHTML = '';
-                    sliderDotsContainer.innerHTML = '';
-                    const slides = [];
+                if (filesSnapshot.empty) {
+                    filesGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">No files available.</p>';
+                    return;
+                }
+                
+                filesSnapshot.forEach(function(doc) {
+                    allFiles.push(Object.assign({ id: doc.id }, doc.data()));
+                });
+                
+                allFiles.forEach(function(file) {
+                    const card = document.createElement('div');
+                    card.className = 'file-card glass-card rounded-xl overflow-hidden card-hover border border-gray-200';
+                    card.dataset.title = file.title.toLowerCase();
+                    card.dataset.description = (file.description || '').toLowerCase();
+                    card.id = 'card-' + file.id;
                     
-                    sliderSnapshot.forEach(doc => slides.push(doc.data()));
+                    const requiredAds = file.requiredAds || 1;
+                    const isUnlocked = checkUnlockExpiry(file.id);
+                    const adCount = parseInt(localStorage.getItem('adCount_' + file.id) || 0);
                     
-                    if (slides.length > 0) {
-                        slides.forEach((slide, index) => {
-                            const slideEl = document.createElement('div');
-                            slideEl.className = 'slider-item';
-                            const imageHTML = `<img src="${slide.imageUrl}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/1280x400/e5e7eb/6b7280?text=Slide+${index+1}';">`;
-                            slideEl.innerHTML = slide.linkUrl ? `<a href="${slide.linkUrl}" target="_blank" rel="noopener noreferrer">${imageHTML}</a>` : imageHTML;
-                            sliderWrapper.appendChild(slideEl);
-                            
-                            const dotEl = document.createElement('div');
-                            dotEl.className = 'slider-dot';
-                            dotEl.dataset.index = index;
-                            sliderDotsContainer.appendChild(dotEl);
-                        });
-                        setupSlider(slides.length);
+                    let html = '<div class="relative aspect-video overflow-hidden">';
+                    html += '<img src="' + file.thumbnailUrl + '" alt="' + file.title + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/400x225/e5e7eb/6b7280?text=File\'">';
+                    html += '<div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>';
+                    html += '<div class="absolute top-3 left-3">';
+                    html += '<span class="bg-gradient-to-r from-blue-500/90 to-purple-600/90 backdrop-blur-sm px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide text-white">';
+                    html += '<i class="fas fa-file mr-1"></i>FILE</span></div></div>';
+                    html += '<div class="p-4">';
+                    html += '<h3 class="text-base font-bold text-gray-800 truncate mb-1">' + file.title + '</h3>';
+                    html += '<p class="text-gray-500 text-xs line-clamp-2 mb-4 h-8">' + (file.description || 'Click to unlock and download') + '</p>';
+                    html += '<div class="mt-2">';
+                    html += '<button data-file-id="' + file.id + '" data-url="' + file.downloadUrl + '" data-required-ads="' + requiredAds + '" class="access-btn w-full py-3 px-4 rounded-xl text-white text-sm font-bold premium-gradient flex items-center justify-center gap-2 shadow-lg">';
+                    
+                    if (isUnlocked) {
+                        html += '<i class="fas fa-download"></i><span>Download</span>';
                     } else {
-                        sliderWrapper.innerHTML = `<div class="slider-item flex items-center justify-center bg-gray-200"><p class="text-gray-600">No slides available</p></div>`;
-                    }
-                } catch (error) {
-                    console.error("Error loading sliders:", error);
-                    sliderWrapper.innerHTML = `<div class="slider-item flex items-center justify-center bg-red-100"><p class="text-red-600">Could not load slides</p></div>`;
-                }
-                
-                // Load files
-                try {
-                    const filesSnapshot = await db.collection("files").orderBy("createdAt", "desc").limit(50).get();
-                    filesGrid.innerHTML = '';
-                    
-                    if (filesSnapshot.empty) {
-                        filesGrid.innerHTML = `<p class="col-span-full text-center text-gray-500 py-8">No files available</p>`;
-                        return;
+                        html += '<i class="fas fa-lock"></i><span>Unlock (' + adCount + '/' + requiredAds + ')</span>';
                     }
                     
-                    const files = [];
-                    filesSnapshot.forEach(doc => files.push({ id: doc.id, ...doc.data() }));
+                    html += '</button></div></div>';
                     
-                    files.forEach(file => {
-                        const requiredAds = file.requiredAds || 1;
-                        const isUnlocked = checkUnlockExpiry(file.id);
-                        const adCount = parseInt(localStorage.getItem('adCount_' + file.id) || 0);
-                        
-                        const card = document.createElement('div');
-                        card.className = 'file-card bg-white rounded-xl shadow-md overflow-hidden card-hover';
-                        card.dataset.title = file.title.toLowerCase();
-                        card.dataset.description = (file.description || '').toLowerCase();
-                        
-                        // Determine button classes based on unlock state
-                        const btnClasses = isUnlocked 
-                            ? 'bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700'
-                            : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700';
-                        
-                        card.innerHTML = `
-                            <img src="${file.thumbnailUrl}" alt="${file.title}" class="w-full aspect-video object-cover" onerror="this.src='https://placehold.co/400x225/e5e7eb/6b7280?text=File'">
-                            <div class="p-4">
-                                <h3 class="text-lg font-bold text-gray-900 truncate" title="${file.title}">${file.title}</h3>
-                                <p class="text-gray-600 text-sm mt-1 h-10 overflow-hidden">${file.description || 'No description'}</p>
-                                <button data-file-id="${file.id}" data-url="${file.downloadUrl}" data-required-ads="${requiredAds}" class="access-btn w-full mt-4 py-2.5 px-4 rounded-lg text-white font-semibold shadow-md flex items-center justify-center gap-2 ${btnClasses}">
-                                    <i class="fas ${isUnlocked ? 'fa-download' : 'fa-lock'}"></i>
-                                    <span>${isUnlocked ? 'Download Now' : `Unlock (${adCount}/${requiredAds})`}</span>
-                                </button>
-                            </div>
-                        `;
-                        
-                        filesGrid.appendChild(card);
-                        const button = card.querySelector('.access-btn');
-                        
-                        if (isUnlocked) {
-                            const badge = document.createElement('span');
-                            badge.className = 'timer-badge';
-                            button.appendChild(badge);
-                            startUnlockTimer(file.id, button);
-                        }
-                        
-                        // Attach event listener
-                        button.addEventListener('click', handleAccessClick);
-                    });
+                    card.innerHTML = html;
+                    filesGrid.appendChild(card);
                     
-                } catch (error) {
-                    console.error("Error loading files:", error);
-                    filesGrid.innerHTML = `<p class="col-span-full text-center text-red-500 py-8">Could not load files</p>`;
-                }
+                    const button = card.querySelector('.access-btn');
+                    
+                    if (isUnlocked) {
+                        const badge = document.createElement('span');
+                        badge.className = 'timer-badge';
+                        button.appendChild(badge);
+                        startUnlockTimer(file.id, button);
+                    }
+                });
             }
 
             function setupSlider(slideCount) {
@@ -906,16 +1042,22 @@
                 
                 function goToSlide(index) {
                     currentSlide = (index + slideCount) % slideCount;
-                    sliderWrapper.style.transform = `translateX(-${currentSlide * 100}%)`;
-                    dots.forEach(dot => dot.classList.remove('active'));
+                    sliderWrapper.style.transform = 'translateX(-' + (currentSlide * 100) + '%)';
+                    dots.forEach(function(dot) {
+                        dot.classList.remove('active');
+                    });
                     if (dots[currentSlide]) dots[currentSlide].classList.add('active');
                 }
                 
                 if (sliderInterval) clearInterval(sliderInterval);
-                sliderInterval = setInterval(() => goToSlide(currentSlide + 1), 3000);
+                sliderInterval = setInterval(function() {
+                    goToSlide(currentSlide + 1);
+                }, 3000);
                 
-                dots.forEach(dot => {
-                    dot.addEventListener('click', (e) => goToSlide(parseInt(e.target.dataset.index)));
+                dots.forEach(function(dot) {
+                    dot.addEventListener('click', function(e) {
+                        goToSlide(parseInt(e.target.dataset.index));
+                    });
                 });
                 
                 goToSlide(0);
@@ -925,7 +1067,7 @@
                 const term = searchInput.value.toLowerCase();
                 let visible = 0;
                 
-                document.querySelectorAll('.file-card').forEach(card => {
+                document.querySelectorAll('.file-card').forEach(function(card) {
                     const title = card.dataset.title;
                     const desc = card.dataset.description;
                     if (title.includes(term) || desc.includes(term)) {
@@ -946,20 +1088,6 @@
             // Start loading
             loadAllData();
             initAdsGram();
-            setTimeout(initAdsGram, 1000);
-            setTimeout(initAdsGram, 2000);
-            
-            // Debug functions
-            window.checkAds = () => {
-                console.log("AdsGram ready:", adsgramReady);
-                console.log("AdController:", AdController);
-            };
-            
-            window.resetAdCounts = () => {
-                localStorage.clear();
-                console.log("✅ All ad counts reset");
-                location.reload();
-            };
         })();
     </script>
 </body>
