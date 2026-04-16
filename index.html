@@ -54,6 +54,9 @@
     <!-- AdsGram SDK -->
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
     
+    <!-- Monetag SDK -->
+    <script src='//libtl.com/sdk.js' data-zone='10533857' data-sdk='show_10533857'></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
         
@@ -574,10 +577,11 @@
             const openLinkBtn = document.getElementById('openLinkBtn');
 
             let currentPopupLink = '';
-            let currentFileId = ''; // Track current file ID for view counting
+            let currentFileId = '';
             let sliderInterval;
             let currentSlide = 0;
             let AdController = null;
+            let monetagReady = false;
             let allFiles = [];
             let timerDuration = 10;
             let unlockDuration = 10;
@@ -586,8 +590,6 @@
             
             const unlockTimers = new Map();
             const fileCooldowns = new Map();
-            
-            // Track viewed files to avoid double counting
             const viewedFiles = new Set();
 
             function showToast(message) {
@@ -599,35 +601,23 @@
                 }, 2000);
             }
 
-            // Track file view in Firebase
             async function trackFileView(fileId) {
                 if (!fileId || viewedFiles.has(fileId)) return;
-                
                 try {
                     const fileRef = db.collection("files").doc(fileId);
-                    await fileRef.update({
-                        views: firebase.firestore.FieldValue.increment(1)
-                    });
+                    await fileRef.update({ views: firebase.firestore.FieldValue.increment(1) });
                     viewedFiles.add(fileId);
                     console.log(`✅ File view tracked: ${fileId}`);
-                } catch (error) {
-                    console.error('Error tracking file view:', error);
-                }
+                } catch (error) {}
             }
 
-            // Track slider view in Firebase
             async function trackSliderView(sliderId) {
                 if (!sliderId) return;
-                
                 try {
                     const sliderRef = db.collection("sliders").doc(sliderId);
-                    await sliderRef.update({
-                        views: firebase.firestore.FieldValue.increment(1)
-                    });
+                    await sliderRef.update({ views: firebase.firestore.FieldValue.increment(1) });
                     console.log(`✅ Slider view tracked: ${sliderId}`);
-                } catch (error) {
-                    console.error('Error tracking slider view:', error);
-                }
+                } catch (error) {}
             }
 
             function showLinkPopup(link, fileId) {
@@ -636,11 +626,7 @@
                 currentFileId = fileId;
                 popupLinkDisplay.textContent = link;
                 popupOverlay.classList.add('active');
-                
-                // Track file view when popup is shown
-                if (fileId) {
-                    trackFileView(fileId);
-                }
+                if (fileId) trackFileView(fileId);
             }
 
             function hidePopup() {
@@ -667,58 +653,51 @@
                 textarea.style.opacity = '0';
                 document.body.appendChild(textarea);
                 textarea.select();
-                try {
-                    document.execCommand('copy');
-                    showToast('🔗 Link copied to clipboard');
-                } catch (err) {
-                    showToast('❌ Failed to copy');
-                }
+                try { document.execCommand('copy'); showToast('🔗 Link copied to clipboard'); } 
+                catch (err) { showToast('❌ Failed to copy'); }
                 document.body.removeChild(textarea);
             }
 
             function openLinkInBrowser(link) {
                 if (!link) return;
-                
-                if (!link.startsWith('http://') && !link.startsWith('https://')) {
-                    link = 'https://' + link;
-                }
-                
-                if (isTelegram) {
-                    window.location.href = link;
-                } else {
-                    window.open(link, '_blank');
-                }
+                if (!link.startsWith('http://') && !link.startsWith('https://')) link = 'https://' + link;
+                if (isTelegram) window.location.href = link;
+                else window.open(link, '_blank');
             }
 
-            // Popup event listeners
             closePopupBtn.addEventListener('click', hidePopup);
-            popupOverlay.addEventListener('click', function(e) {
-                if (e.target === popupOverlay) hidePopup();
-            });
-            
+            popupOverlay.addEventListener('click', function(e) { if (e.target === popupOverlay) hidePopup(); });
             copyLinkBtn.addEventListener('click', function(e) {
                 e.preventDefault();
-                if (currentPopupLink) {
-                    copyToClipboard(currentPopupLink);
-                    hidePopup();
-                }
+                if (currentPopupLink) { copyToClipboard(currentPopupLink); hidePopup(); }
             });
-            
             openLinkBtn.addEventListener('click', function(e) {
                 e.preventDefault();
-                if (currentPopupLink) {
-                    openLinkInBrowser(currentPopupLink);
-                    hidePopup();
-                }
+                if (currentPopupLink) { openLinkInBrowser(currentPopupLink); hidePopup(); }
             });
 
             // Initialize AdsGram
             function initAdsGram() {
                 if (typeof window.Adsgram !== 'undefined') {
-                    AdController = window.Adsgram.init({ blockId: "int-21144" });
-                    console.log("✅ AdsGram initialized");
+                    try {
+                        AdController = window.Adsgram.init({ blockId: "int-21144" });
+                        console.log("✅ AdsGram initialized");
+                    } catch(e) {
+                        console.log("❌ AdsGram init failed:", e);
+                        AdController = null;
+                    }
                 } else {
                     setTimeout(initAdsGram, 500);
+                }
+            }
+
+            // Check if Monetag is available
+            function checkMonetagReady() {
+                if (typeof window.show_10533857 === 'function') {
+                    monetagReady = true;
+                    console.log("✅ Monetag ready");
+                } else {
+                    setTimeout(checkMonetagReady, 500);
                 }
             }
 
@@ -737,7 +716,6 @@
                     clearInterval(unlockTimers.get(fileId));
                     unlockTimers.delete(fileId);
                 }
-                
                 const timer = setInterval(function() {
                     const unlockData = JSON.parse(localStorage.getItem('unlock_' + fileId) || '{}');
                     if (!unlockData.expiryTime || Date.now() > unlockData.expiryTime) {
@@ -749,17 +727,12 @@
                         showToast('⏰ Unlock period expired');
                         return;
                     }
-
                     const timeLeft = unlockData.expiryTime - Date.now();
                     const minutes = Math.floor(timeLeft / 60000);
                     const seconds = Math.floor((timeLeft % 60000) / 1000);
-                    
                     const existingBadge = button.querySelector('.timer-badge');
-                    if (existingBadge) {
-                        existingBadge.textContent = minutes + 'm ' + seconds + 's';
-                    }
+                    if (existingBadge) existingBadge.textContent = minutes + 'm ' + seconds + 's';
                 }, 1000);
-
                 unlockTimers.set(fileId, timer);
             }
 
@@ -768,33 +741,24 @@
                 const requiredCount = parseInt(button.dataset.requiredAds || 1);
                 const isUnlocked = checkUnlockExpiry(fileId);
                 const adCount = parseInt(localStorage.getItem('adCount_' + fileId) || 0);
-                
                 button.disabled = false;
-                
                 let existingBadge = button.querySelector('.timer-badge');
-                
                 if (isUnlocked) {
                     button.innerHTML = '<i class="fas fa-download"></i><span>Download</span>';
                     button.classList.add('from-green-400', 'to-green-600');
                     button.classList.remove('from-pink-500', 'to-purple-600');
-                    
                     if (!existingBadge) {
                         existingBadge = document.createElement('span');
                         existingBadge.className = 'timer-badge';
                         button.appendChild(existingBadge);
                     }
                     existingBadge.style.display = 'inline-block';
-                    
                     startUnlockTimer(fileId, button);
                 } else {
                     button.innerHTML = '<i class="fas fa-lock"></i><span>Unlock (' + adCount + '/' + requiredCount + ')</span>';
                     button.classList.add('from-pink-500', 'to-purple-600');
                     button.classList.remove('from-green-400', 'to-green-600');
-                    
-                    if (existingBadge) {
-                        existingBadge.style.display = 'none';
-                    }
-                    
+                    if (existingBadge) existingBadge.style.display = 'none';
                     if (unlockTimers.has(fileId)) {
                         clearInterval(unlockTimers.get(fileId));
                         unlockTimers.delete(fileId);
@@ -806,93 +770,125 @@
                 const buttonTextEl = button.querySelector('span');
                 let countdown = timerDuration;
                 buttonTextEl.textContent = 'Wait ' + countdown + 's';
-                
                 const timerInterval = setInterval(function() {
                     countdown--;
-                    if (countdown > 0) {
-                        buttonTextEl.textContent = 'Wait ' + countdown + 's';
-                    } else {
-                        clearInterval(timerInterval);
-                        button.disabled = false;
-                        updateButtonState(button);
-                    }
+                    if (countdown > 0) buttonTextEl.textContent = 'Wait ' + countdown + 's';
+                    else { clearInterval(timerInterval); button.disabled = false; updateButtonState(button); }
                 }, 1000);
             }
 
-            function showInterstitialAd(button) {
-                if (!AdController) {
-                    console.error('AdsGram not initialized');
-                    showToast('❌ Ad service unavailable');
-                    updateButtonState(button);
-                    return;
-                }
-                
-                isAdInProgress = true;
-                currentProcessingButton = button;
-                
-                const buttonTextEl = button.querySelector('span');
-                const originalText = buttonTextEl.textContent;
-                buttonTextEl.textContent = 'Loading Ad...';
-                
-                AdController.show().then(function(result) {
-                    console.log('Ad result:', result);
-                    
-                    if (result.done) {
-                        const fileId = button.dataset.fileId;
-                        const requiredCount = parseInt(button.dataset.requiredAds || 1);
-                        let adCount = parseInt(localStorage.getItem('adCount_' + fileId) || 0);
-                        
-                        adCount++;
-                        localStorage.setItem('adCount_' + fileId, adCount);
-                        
-                        showToast('✅ Ad completed! Progress: ' + adCount + '/' + requiredCount);
-                        
-                        if (adCount >= requiredCount) {
-                            const expiryTime = Date.now() + (unlockDuration * 60 * 1000);
-                            localStorage.setItem('unlock_' + fileId, JSON.stringify({ expiryTime: expiryTime }));
-                            showToast('🎉 Unlocked for ' + unlockDuration + ' minutes!');
-                            updateButtonState(button);
-                            
-                            // Show the link popup and track view
-                            const url = button.dataset.url;
-                            if (url) {
-                                showLinkPopup(url, fileId);
-                            }
-                        } else {
-                            updateButtonState(button);
-                            startCooldownTimer(button);
+            // Show Monetag ad
+            function showMonetagAd() {
+                return new Promise(function(resolve) {
+                    if (typeof window.show_10533857 === 'function') {
+                        try {
+                            window.show_10533857().then(function() {
+                                console.log("✅ Monetag ad completed");
+                                resolve({ done: true });
+                            }).catch(function(e) {
+                                console.log("❌ Monetag ad error:", e);
+                                resolve({ done: false });
+                            });
+                        } catch(e) {
+                            console.log("❌ Monetag exception:", e);
+                            resolve({ done: false });
                         }
                     } else {
-                        showToast('⏭️ Ad skipped. Watch full ad for progress.');
-                        updateButtonState(button);
+                        console.log("⚠️ Monetag not available");
+                        resolve({ done: false });
                     }
-                    
-                    isAdInProgress = false;
-                    currentProcessingButton = null;
-                }).catch(function(error) {
-                    console.error('Ad error:', error);
-                    showToast('❌ Ad error. Try again.');
-                    updateButtonState(button);
-                    isAdInProgress = false;
-                    currentProcessingButton = null;
                 });
+            }
+
+            // Show ad with fallback
+            function showAdWithFallback(button) {
+                // Try AdsGram first
+                if (AdController) {
+                    console.log("📢 Trying AdsGram...");
+                    AdController.show().then(function(result) {
+                        if (result && result.done) {
+                            handleAdSuccess(button);
+                        } else {
+                            console.log("⚠️ AdsGram skipped, trying Monetag...");
+                            showMonetagAd().then(function(monetagResult) {
+                                if (monetagResult.done) {
+                                    handleAdSuccess(button);
+                                } else {
+                                    handleAdFail(button);
+                                }
+                            });
+                        }
+                    }).catch(function(error) {
+                        console.log("❌ AdsGram failed, trying Monetag...");
+                        showMonetagAd().then(function(monetagResult) {
+                            if (monetagResult.done) {
+                                handleAdSuccess(button);
+                            } else {
+                                handleAdFail(button);
+                            }
+                        });
+                    });
+                } else {
+                    // AdsGram not available, try Monetag directly
+                    console.log("📢 AdsGram not available, trying Monetag...");
+                    showMonetagAd().then(function(monetagResult) {
+                        if (monetagResult.done) {
+                            handleAdSuccess(button);
+                        } else {
+                            handleAdFail(button);
+                        }
+                    });
+                }
+            }
+
+            function handleAdSuccess(button) {
+                const fileId = button.dataset.fileId;
+                const requiredCount = parseInt(button.dataset.requiredAds || 1);
+                let adCount = parseInt(localStorage.getItem('adCount_' + fileId) || 0);
+                adCount++;
+                localStorage.setItem('adCount_' + fileId, adCount);
+                showToast('✅ Ad completed! Progress: ' + adCount + '/' + requiredCount);
+                
+                if (adCount >= requiredCount) {
+                    const expiryTime = Date.now() + (unlockDuration * 60 * 1000);
+                    localStorage.setItem('unlock_' + fileId, JSON.stringify({ expiryTime: expiryTime }));
+                    showToast('🎉 Unlocked for ' + unlockDuration + ' minutes!');
+                    updateButtonState(button);
+                    const url = button.dataset.url;
+                    if (url) showLinkPopup(url, fileId);
+                } else {
+                    updateButtonState(button);
+                    startCooldownTimer(button);
+                }
+                isAdInProgress = false;
+                currentProcessingButton = null;
+            }
+
+            function handleAdFail(button) {
+                showToast('⏭️ Ad skipped. Watch full ad for progress.');
+                updateButtonState(button);
+                isAdInProgress = false;
+                currentProcessingButton = null;
+            }
+
+            function showInterstitialAd(button) {
+                isAdInProgress = true;
+                currentProcessingButton = button;
+                const buttonTextEl = button.querySelector('span');
+                buttonTextEl.textContent = 'Loading Ad...';
+                button.disabled = true;
+                showAdWithFallback(button);
             }
 
             function handleAccessClick(button) {
                 if (button.disabled || isAdInProgress) return;
-                
                 const fileId = button.dataset.fileId;
                 const isUnlocked = checkUnlockExpiry(fileId);
-                
                 if (isUnlocked) {
                     const url = button.dataset.url;
-                    if (url) {
-                        showLinkPopup(url, fileId);
-                    }
+                    if (url) showLinkPopup(url, fileId);
                     return;
                 }
-                
-                button.disabled = true;
                 showInterstitialAd(button);
             }
 
@@ -900,7 +896,6 @@
                 document.querySelectorAll('.access-btn').forEach(function(btn) {
                     const newBtn = btn.cloneNode(true);
                     btn.parentNode.replaceChild(newBtn, btn);
-                    
                     newBtn.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
@@ -915,9 +910,7 @@
                         timerDuration = docSnap.data().timerDuration || 10;
                         unlockDuration = docSnap.data().unlockDuration || 10;
                     }
-                }).catch(function(error) {
-                    console.error("Error loading settings:", error);
-                });
+                }).catch(function(error) {});
             }
 
             function loadAllData() {
@@ -931,7 +924,6 @@
                     renderFiles(results[1]);
                     setTimeout(attachButtonListeners, 100);
                 }).catch(function(error) {
-                    console.error("Error loading:", error);
                     filesGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">Loading content...</p>';
                 });
             }
@@ -941,41 +933,32 @@
                 sliderDotsContainer.innerHTML = '';
                 const slides = [];
                 const sliderIds = [];
-                
                 sliderSnapshot.forEach(function(doc) {
                     slides.push(doc.data());
                     sliderIds.push(doc.id);
                 });
-                
                 if (slides.length > 0) {
                     slides.forEach(function(slide, index) {
                         const slideEl = document.createElement('div');
                         slideEl.className = 'slider-item';
                         slideEl.dataset.sliderId = sliderIds[index];
-                        
                         if (slide.linkUrl) {
                             slideEl.innerHTML = '<a href="' + slide.linkUrl + '" target="_blank" class="slider-link" data-slider-id="' + sliderIds[index] + '"><img src="' + slide.imageUrl + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/1280x400/1a0a1a/ec4899?text=Premium+Content\'"></a>';
                         } else {
                             slideEl.innerHTML = '<img src="' + slide.imageUrl + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/1280x400/1a0a1a/ec4899?text=Premium+Content\'">';
                         }
                         sliderWrapper.appendChild(slideEl);
-                        
                         const dotEl = document.createElement('div');
                         dotEl.className = 'slider-dot';
                         dotEl.dataset.index = index;
                         sliderDotsContainer.appendChild(dotEl);
                     });
-                    
-                    // Add click listeners to slider links for tracking
                     document.querySelectorAll('.slider-link').forEach(function(link) {
                         link.addEventListener('click', function(e) {
                             const sliderId = this.dataset.sliderId;
-                            if (sliderId) {
-                                trackSliderView(sliderId);
-                            }
+                            if (sliderId) trackSliderView(sliderId);
                         });
                     });
-                    
                     setupSlider(slides.length);
                 }
             }
@@ -983,27 +966,22 @@
             function renderFiles(filesSnapshot) {
                 filesGrid.innerHTML = '';
                 allFiles = [];
-                
                 if (filesSnapshot.empty) {
                     filesGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">No exclusive content available.</p>';
                     return;
                 }
-                
                 filesSnapshot.forEach(function(doc) {
                     allFiles.push(Object.assign({ id: doc.id }, doc.data()));
                 });
-                
                 allFiles.forEach(function(file) {
                     const card = document.createElement('div');
                     card.className = 'file-card glass-card rounded-2xl overflow-hidden card-hover border border-pink-500/20';
                     card.dataset.title = file.title.toLowerCase();
                     card.dataset.description = (file.description || '').toLowerCase();
                     card.id = 'card-' + file.id;
-                    
                     const requiredAds = file.requiredAds || 1;
                     const isUnlocked = checkUnlockExpiry(file.id);
                     const adCount = parseInt(localStorage.getItem('adCount_' + file.id) || 0);
-                    
                     let html = '<div class="relative aspect-video overflow-hidden">';
                     html += '<img src="' + file.thumbnailUrl + '" alt="' + file.title + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/400x225/1a0a1a/ec4899?text=Premium\'">';
                     html += '<div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>';
@@ -1015,20 +993,15 @@
                     html += '<p class="text-gray-400 text-xs line-clamp-2 mb-4 h-8">' + (file.description || 'Exclusive premium content') + '</p>';
                     html += '<div class="mt-2">';
                     html += '<button data-file-id="' + file.id + '" data-url="' + file.downloadUrl + '" data-required-ads="' + requiredAds + '" class="access-btn w-full py-3 px-4 rounded-xl text-white text-sm font-bold premium-gradient flex items-center justify-center gap-2 shadow-lg">';
-                    
                     if (isUnlocked) {
                         html += '<i class="fas fa-download"></i><span>Download</span>';
                     } else {
                         html += '<i class="fas fa-lock"></i><span>Unlock (' + adCount + '/' + requiredAds + ')</span>';
                     }
-                    
                     html += '</button></div></div>';
-                    
                     card.innerHTML = html;
                     filesGrid.appendChild(card);
-                    
                     const button = card.querySelector('.access-btn');
-                    
                     if (isUnlocked) {
                         const badge = document.createElement('span');
                         badge.className = 'timer-badge';
@@ -1046,36 +1019,24 @@
                     }
                     return;
                 }
-                
                 const dots = document.querySelectorAll('.slider-dot');
-                
                 function goToSlide(index) {
                     currentSlide = (index + slideCount) % slideCount;
                     sliderWrapper.style.transform = 'translateX(-' + (currentSlide * 100) + '%)';
-                    dots.forEach(function(dot) {
-                        dot.classList.remove('active');
-                    });
+                    dots.forEach(function(dot) { dot.classList.remove('active'); });
                     if (dots[currentSlide]) dots[currentSlide].classList.add('active');
                 }
-                
                 if (sliderInterval) clearInterval(sliderInterval);
-                sliderInterval = setInterval(function() {
-                    goToSlide(currentSlide + 1);
-                }, 3000);
-                
+                sliderInterval = setInterval(function() { goToSlide(currentSlide + 1); }, 3000);
                 dots.forEach(function(dot) {
-                    dot.addEventListener('click', function(e) {
-                        goToSlide(parseInt(e.target.dataset.index));
-                    });
+                    dot.addEventListener('click', function(e) { goToSlide(parseInt(e.target.dataset.index)); });
                 });
-                
                 goToSlide(0);
             }
 
             function handleSearch() {
                 const term = searchInput.value.toLowerCase();
                 let visible = 0;
-                
                 document.querySelectorAll('.file-card').forEach(function(card) {
                     const title = card.dataset.title;
                     const desc = card.dataset.description;
@@ -1086,10 +1047,7 @@
                         card.style.display = 'none';
                     }
                 });
-                
-                if (noResultsMessage) {
-                    noResultsMessage.classList.toggle('hidden', visible > 0);
-                }
+                if (noResultsMessage) noResultsMessage.classList.toggle('hidden', visible > 0);
             }
 
             searchInput.addEventListener('input', handleSearch);
@@ -1097,6 +1055,7 @@
             // Start loading
             loadAllData();
             initAdsGram();
+            checkMonetagReady();
         })();
     </script>
 </body>
