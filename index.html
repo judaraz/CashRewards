@@ -109,15 +109,15 @@
         import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCPJR-Zkkkh4Y-aQQ8H1J7N2Edo0HWM14k",
-  authDomain: "download-cce9e.firebaseapp.com",
-  projectId: "download-cce9e",
-  storageBucket: "download-cce9e.firebasestorage.app",
-  messagingSenderId: "510020310830",
-  appId: "1:510020310830:web:eb41a23de415924c2f8cbf",
-  measurementId: "G-TYT03595HP"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPJR-Zkkkh4Y-aQQ8H1J7N2Edo0HWM14k",
+            authDomain: "download-cce9e.firebaseapp.com",
+            projectId: "download-cce9e",
+            storageBucket: "download-cce9e.firebasestorage.app",
+            messagingSenderId: "510020310830",
+            appId: "1:510020310830:web:eb41a23de415924c2f8cbf",
+            measurementId: "G-TYT03595HP"
+        };
         
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -147,35 +147,15 @@ const firebaseConfig = {
             }, 3000);
         }
 
-        // Initialize Adsgram
+        // Initialize Adsgram with int-21144
         function initAdsgram() {
             if (typeof window.Adsgram !== 'undefined') {
                 try {
-                    // Try multiple block ID formats
-                    const blockIds = ["21145", "int-21145", "21144", "int-21144"];
-                    
-                    for (const blockId of blockIds) {
-                        try {
-                            AdController = window.Adsgram.init({ blockId: blockId });
-                            console.log(`✅ Adsgram initialized with blockId: ${blockId}`);
-                            adsgramReady = true;
-                            return;
-                        } catch (e) {
-                            console.log(`⚠️ Failed with blockId ${blockId}:`, e.message);
-                        }
-                    }
-                    
-                    // Try without blockId
-                    try {
-                        AdController = window.Adsgram.init();
-                        console.log("✅ Adsgram initialized without blockId");
-                        adsgramReady = true;
-                    } catch (e) {
-                        console.log("❌ Adsgram init failed");
-                        adsgramReady = false;
-                    }
+                    AdController = window.Adsgram.init({ blockId: "int-21144" });
+                    console.log(`✅ Adsgram initialized with blockId: int-21144`);
+                    adsgramReady = true;
                 } catch (e) {
-                    console.log("❌ Adsgram error:", e);
+                    console.log("❌ Adsgram init failed:", e);
                     adsgramReady = false;
                 }
             } else {
@@ -465,7 +445,7 @@ const firebaseConfig = {
         window.addEventListener('load', () => {
             loadUserPageData();
             
-            // Initialize Adsgram
+            // Initialize Adsgram with int-21144
             initAdsgram();
             setTimeout(initAdsgram, 1000);
             setTimeout(initAdsgram, 2000);
@@ -474,7 +454,7 @@ const firebaseConfig = {
         filesGrid.addEventListener('click', handleDownloadClick);
         searchInput.addEventListener('input', handleSearch);
         
-        // Debug
+        // Debug functions
         window.checkAds = () => {
             console.log("Adsgram ready:", adsgramReady);
             console.log("AdController:", AdController);
