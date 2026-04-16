@@ -42,16 +42,10 @@
             to { opacity: 1; transform: translateY(0); } 
         }
         
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
-            50% { box-shadow: 0 0 30px rgba(147, 51, 234, 0.3); }
-        }
-        
         .fade-in { animation: fadeIn 0.8s ease-out forwards; }
         .slide-up { animation: slideUp 0.6s ease-out forwards; opacity: 0; }
         .animation-delay-200 { animation-delay: 0.2s; }
         .animation-delay-400 { animation-delay: 0.4s; }
-        .animation-delay-600 { animation-delay: 0.6s; }
         
         .slider-container { 
             position: relative; 
@@ -105,17 +99,6 @@
         .card-hover:hover {
             transform: translateY(-4px);
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        
-        .skeleton {
-            background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-        }
-        
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
         }
         
         .access-btn {
@@ -270,14 +253,6 @@
         .btn-open:hover {
             filter: brightness(1.1);
         }
-
-        /* Toast */
-        .toast-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 10000;
-        }
     </style>
 </head>
 <body class="text-gray-800">
@@ -303,9 +278,7 @@
         <!-- Image Slider -->
         <div class="slide-up animation-delay-200">
             <div id="slider" class="slider-container w-full h-48 md:h-80 bg-gray-200 mb-10">
-                <div id="slider-wrapper" class="slider-wrapper h-full">
-                    <div class="slider-item skeleton w-full h-full"></div>
-                </div>
+                <div id="slider-wrapper" class="slider-wrapper h-full"></div>
                 <div id="slider-dots" class="slider-dots"></div>
             </div>
         </div>
@@ -407,10 +380,10 @@
             let AdController = null;
             let adsgramReady = false;
             let isAdInProgress = false;
-            let currentProcessingButton = null;
             
             const unlockTimers = new Map();
             const viewedFiles = new Set();
+            const fileCooldowns = new Map();
 
             function showToast(message) {
                 const toast = document.getElementById('toast');
@@ -588,15 +561,17 @@
                 
                 let existingBadge = button.querySelector('.timer-badge');
                 
-                const lockedColors = ['bg-gradient-to-r', 'from-blue-500', 'to-purple-600', 'hover:from-blue-600', 'hover:to-purple-700'];
-                const unlockedColors = ['bg-gradient-to-r', 'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700'];
+                const lockedClasses = ['bg-gradient-to-r', 'from-blue-500', 'to-purple-600', 'hover:from-blue-600', 'hover:to-purple-700'];
+                const unlockedClasses = ['bg-gradient-to-r', 'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700'];
                 
-                button.classList.remove(...lockedColors, ...unlockedColors);
+                // Remove all gradient classes
+                button.classList.remove('bg-gradient-to-r', 'from-blue-500', 'to-purple-600', 'hover:from-blue-600', 'hover:to-purple-700',
+                                            'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700');
                 
                 if (isUnlocked) {
                     buttonTextEl.textContent = 'Download Now';
                     buttonIconEl.className = 'fas fa-download';
-                    button.classList.add(...unlockedColors);
+                    button.classList.add('bg-gradient-to-r', 'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700');
                     
                     if (!existingBadge) {
                         existingBadge = document.createElement('span');
@@ -609,7 +584,7 @@
                 } else {
                     buttonTextEl.textContent = `Unlock (${adCount}/${requiredCount})`;
                     buttonIconEl.className = 'fas fa-lock';
-                    button.classList.add(...lockedColors);
+                    button.classList.add('bg-gradient-to-r', 'from-blue-500', 'to-purple-600', 'hover:from-blue-600', 'hover:to-purple-700');
                     
                     if (existingBadge) {
                         existingBadge.style.display = 'none';
@@ -623,7 +598,7 @@
             }
 
             // Show interstitial ad
-            function showInterstitialAd(button) {
+            function showInterstitialAd() {
                 return new Promise((resolve) => {
                     if (!adsgramReady || !AdController) {
                         console.log("⚠️ AdsGram not ready");
@@ -659,16 +634,18 @@
             // Start cooldown timer between ads
             function startCooldownTimer(button) {
                 const buttonTextEl = button.querySelector('span');
+                const originalIcon = button.querySelector('i').className;
                 let countdown = timerDuration;
-                buttonTextEl.textContent = `Please wait ${countdown}s`;
+                buttonTextEl.textContent = `Wait ${countdown}s`;
                 button.disabled = true;
                 
                 const timerInterval = setInterval(() => {
                     countdown--;
                     if (countdown > 0) {
-                        buttonTextEl.textContent = `Please wait ${countdown}s`;
+                        buttonTextEl.textContent = `Wait ${countdown}s`;
                     } else {
                         clearInterval(timerInterval);
+                        button.disabled = false;
                         updateButtonState(button);
                     }
                 }, 1000);
@@ -679,17 +656,19 @@
                 if (isAdInProgress) return;
                 
                 isAdInProgress = true;
-                currentProcessingButton = button;
                 button.disabled = true;
                 
                 const buttonTextEl = button.querySelector('span');
+                const buttonIconEl = button.querySelector('i');
                 const fileId = button.dataset.fileId;
                 const requiredCount = parseInt(button.dataset.requiredAds || 1);
+                const originalText = buttonTextEl.textContent;
+                const originalIcon = buttonIconEl.className;
                 
                 buttonTextEl.textContent = 'Loading ad...';
                 
                 try {
-                    const result = await showInterstitialAd(button);
+                    const result = await showInterstitialAd();
                     
                     if (result.done) {
                         let adCount = parseInt(localStorage.getItem('adCount_' + fileId) || 0);
@@ -702,28 +681,53 @@
                             const expiryTime = Date.now() + (unlockDuration * 60 * 1000);
                             localStorage.setItem('unlock_' + fileId, JSON.stringify({ expiryTime }));
                             showToast(`🎉 Unlocked for ${unlockDuration} minutes!`);
-                            updateButtonState(button);
                             
+                            // Update button to show Download Now
+                            button.disabled = false;
+                            buttonTextEl.textContent = 'Download Now';
+                            buttonIconEl.className = 'fas fa-download';
+                            button.classList.remove('from-blue-500', 'to-purple-600', 'hover:from-blue-600', 'hover:to-purple-700');
+                            button.classList.add('from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700');
+                            
+                            // Add timer badge
+                            let existingBadge = button.querySelector('.timer-badge');
+                            if (!existingBadge) {
+                                existingBadge = document.createElement('span');
+                                existingBadge.className = 'timer-badge';
+                                button.appendChild(existingBadge);
+                            }
+                            existingBadge.style.display = 'inline-block';
+                            
+                            startUnlockTimer(fileId, button);
+                            
+                            // Show the link popup
                             const url = button.dataset.url;
                             if (url) {
                                 showLinkPopup(url, fileId);
                             }
                         } else {
-                            updateButtonState(button);
+                            // Update button with new progress
+                            button.disabled = false;
+                            buttonTextEl.textContent = `Unlock (${adCount}/${requiredCount})`;
+                            buttonIconEl.className = 'fas fa-lock';
+                            
                             startCooldownTimer(button);
                         }
                     } else {
                         showToast('⏭️ Ad skipped. Watch full ad for progress.');
-                        updateButtonState(button);
+                        button.disabled = false;
+                        buttonTextEl.textContent = originalText;
+                        buttonIconEl.className = originalIcon;
                     }
                 } catch (err) {
                     console.error("Ad error:", err);
                     showToast('❌ Could not load ad. Please try again.');
-                    updateButtonState(button);
+                    button.disabled = false;
+                    buttonTextEl.textContent = originalText;
+                    buttonIconEl.className = originalIcon;
                 }
                 
                 isAdInProgress = false;
-                currentProcessingButton = null;
             }
 
             function handleAccessClick(e) {
@@ -852,12 +856,17 @@
                         card.dataset.title = file.title.toLowerCase();
                         card.dataset.description = (file.description || '').toLowerCase();
                         
+                        // Determine button classes based on unlock state
+                        const btnClasses = isUnlocked 
+                            ? 'bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700'
+                            : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700';
+                        
                         card.innerHTML = `
                             <img src="${file.thumbnailUrl}" alt="${file.title}" class="w-full aspect-video object-cover" onerror="this.src='https://placehold.co/400x225/e5e7eb/6b7280?text=File'">
                             <div class="p-4">
                                 <h3 class="text-lg font-bold text-gray-900 truncate" title="${file.title}">${file.title}</h3>
                                 <p class="text-gray-600 text-sm mt-1 h-10 overflow-hidden">${file.description || 'No description'}</p>
-                                <button data-file-id="${file.id}" data-url="${file.downloadUrl}" data-required-ads="${requiredAds}" class="access-btn w-full mt-4 py-2.5 px-4 rounded-lg text-white font-semibold shadow-md flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+                                <button data-file-id="${file.id}" data-url="${file.downloadUrl}" data-required-ads="${requiredAds}" class="access-btn w-full mt-4 py-2.5 px-4 rounded-lg text-white font-semibold shadow-md flex items-center justify-center gap-2 ${btnClasses}">
                                     <i class="fas ${isUnlocked ? 'fa-download' : 'fa-lock'}"></i>
                                     <span>${isUnlocked ? 'Download Now' : `Unlock (${adCount}/${requiredAds})`}</span>
                                 </button>
@@ -873,11 +882,9 @@
                             button.appendChild(badge);
                             startUnlockTimer(file.id, button);
                         }
-                    });
-                    
-                    // Attach event listeners
-                    document.querySelectorAll('.access-btn').forEach(btn => {
-                        btn.addEventListener('click', handleAccessClick);
+                        
+                        // Attach event listener
+                        button.addEventListener('click', handleAccessClick);
                     });
                     
                 } catch (error) {
