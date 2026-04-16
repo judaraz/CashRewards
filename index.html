@@ -8,13 +8,7 @@
     <title>File Downloader • Free Downloads</title>
 
     <style>
-        body {
-            background: #f9fafb;
-            min-height: 100vh;
-            margin: 0;
-            padding: 0;
-            color: #1f2937;
-        }
+        body { background: #f9fafb; min-height: 100vh; margin: 0; padding: 0; color: #1f2937; }
         #app { opacity: 1 !important; visibility: visible !important; }
         .loading-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; }
         .spinner { width: 50px; height: 50px; border: 3px solid rgba(59, 130, 246, 0.2); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
@@ -206,7 +200,7 @@
             let currentPopupLink = '', currentFileId = '', sliderInterval, currentSlide = 0;
             let AdController = null, allFiles = [], timerDuration = 10, unlockDuration = 10;
             let isAdInProgress = false, currentProcessingButton = null;
-            const unlockTimers = new Map(), fileCooldowns = new Map(), viewedFiles = new Set();
+            const unlockTimers = new Map(), viewedFiles = new Set();
 
             function showToast(message) {
                 const toast = document.getElementById('toast');
@@ -266,7 +260,11 @@
 
             function checkUnlockExpiry(fileId) {
                 const unlockData = JSON.parse(localStorage.getItem('unlock_' + fileId) || '{}');
-                if (unlockData.expiryTime && Date.now() > unlockData.expiryTime) { localStorage.removeItem('adCount_' + fileId); localStorage.removeItem('unlock_' + fileId); return false; }
+                if (unlockData.expiryTime && Date.now() > unlockData.expiryTime) { 
+                    localStorage.removeItem('adCount_' + fileId); 
+                    localStorage.removeItem('unlock_' + fileId); 
+                    return false; 
+                }
                 return unlockData.expiryTime && Date.now() <= unlockData.expiryTime;
             }
 
@@ -288,156 +286,310 @@
             }
 
             function updateButtonState(button) {
-                const fileId = button.dataset.fileId, requiredCount = parseInt(button.dataset.requiredAds || 1);
-                const isUnlocked = checkUnlockExpiry(fileId), adCount = parseInt(localStorage.getItem('adCount_' + fileId) || 0);
+                const fileId = button.dataset.fileId;
+                const requiredCount = parseInt(button.dataset.requiredAds || 1);
+                const isUnlocked = checkUnlockExpiry(fileId);
+                const adCount = parseInt(localStorage.getItem('adCount_' + fileId) || 0);
+                
                 button.disabled = false;
+                
                 let existingBadge = button.querySelector('.timer-badge');
+                if (existingBadge) existingBadge.remove();
+                
                 if (isUnlocked) {
                     button.innerHTML = '<i class="fas fa-download"></i><span>Download</span>';
-                    button.classList.add('from-green-400', 'to-green-600'); button.classList.remove('from-blue-500', 'to-purple-600');
-                    if (!existingBadge) { existingBadge = document.createElement('span'); existingBadge.className = 'timer-badge'; button.appendChild(existingBadge); }
-                    existingBadge.style.display = 'inline-block';
+                    button.classList.remove('from-blue-500', 'to-purple-600', 'hover:from-blue-600', 'hover:to-purple-700');
+                    button.classList.add('from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700');
+                    
+                    const badge = document.createElement('span');
+                    badge.className = 'timer-badge';
+                    button.appendChild(badge);
+                    
                     startUnlockTimer(fileId, button);
                 } else {
                     button.innerHTML = '<i class="fas fa-lock"></i><span>Unlock (' + adCount + '/' + requiredCount + ')</span>';
-                    button.classList.add('from-blue-500', 'to-purple-600'); button.classList.remove('from-green-400', 'to-green-600');
-                    if (existingBadge) existingBadge.style.display = 'none';
-                    if (unlockTimers.has(fileId)) { clearInterval(unlockTimers.get(fileId)); unlockTimers.delete(fileId); }
+                    button.classList.remove('from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700');
+                    button.classList.add('from-blue-500', 'to-purple-600', 'hover:from-blue-600', 'hover:to-purple-700');
+                    
+                    if (unlockTimers.has(fileId)) {
+                        clearInterval(unlockTimers.get(fileId));
+                        unlockTimers.delete(fileId);
+                    }
                 }
             }
 
             function startCooldownTimer(button) {
-                const buttonTextEl = button.querySelector('span'); let countdown = timerDuration;
+                const buttonTextEl = button.querySelector('span'); 
+                let countdown = timerDuration;
                 buttonTextEl.textContent = 'Wait ' + countdown + 's';
+                button.disabled = true;
+                
                 const timerInterval = setInterval(function() {
                     countdown--;
                     if (countdown > 0) buttonTextEl.textContent = 'Wait ' + countdown + 's';
-                    else { clearInterval(timerInterval); button.disabled = false; updateButtonState(button); }
+                    else { 
+                        clearInterval(timerInterval); 
+                        button.disabled = false; 
+                        updateButtonState(button); 
+                    }
                 }, 1000);
             }
 
             function showInterstitialAd(button) {
-                if (!AdController) { console.error('AdsGram not initialized'); showToast('❌ Ad service unavailable'); updateButtonState(button); return; }
-                isAdInProgress = true; currentProcessingButton = button;
-                const buttonTextEl = button.querySelector('span'), originalText = buttonTextEl.textContent;
+                if (!AdController) { 
+                    console.error('AdsGram not initialized'); 
+                    showToast('❌ Ad service unavailable'); 
+                    updateButtonState(button); 
+                    return; 
+                }
+                
+                isAdInProgress = true; 
+                currentProcessingButton = button;
+                
+                const buttonTextEl = button.querySelector('span');
+                const originalText = buttonTextEl.textContent;
                 buttonTextEl.textContent = 'Loading Ad...';
+                button.disabled = true;
+                
                 AdController.show().then(function(result) {
+                    console.log('Ad result:', result);
+                    
                     if (result.done) {
-                        const fileId = button.dataset.fileId, requiredCount = parseInt(button.dataset.requiredAds || 1);
+                        const fileId = button.dataset.fileId;
+                        const requiredCount = parseInt(button.dataset.requiredAds || 1);
                         let adCount = parseInt(localStorage.getItem('adCount_' + fileId) || 0);
-                        adCount++; localStorage.setItem('adCount_' + fileId, adCount);
+                        
+                        adCount++;
+                        localStorage.setItem('adCount_' + fileId, adCount);
+                        
                         showToast('✅ Ad completed! Progress: ' + adCount + '/' + requiredCount);
+                        
                         if (adCount >= requiredCount) {
                             const expiryTime = Date.now() + (unlockDuration * 60 * 1000);
                             localStorage.setItem('unlock_' + fileId, JSON.stringify({ expiryTime: expiryTime }));
                             showToast('🎉 Unlocked for ' + unlockDuration + ' minutes!');
+                            
                             updateButtonState(button);
-                            const url = button.dataset.url; if (url) showLinkPopup(url, fileId);
-                        } else { updateButtonState(button); startCooldownTimer(button); }
-                    } else { showToast('⏭️ Ad skipped. Watch full ad for progress.'); updateButtonState(button); }
-                    isAdInProgress = false; currentProcessingButton = null;
+                            
+                            const url = button.dataset.url;
+                            if (url) showLinkPopup(url, fileId);
+                        } else {
+                            updateButtonState(button);
+                            startCooldownTimer(button);
+                        }
+                    } else {
+                        showToast('⏭️ Ad skipped. Watch full ad for progress.');
+                        updateButtonState(button);
+                    }
+                    
+                    isAdInProgress = false;
+                    currentProcessingButton = null;
                 }).catch(function(error) {
-                    console.error('Ad error:', error); showToast('❌ Ad error. Try again.');
-                    updateButtonState(button); isAdInProgress = false; currentProcessingButton = null;
+                    console.error('Ad error:', error);
+                    showToast('❌ Ad error. Try again.');
+                    updateButtonState(button);
+                    isAdInProgress = false;
+                    currentProcessingButton = null;
                 });
             }
 
             function handleAccessClick(button) {
                 if (button.disabled || isAdInProgress) return;
-                const fileId = button.dataset.fileId, isUnlocked = checkUnlockExpiry(fileId);
-                if (isUnlocked) { const url = button.dataset.url; if (url) showLinkPopup(url, fileId); return; }
-                button.disabled = true; showInterstitialAd(button);
+                
+                const fileId = button.dataset.fileId;
+                const isUnlocked = checkUnlockExpiry(fileId);
+                
+                if (isUnlocked) {
+                    const url = button.dataset.url;
+                    if (url) showLinkPopup(url, fileId);
+                    return;
+                }
+                
+                showInterstitialAd(button);
             }
 
             function attachButtonListeners() {
                 document.querySelectorAll('.access-btn').forEach(function(btn) {
-                    const newBtn = btn.cloneNode(true); btn.parentNode.replaceChild(newBtn, btn);
-                    newBtn.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); handleAccessClick(this); });
+                    const newBtn = btn.cloneNode(true);
+                    btn.parentNode.replaceChild(newBtn, btn);
+                    newBtn.addEventListener('click', function(e) { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        handleAccessClick(this); 
+                    });
                 });
             }
 
             function loadSettings() {
                 return db.collection("settings").doc("general").get().then(function(docSnap) {
-                    if (docSnap.exists) { timerDuration = docSnap.data().timerDuration || 10; unlockDuration = docSnap.data().unlockDuration || 10; }
+                    if (docSnap.exists) { 
+                        timerDuration = docSnap.data().timerDuration || 10; 
+                        unlockDuration = docSnap.data().unlockDuration || 10; 
+                    }
                 }).catch(function(error) { console.error("Error loading settings:", error); });
             }
 
             function loadAllData() {
                 loadSettings().then(function() {
-                    return Promise.all([ db.collection("sliders").orderBy("createdAt", "desc").limit(10).get(), db.collection("files").orderBy("createdAt", "desc").limit(50).get() ]);
-                }).then(function(results) { renderSliders(results[0]); renderFiles(results[1]); setTimeout(attachButtonListeners, 100); })
-                .catch(function(error) { console.error("Error loading:", error); filesGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">Loading content...</p>'; });
+                    return Promise.all([ 
+                        db.collection("sliders").orderBy("createdAt", "desc").limit(10).get(), 
+                        db.collection("files").orderBy("createdAt", "desc").limit(50).get() 
+                    ]);
+                }).then(function(results) { 
+                    renderSliders(results[0]); 
+                    renderFiles(results[1]); 
+                    setTimeout(attachButtonListeners, 100); 
+                }).catch(function(error) { 
+                    console.error("Error loading:", error); 
+                    filesGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">Loading content...</p>'; 
+                });
             }
 
             function renderSliders(sliderSnapshot) {
-                sliderWrapper.innerHTML = ''; sliderDotsContainer.innerHTML = ''; const slides = [], sliderIds = [];
-                sliderSnapshot.forEach(function(doc) { slides.push(doc.data()); sliderIds.push(doc.id); });
+                sliderWrapper.innerHTML = ''; 
+                sliderDotsContainer.innerHTML = ''; 
+                const slides = [], sliderIds = [];
+                
+                sliderSnapshot.forEach(function(doc) { 
+                    slides.push(doc.data()); 
+                    sliderIds.push(doc.id); 
+                });
+                
                 if (slides.length > 0) {
                     slides.forEach(function(slide, index) {
-                        const slideEl = document.createElement('div'); slideEl.className = 'slider-item'; slideEl.dataset.sliderId = sliderIds[index];
-                        if (slide.linkUrl) slideEl.innerHTML = '<a href="' + slide.linkUrl + '" target="_blank" class="slider-link" data-slider-id="' + sliderIds[index] + '"><img src="' + slide.imageUrl + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/1280x400/e5e7eb/6b7280?text=File\'"></a>';
-                        else slideEl.innerHTML = '<img src="' + slide.imageUrl + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/1280x400/e5e7eb/6b7280?text=File\'">';
+                        const slideEl = document.createElement('div'); 
+                        slideEl.className = 'slider-item'; 
+                        slideEl.dataset.sliderId = sliderIds[index];
+                        
+                        if (slide.linkUrl) {
+                            slideEl.innerHTML = '<a href="' + slide.linkUrl + '" target="_blank" class="slider-link" data-slider-id="' + sliderIds[index] + '"><img src="' + slide.imageUrl + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/1280x400/e5e7eb/6b7280?text=File\'"></a>';
+                        } else {
+                            slideEl.innerHTML = '<img src="' + slide.imageUrl + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/1280x400/e5e7eb/6b7280?text=File\'">';
+                        }
                         sliderWrapper.appendChild(slideEl);
-                        const dotEl = document.createElement('div'); dotEl.className = 'slider-dot'; dotEl.dataset.index = index; sliderDotsContainer.appendChild(dotEl);
+                        
+                        const dotEl = document.createElement('div'); 
+                        dotEl.className = 'slider-dot'; 
+                        dotEl.dataset.index = index; 
+                        sliderDotsContainer.appendChild(dotEl);
                     });
-                    document.querySelectorAll('.slider-link').forEach(function(link) { link.addEventListener('click', function(e) { const sliderId = this.dataset.sliderId; if (sliderId) trackSliderView(sliderId); }); });
+                    
+                    document.querySelectorAll('.slider-link').forEach(function(link) { 
+                        link.addEventListener('click', function(e) { 
+                            const sliderId = this.dataset.sliderId; 
+                            if (sliderId) trackSliderView(sliderId); 
+                        }); 
+                    });
+                    
                     setupSlider(slides.length);
                 }
             }
 
             function renderFiles(filesSnapshot) {
-                filesGrid.innerHTML = ''; allFiles = [];
-                if (filesSnapshot.empty) { filesGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">No files available.</p>'; return; }
-                filesSnapshot.forEach(function(doc) { allFiles.push(Object.assign({ id: doc.id }, doc.data())); });
+                filesGrid.innerHTML = ''; 
+                allFiles = [];
+                
+                if (filesSnapshot.empty) { 
+                    filesGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">No files available.</p>'; 
+                    return; 
+                }
+                
+                filesSnapshot.forEach(function(doc) { 
+                    allFiles.push(Object.assign({ id: doc.id }, doc.data())); 
+                });
+                
                 allFiles.forEach(function(file) {
                     const card = document.createElement('div');
                     card.className = 'file-card glass-card rounded-xl overflow-hidden card-hover border border-gray-200';
-                    card.dataset.title = file.title.toLowerCase(); card.dataset.description = (file.description || '').toLowerCase(); card.id = 'card-' + file.id;
-                    const requiredAds = file.requiredAds || 1, isUnlocked = checkUnlockExpiry(file.id), adCount = parseInt(localStorage.getItem('adCount_' + file.id) || 0);
+                    card.dataset.title = file.title.toLowerCase(); 
+                    card.dataset.description = (file.description || '').toLowerCase(); 
+                    card.id = 'card-' + file.id;
+                    
+                    const requiredAds = file.requiredAds || 1;
+                    const isUnlocked = checkUnlockExpiry(file.id);
+                    const adCount = parseInt(localStorage.getItem('adCount_' + file.id) || 0);
+                    
                     let html = '<div class="relative aspect-video overflow-hidden">';
                     html += '<img src="' + file.thumbnailUrl + '" alt="' + file.title + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/400x225/e5e7eb/6b7280?text=File\'">';
                     html += '<div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>';
                     html += '<div class="absolute top-3 left-3"><span class="bg-gradient-to-r from-blue-500/90 to-purple-600/90 backdrop-blur-sm px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide text-white"><i class="fas fa-file mr-1"></i>FILE</span></div></div>';
                     html += '<div class="p-4"><h3 class="text-base font-bold text-gray-800 truncate mb-1">' + file.title + '</h3>';
                     html += '<p class="text-gray-500 text-xs line-clamp-2 mb-4 h-8">' + (file.description || 'Click to unlock and download') + '</p><div class="mt-2">';
-                    html += '<button data-file-id="' + file.id + '" data-url="' + file.downloadUrl + '" data-required-ads="' + requiredAds + '" class="access-btn w-full py-3 px-4 rounded-xl text-white text-sm font-bold premium-gradient flex items-center justify-center gap-2 shadow-lg">';
-                    if (isUnlocked) html += '<i class="fas fa-download"></i><span>Download</span>';
-                    else html += '<i class="fas fa-lock"></i><span>Unlock (' + adCount + '/' + requiredAds + ')</span>';
-                    html += '</button></div></div>';
-                    card.innerHTML = html; filesGrid.appendChild(card);
+                    
+                    if (isUnlocked) {
+                        html += '<button data-file-id="' + file.id + '" data-url="' + file.downloadUrl + '" data-required-ads="' + requiredAds + '" class="access-btn w-full py-3 px-4 rounded-xl text-white text-sm font-bold bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 flex items-center justify-center gap-2 shadow-lg">';
+                        html += '<i class="fas fa-download"></i><span>Download</span></button>';
+                    } else {
+                        html += '<button data-file-id="' + file.id + '" data-url="' + file.downloadUrl + '" data-required-ads="' + requiredAds + '" class="access-btn w-full py-3 px-4 rounded-xl text-white text-sm font-bold bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 flex items-center justify-center gap-2 shadow-lg">';
+                        html += '<i class="fas fa-lock"></i><span>Unlock (' + adCount + '/' + requiredAds + ')</span></button>';
+                    }
+                    
+                    html += '</div></div>';
+                    card.innerHTML = html; 
+                    filesGrid.appendChild(card);
+                    
                     const button = card.querySelector('.access-btn');
-                    if (isUnlocked) { const badge = document.createElement('span'); badge.className = 'timer-badge'; button.appendChild(badge); startUnlockTimer(file.id, button); }
+                    if (isUnlocked) {
+                        const badge = document.createElement('span');
+                        badge.className = 'timer-badge';
+                        button.appendChild(badge);
+                        startUnlockTimer(file.id, button);
+                    }
                 });
             }
 
             function setupSlider(slideCount) {
-                if (slideCount <= 1) { if (slideCount === 1) { const dot = document.querySelector('.slider-dot'); if (dot) dot.classList.add('active'); } return; }
+                if (slideCount <= 1) { 
+                    if (slideCount === 1) { 
+                        const dot = document.querySelector('.slider-dot'); 
+                        if (dot) dot.classList.add('active'); 
+                    } 
+                    return; 
+                }
+                
                 const dots = document.querySelectorAll('.slider-dot');
+                
                 function goToSlide(index) {
                     currentSlide = (index + slideCount) % slideCount;
                     sliderWrapper.style.transform = 'translateX(-' + (currentSlide * 100) + '%)';
                     dots.forEach(function(dot) { dot.classList.remove('active'); });
                     if (dots[currentSlide]) dots[currentSlide].classList.add('active');
                 }
+                
                 if (sliderInterval) clearInterval(sliderInterval);
                 sliderInterval = setInterval(function() { goToSlide(currentSlide + 1); }, 3000);
-                dots.forEach(function(dot) { dot.addEventListener('click', function(e) { goToSlide(parseInt(e.target.dataset.index)); }); });
+                
+                dots.forEach(function(dot) { 
+                    dot.addEventListener('click', function(e) { 
+                        goToSlide(parseInt(e.target.dataset.index)); 
+                    }); 
+                });
+                
                 goToSlide(0);
             }
 
             function handleSearch() {
-                const term = searchInput.value.toLowerCase(); let visible = 0;
+                const term = searchInput.value.toLowerCase(); 
+                let visible = 0;
+                
                 document.querySelectorAll('.file-card').forEach(function(card) {
                     const title = card.dataset.title, desc = card.dataset.description;
-                    if (title.includes(term) || desc.includes(term)) { card.style.display = 'block'; visible++; }
-                    else { card.style.display = 'none'; }
+                    if (title.includes(term) || desc.includes(term)) { 
+                        card.style.display = 'block'; 
+                        visible++; 
+                    } else { 
+                        card.style.display = 'none'; 
+                    }
                 });
+                
                 if (noResultsMessage) noResultsMessage.classList.toggle('hidden', visible > 0);
             }
 
             searchInput.addEventListener('input', handleSearch);
             loadAllData();
             initAdsGram();
+            setTimeout(initAdsGram, 1000);
+            setTimeout(initAdsGram, 2000);
         })();
     </script>
 </body>
