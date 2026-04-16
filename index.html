@@ -83,6 +83,21 @@
     <div id="toast" class="fixed bottom-5 right-5 bg-gray-900 text-white py-3 px-5 rounded-lg shadow-2xl opacity-0 transform translate-y-10 transition-all duration-500">
         <p id="toast-message"></p>
     </div>
+    
+    <!-- Language Selection Modal -->
+    <div id="language-modal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg shadow-2xl text-center fade-in relative">
+            <button id="close-language-modal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 transition-colors">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+            <h2 class="text-2xl font-bold mb-6">Choose Your Language</h2>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <button class="lang-btn px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors" data-lang="en">English</button>
+                <button class="lang-btn px-6 py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition-colors" data-lang="hi">हिन्दी</button>
+                <button class="lang-btn px-6 py-3 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-colors" data-lang="bn">বাংলা</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Footer with Ad Slot 3 -->
     <footer class="bg-gray-100 py-6 mt-10">
@@ -115,6 +130,8 @@
         const filesGrid = document.getElementById('files-grid');
         const searchInput = document.getElementById('searchInput');
         const noResultsMessage = document.getElementById('no-results');
+        const languageModal = document.getElementById('language-modal');
+        const closeLanguageModalBtn = document.getElementById('close-language-modal');
 
         let sliderInterval;
         let currentSlide = 0;
@@ -223,6 +240,7 @@
                 const key = elem.getAttribute('data-key-placeholder');
                 if (translations[lang][key]) elem.placeholder = translations[lang][key];
             });
+            languageModal.classList.add('hidden');
             loadUserPageData();
         }
 
@@ -547,12 +565,35 @@
             if (savedLang && translations[savedLang]) {
                 applyLanguage(savedLang);
             } else {
+                languageModal.classList.remove('hidden');
+            }
+        });
+
+        // Close modal when clicking the X button
+        closeLanguageModalBtn.addEventListener('click', () => {
+            languageModal.classList.add('hidden');
+            // Apply default English if user closes without selecting
+            if (!localStorage.getItem('userLanguage')) {
                 applyLanguage('en');
+            }
+        });
+
+        // Close modal when clicking outside (on the overlay)
+        languageModal.addEventListener('click', (e) => {
+            if (e.target === languageModal) {
+                languageModal.classList.add('hidden');
+                // Apply default English if user closes without selecting
+                if (!localStorage.getItem('userLanguage')) {
+                    applyLanguage('en');
+                }
             }
         });
 
         filesGrid.addEventListener('click', handleDownloadClick);
         searchInput.addEventListener('input', handleSearch);
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', () => applyLanguage(btn.dataset.lang));
+        });
     </script>
 </body>
 </html>
