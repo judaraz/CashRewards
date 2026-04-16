@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- AdsGram SDK - Correct URL from documentation -->
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         /* Custom styles for animations and aesthetics */
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -95,7 +97,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
                 apiKey: "AIzaSyCPJR-Zkkkh4Y-aQQ8H1J7N2Edo0HWM14k",
@@ -109,6 +111,19 @@
         
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+
+        // Enable offline persistence for better Telegram compatibility
+        try {
+            enableIndexedDbPersistence(db).catch((err) => {
+                if (err.code === 'failed-precondition') {
+                    console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+                } else if (err.code === 'unimplemented') {
+                    console.warn('The current browser does not support all features required for persistence');
+                }
+            });
+        } catch (e) {
+            console.warn('Persistence not enabled:', e);
+        }
 
         const sliderWrapper = document.getElementById('slider-wrapper');
         const sliderDotsContainer = document.getElementById('slider-dots');
@@ -128,6 +143,14 @@
         let currentProcessingButton = null;
         // Store active timers
         const unlockTimers = new Map();
+        
+        // Telegram Web App
+        let tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            console.log('✅ Telegram WebApp initialized');
+        }
 
         const translations = {
             en: { 
@@ -313,8 +336,9 @@
             
             try {
                 console.log('Fetching files from Firestore...');
-                const q = query(collection(db, "files"), orderBy("createdAt", "desc"));
-                const filesSnapshot = await getDocs(q);
+                // Use a simpler query without orderBy first to test
+                const filesRef = collection(db, "files");
+                const filesSnapshot = await getDocs(filesRef);
                 console.log('Files fetched:', filesSnapshot.size);
                 filesGrid.innerHTML = '';
                 if (filesSnapshot.empty) {
@@ -323,11 +347,14 @@
                 }
                 const files = [];
                 filesSnapshot.forEach(doc => files.push({ id: doc.id, ...doc.data() }));
+                // Sort manually if needed
+                files.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                
                 files.forEach(file => {
                     const card = document.createElement('div');
                     card.className = 'file-card bg-white rounded-xl shadow-md overflow-hidden transform hover:-translate-y-2 transition-transform duration-300 hover:shadow-xl';
-                    card.dataset.title = file.title.toLowerCase();
-                    card.dataset.description = file.description.toLowerCase();
+                    card.dataset.title = (file.title || '').toLowerCase();
+                    card.dataset.description = (file.description || '').toLowerCase();
                     card.innerHTML = `
                         <img src="${file.thumbnailUrl}" alt="${file.title}" class="w-full aspect-video object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x225/cccccc/ffffff?text=Image+Not+Found';">
                         <div class="p-4">
@@ -345,7 +372,7 @@
                 });
             } catch (error) {
                 console.error("Error loading files:", error);
-                filesGrid.innerHTML = `<p class="col-span-full text-center text-red-500">${getText('files_error')}</p>`;
+                filesGrid.innerHTML = `<p class="col-span-full text-center text-red-500">${getText('files_error')}<br><small>${error.message}</small></p>`;
             }
         }
 
@@ -450,7 +477,12 @@
             
             if (isUnlocked) {
                 showToast('toast_download_starting');
-                window.open(downloadUrl, '_blank');
+                // Use Telegram openLink if available
+                if (tg && tg.openLink) {
+                    tg.openLink(downloadUrl);
+                } else {
+                    window.open(downloadUrl, '_blank');
+                }
                 return;
             }
             
@@ -474,7 +506,6 @@
                 console.log('Ad result:', result);
                 
                 if (result.done) {
-                    // Ad watched completely (Rewarded) or closed after watching (Interstitial)
                     const fileId = button.dataset.id;
                     const requiredCount = parseInt(button.dataset.requiredAds);
                     let adCount = parseInt(localStorage.getItem(`adCount_${fileId}`) || 0);
@@ -494,7 +525,6 @@
                         startCooldownTimer(button);
                     }
                 } else {
-                    // Ad was skipped or not completed
                     showToast('ad_skipped');
                     updateButtonState(button);
                 }
@@ -544,16 +574,36 @@
         window.addEventListener('load', () => {
             initAdsGram();
             
-            // Check for saved language or default to English
-            const savedLang = localStorage.getItem('userLanguage');
-            if (savedLang && translations[savedLang]) {
-                applyLanguage(savedLang);
+            // Set theme based on Telegram
+            if (tg) {
+                if (tg.colorScheme === 'dark') {
+                    document.body.classList.add('dark');
+                }
+                // Set language from Telegram if available
+                const userLang = tg.initDataUnsafe?.user?.language_code || 'en';
+                if (translations[userLang]) {
+                    applyLanguage(userLang);
+                } else {
+                    const savedLang = localStorage.getItem('userLanguage');
+                    if (savedLang && translations[savedLang]) {
+                        applyLanguage(savedLang);
+                    } else {
+                        applyLanguage('en');
+                    }
+                }
             } else {
-                applyLanguage('en');
+                const savedLang = localStorage.getItem('userLanguage');
+                if (savedLang && translations[savedLang]) {
+                    applyLanguage(savedLang);
+                } else {
+                    applyLanguage('en');
+                }
             }
             
-            // Load data after language is applied
-            loadUserPageData();
+            // Load data with a slight delay to ensure Firebase is ready
+            setTimeout(() => {
+                loadUserPageData();
+            }, 100);
         });
 
         filesGrid.addEventListener('click', handleDownloadClick);
