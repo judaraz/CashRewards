@@ -7,7 +7,6 @@
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
     <title>File Downloader • Free Downloads</title>
 
-    <!-- Load critical CSS first -->
     <style>
         body {
             background: #f9fafb;
@@ -16,528 +15,170 @@
             padding: 0;
             color: #1f2937;
         }
-        
-        #app {
-            opacity: 1 !important;
-            visibility: visible !important;
-        }
-        
-        .loading-indicator {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 9999;
-        }
-        
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(59, 130, 246, 0.2);
-            border-top-color: #3b82f6;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        #app { opacity: 1 !important; visibility: visible !important; }
+        .loading-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; }
+        .spinner { width: 50px; height: 50px; border: 3px solid rgba(59, 130, 246, 0.2); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
     
-    <!-- Load Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Load Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
-    <!-- AdsGram SDK -->
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
-        
-        * {
-            font-family: 'Inter', sans-serif;
-        }
-        
-        body {
-            scrollbar-width: none;
-        }
-        
-        body::-webkit-scrollbar {
-            display: none;
-        }
-        
-        @keyframes fadeIn { 
-            from { opacity: 0; } 
-            to { opacity: 1; } 
-        }
-        
-        @keyframes slideUp { 
-            from { opacity: 0; transform: translateY(30px); } 
-            to { opacity: 1; transform: translateY(0); } 
-        }
-        
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), 0 0 40px rgba(147, 51, 234, 0.1); }
-            50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.5), 0 0 60px rgba(147, 51, 234, 0.2); }
-        }
-        
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-        
+        * { font-family: 'Inter', sans-serif; }
+        body { scrollbar-width: none; }
+        body::-webkit-scrollbar { display: none; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); } 50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.5); } }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         .fade-in { animation: fadeIn 1s ease-out forwards; }
         .slide-up { animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
         .animation-delay-200 { animation-delay: 0.2s; }
         .animation-delay-400 { animation-delay: 0.4s; }
-        .animation-delay-600 { animation-delay: 0.6s; }
-        
-        .slider-container { 
-            position: relative; 
-            overflow: hidden;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        
-        .slider-wrapper { 
-            display: flex; 
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); 
-        }
-        
-        .slider-item { 
-            min-width: 100%; 
-            box-sizing: border-box; 
-        }
-        
-        .slider-dots { 
-            position: absolute; 
-            bottom: 12px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            display: flex; 
-            gap: 8px;
-            z-index: 10;
-        }
-        
-        .slider-dot { 
-            width: 8px; 
-            height: 8px; 
-            border-radius: 4px; 
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            cursor: pointer; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .slider-dot.active { 
-            width: 24px;
-            background: linear-gradient(90deg, #3b82f6, #9333ea);
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-        }
-        
-        .glass-card {
-            background: white;
-            border: 1px solid rgba(59, 130, 246, 0.15);
-        }
-        
-        .glass-header {
-            background: linear-gradient(135deg, #3b82f6, #9333ea);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .premium-gradient {
-            background: linear-gradient(135deg, #3b82f6 0%, #9333ea 50%, #3b82f6 100%);
-            background-size: 200% 200%;
-            animation: gradient-shift 3s ease infinite;
-        }
-        
-        @keyframes gradient-shift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-        
-        .card-hover {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .card-hover:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-        
-        .skeleton {
-            background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-        }
-        
-        .access-btn {
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .access-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .badge-premium {
-            background: linear-gradient(135deg, #3b82f6, #9333ea);
-            clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);
-        }
-        
-        .badge-hot {
-            background: linear-gradient(90deg, #ef4444, #f97316);
-            animation: pulse-glow 2s infinite;
-        }
-        
-        .search-input {
-            background: white;
-            border: 1px solid rgba(59, 130, 246, 0.2);
-        }
-        
-        .search-input:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
-        }
-        
-        .toast-sexy {
-            background: #1f2937;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-        }
-        
-        .glow-text {
-            text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
-        }
-        
-        .overlay-gradient {
-            background: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 100%);
-        }
-
-        .timer-badge {
-            background: linear-gradient(135deg, #3b82f6, #9333ea);
-            color: white;
-            font-size: 0.7rem;
-            padding: 0.2rem 0.5rem;
-            border-radius: 9999px;
-            margin-left: 0.5rem;
-        }
-
-        /* POPUP STYLES */
-        .popup-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            padding: 16px;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.2s ease, visibility 0.2s ease;
-        }
-        
-        .popup-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-        
-        .popup-card {
-            background: white;
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 20px;
-            width: 100%;
-            max-width: 420px;
-            padding: 24px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            transform: scale(0.95);
-            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        
-        .popup-overlay.active .popup-card {
-            transform: scale(1);
-        }
-        
-        .popup-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .popup-title {
-            font-weight: 700;
-            font-size: 1.5rem;
-            background: linear-gradient(135deg, #3b82f6, #9333ea);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-        
-        .popup-close {
-            width: 36px; height: 36px;
-            border-radius: 50%;
-            background: #f3f4f6;
-            border: 1px solid #e5e7eb;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: #6b7280;
-        }
-        
-        .popup-close:hover {
-            background: #e5e7eb;
-            color: #374151;
-            border-color: #3b82f6;
-        }
-        
-        .link-preview-box {
-            background: #f9fafb;
-            border-radius: 12px;
-            padding: 16px;
-            border: 1px dashed #d1d5db;
-            margin-bottom: 24px;
-            word-break: break-all;
-        }
-        
-        .link-text {
-            font-size: 0.9rem;
-            color: #374151;
-            font-family: monospace;
-        }
-        
-        .popup-actions {
-            display: flex;
-            gap: 12px;
-        }
-        
-        .popup-btn {
-            flex: 1;
-            padding: 14px 10px;
-            border-radius: 40px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.2s;
-            cursor: pointer;
-            border: none;
-            font-size: 1rem;
-        }
-        
-        .btn-copy {
-            background: #f3f4f6;
-            border: 1px solid #e5e7eb;
-            color: #374151;
-        }
-        
-        .btn-copy:hover {
-            background: #e5e7eb;
-            border-color: #3b82f6;
-        }
-        
-        .btn-open {
-            background: linear-gradient(135deg, #3b82f6, #9333ea);
-            color: white;
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
-        }
-        
-        .btn-open:hover {
-            filter: brightness(1.1);
-            transform: scale(1.02);
-        }
+        .slider-container { position: relative; overflow: hidden; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .slider-wrapper { display: flex; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .slider-item { min-width: 100%; box-sizing: border-box; }
+        .slider-dots { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 10; }
+        .slider-dot { width: 8px; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.6); backdrop-filter: blur(4px); cursor: pointer; transition: all 0.3s; }
+        .slider-dot.active { width: 24px; background: linear-gradient(90deg, #3b82f6, #9333ea); }
+        .glass-card { background: white; border: 1px solid rgba(59, 130, 246, 0.15); }
+        .glass-header { background: linear-gradient(135deg, #3b82f6, #9333ea); }
+        .premium-gradient { background: linear-gradient(135deg, #3b82f6 0%, #9333ea 50%, #3b82f6 100%); background-size: 200% 200%; animation: gradient-shift 3s ease infinite; }
+        @keyframes gradient-shift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .card-hover { transition: all 0.3s; }
+        .card-hover:hover { transform: translateY(-6px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .skeleton { background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        .access-btn { position: relative; overflow: hidden; transition: all 0.3s ease; cursor: pointer; }
+        .access-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .badge-premium { background: linear-gradient(135deg, #3b82f6, #9333ea); clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%); }
+        .badge-hot { background: linear-gradient(90deg, #ef4444, #f97316); animation: pulse-glow 2s infinite; }
+        .search-input { background: white; border: 1px solid rgba(59, 130, 246, 0.2); }
+        .search-input:focus { border-color: #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.3); outline: none; }
+        .toast-sexy { background: #1f2937; border: 1px solid rgba(59, 130, 246, 0.3); box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .overlay-gradient { background: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 100%); }
+        .timer-badge { background: linear-gradient(135deg, #3b82f6, #9333ea); color: white; font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 9999px; margin-left: 0.5rem; }
+        .popup-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 16px; opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; }
+        .popup-overlay.active { opacity: 1; visibility: visible; }
+        .popup-card { background: white; border-radius: 20px; width: 100%; max-width: 420px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); transform: scale(0.95); transition: transform 0.2s; }
+        .popup-overlay.active .popup-card { transform: scale(1); }
+        .popup-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .popup-title { font-weight: 700; font-size: 1.5rem; background: linear-gradient(135deg, #3b82f6, #9333ea); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .popup-close { width: 36px; height: 36px; border-radius: 50%; background: #f3f4f6; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #6b7280; }
+        .popup-close:hover { background: #e5e7eb; color: #374151; }
+        .link-preview-box { background: #f9fafb; border-radius: 12px; padding: 16px; border: 1px dashed #d1d5db; margin-bottom: 24px; word-break: break-all; }
+        .link-text { font-size: 0.9rem; color: #374151; font-family: monospace; }
+        .popup-actions { display: flex; gap: 12px; }
+        .popup-btn { flex: 1; padding: 14px 10px; border-radius: 40px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border: none; font-size: 1rem; }
+        .btn-copy { background: #f3f4f6; color: #374151; }
+        .btn-copy:hover { background: #e5e7eb; }
+        .btn-open { background: linear-gradient(135deg, #3b82f6, #9333ea); color: white; }
+        .btn-open:hover { filter: brightness(1.1); }
     </style>
 </head>
 <body class="text-gray-800">
 
-    <!-- Loading indicator that shows immediately -->
-    <div id="initialLoading" class="loading-indicator">
-        <div class="spinner"></div>
-    </div>
+    <div id="initialLoading" class="loading-indicator"><div class="spinner"></div></div>
 
     <div id="app" class="container mx-auto p-4 md:p-6 max-w-7xl" style="display: none;">
-        <!-- Header -->
         <header class="relative glass-header p-6 md:p-8 rounded-2xl shadow-2xl mb-8 fade-in text-white">
             <div class="absolute top-0 right-0 p-4">
                 <div class="badge-hot px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider">
                     <i class="fas fa-download mr-2"></i>FREE DOWNLOADS
                 </div>
             </div>
-            
             <div class="flex items-center gap-4 mb-4">
                 <div class="w-12 h-12 md:w-16 md:h-16 rounded-2xl premium-gradient flex items-center justify-center">
                     <i class="fas fa-cloud-download-alt text-white text-xl md:text-2xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-4xl md:text-5xl font-black">
-                        <span class="text-white glow-text">
-                            File Downloader
-                        </span>
-                    </h1>
+                    <h1 class="text-4xl md:text-5xl font-black text-white">File Downloader</h1>
                     <p class="text-blue-100 text-sm md:text-base flex items-center gap-2">
-                        <i class="fas fa-lock text-white text-xs"></i>
-                        <span>Watch Ads • Unlock • Download Free</span>
+                        <i class="fas fa-lock text-white text-xs"></i><span>Watch Ads • Unlock • Download Free</span>
                     </p>
                 </div>
             </div>
-            
             <p class="text-blue-50 text-base md:text-lg mb-6 max-w-2xl">
-                <i class="fas fa-play-circle text-white mr-2"></i>
-                Watch short ads to unlock your downloads • Files ready instantly
+                <i class="fas fa-play-circle text-white mr-2"></i>Watch short ads to unlock your downloads
             </p>
-            
             <div class="max-w-2xl">
                 <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <i class="fas fa-search text-blue-400"></i>
-                    </div>
-                    <input type="text" id="searchInput" 
-                           placeholder="Search files..." 
-                           class="search-input w-full p-4 pl-12 pr-20 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none text-base">
-                    <div class="absolute inset-y-0 right-2 flex items-center">
-                        <span class="text-xs text-gray-500 px-3 py-1.5 bg-gray-100 rounded-xl">
-                            <i class="fas fa-keyboard mr-1"></i>Search
-                        </span>
-                    </div>
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><i class="fas fa-search text-blue-400"></i></div>
+                    <input type="text" id="searchInput" placeholder="Search files..." class="search-input w-full p-4 pl-12 pr-20 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none text-base">
+                    <div class="absolute inset-y-0 right-2 flex items-center"><span class="text-xs text-gray-500 px-3 py-1.5 bg-gray-100 rounded-xl"><i class="fas fa-keyboard mr-1"></i>Search</span></div>
                 </div>
             </div>
         </header>
 
-        <!-- Slider Section -->
         <div class="mb-10 slide-up animation-delay-200">
             <div class="flex items-center gap-3 mb-4">
                 <div class="w-1.5 h-6 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
-                <h2 class="text-xl font-bold text-gray-800">
-                    <i class="fas fa-star text-blue-500 mr-2"></i>
-                    Featured Files
-                </h2>
+                <h2 class="text-xl font-bold text-gray-800"><i class="fas fa-star text-blue-500 mr-2"></i>Featured Files</h2>
             </div>
-            
             <div id="slider" class="slider-container w-full h-52 md:h-96 bg-gray-200">
-                <div id="slider-wrapper" class="slider-wrapper h-full">
-                    <div class="slider-item skeleton w-full h-full"></div>
-                </div>
+                <div id="slider-wrapper" class="slider-wrapper h-full"><div class="slider-item skeleton w-full h-full"></div></div>
                 <div id="slider-dots" class="slider-dots"></div>
-                <div class="absolute top-4 left-4 z-10">
-                    <span class="badge-premium px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white">
-                        <i class="fas fa-fire mr-1"></i> HOT
-                    </span>
-                </div>
+                <div class="absolute top-4 left-4 z-10"><span class="badge-premium px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white"><i class="fas fa-fire mr-1"></i>HOT</span></div>
                 <div class="absolute inset-0 overlay-gradient pointer-events-none"></div>
             </div>
         </div>
 
-        <!-- Files Grid -->
         <div class="slide-up animation-delay-400">
             <div class="flex items-center justify-between mb-5">
                 <div class="flex items-center gap-3">
                     <div class="w-1.5 h-6 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
-                    <h2 class="text-2xl font-black text-gray-800">
-                        <i class="fas fa-folder-open text-blue-500 mr-2"></i>
-                        Available Files
-                    </h2>
+                    <h2 class="text-2xl font-black text-gray-800"><i class="fas fa-folder-open text-blue-500 mr-2"></i>Available Files</h2>
                 </div>
-                <span class="text-xs text-gray-500 px-3 py-1.5 glass-card rounded-full border border-gray-200">
-                    <i class="fas fa-lock mr-1"></i>Unlock with ads
-                </span>
+                <span class="text-xs text-gray-500 px-3 py-1.5 glass-card rounded-full border border-gray-200"><i class="fas fa-lock mr-1"></i>Unlock with ads</span>
             </div>
-            
-            <div id="files-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-                <!-- Content will be loaded here -->
-            </div>
-            
+            <div id="files-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"></div>
             <div id="no-results" class="hidden text-center py-16">
-                <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl glass-card border border-gray-200 mb-4">
-                    <i class="fas fa-search text-3xl text-gray-400"></i>
-                </div>
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl glass-card border border-gray-200 mb-4"><i class="fas fa-search text-3xl text-gray-400"></i></div>
                 <p class="text-xl text-gray-500 font-semibold">No files found</p>
                 <p class="text-sm text-gray-400 mt-2">Try searching for something else</p>
             </div>
         </div>
     </div>
 
-    <!-- Popup -->
     <div id="linkPopup" class="popup-overlay">
         <div class="popup-card">
             <div class="popup-header">
                 <span class="popup-title"><i class="fas fa-link mr-2"></i>Link Ready</span>
-                <div class="popup-close" id="closePopupBtn">
-                    <i class="fas fa-times"></i>
-                </div>
+                <div class="popup-close" id="closePopupBtn"><i class="fas fa-times"></i></div>
             </div>
-            <div class="link-preview-box">
-                <div class="link-text" id="popupLinkDisplay">https://</div>
-            </div>
+            <div class="link-preview-box"><div class="link-text" id="popupLinkDisplay">https://</div></div>
             <div class="popup-actions">
-                <button class="popup-btn btn-copy" id="copyLinkBtn">
-                    <i class="far fa-copy"></i> Copy
-                </button>
-                <button class="popup-btn btn-open" id="openLinkBtn">
-                    <i class="fas fa-external-link-alt"></i> Open
-                </button>
+                <button class="popup-btn btn-copy" id="copyLinkBtn"><i class="far fa-copy"></i>Copy</button>
+                <button class="popup-btn btn-open" id="openLinkBtn"><i class="fas fa-external-link-alt"></i>Open</button>
             </div>
         </div>
     </div>
 
-    <!-- Toast -->
     <div id="toast" class="fixed bottom-5 right-5 toast-sexy py-4 px-6 rounded-xl opacity-0 transform translate-y-10 transition-all duration-500 z-50 text-white">
-        <div class="flex items-center gap-3">
-            <i class="fas fa-check-circle text-blue-400 text-lg"></i>
-            <p id="toast-message" class="text-sm font-medium"></p>
-        </div>
+        <div class="flex items-center gap-3"><i class="fas fa-check-circle text-blue-400 text-lg"></i><p id="toast-message" class="text-sm font-medium"></p></div>
     </div>
 
-    <!-- Footer -->
     <footer class="mt-12 py-8 border-t border-gray-200">
         <div class="container mx-auto px-4">
             <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-center gap-2">
-                    <i class="fas fa-cloud-download-alt text-blue-500"></i>
-                    <span class="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent font-bold">File Downloader</span>
-                </div>
-                <p class="text-gray-500 text-xs">
-                    © 2025 File Downloader • All Rights Reserved
-                </p>
-                <div class="flex gap-3">
-                    <i class="fas fa-shield-alt text-gray-400"></i>
-                    <i class="fas fa-lock text-gray-400"></i>
-                    <i class="fas fa-download text-gray-400"></i>
-                </div>
+                <div class="flex items-center gap-2"><i class="fas fa-cloud-download-alt text-blue-500"></i><span class="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent font-bold">File Downloader</span></div>
+                <p class="text-gray-500 text-xs">© 2025 File Downloader • All Rights Reserved</p>
+                <div class="flex gap-3"><i class="fas fa-shield-alt text-gray-400"></i><i class="fas fa-lock text-gray-400"></i><i class="fas fa-download text-gray-400"></i></div>
             </div>
         </div>
     </footer>
 
-    <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <script>
-        // Show app after a short delay
-        setTimeout(function() {
-            document.getElementById('initialLoading').style.display = 'none';
-            document.getElementById('app').style.display = 'block';
-        }, 500);
+        setTimeout(function() { document.getElementById('initialLoading').style.display = 'none'; document.getElementById('app').style.display = 'block'; }, 500);
 
-        // Main application code
         (function() {
-            // Check if we're in Telegram
             const isTelegram = navigator.userAgent.includes('Telegram');
-            console.log('Running in Telegram:', isTelegram);
             
-            // Initialize Firebase
             const firebaseConfig = {
                 apiKey: "AIzaSyCPJR-Zkkkh4Y-aQQ8H1J7N2Edo0HWM14k",
                 authDomain: "download-cce9e.firebaseapp.com",
@@ -556,563 +197,247 @@
             const filesGrid = document.getElementById('files-grid');
             const searchInput = document.getElementById('searchInput');
             const noResultsMessage = document.getElementById('no-results');
-
             const popupOverlay = document.getElementById('linkPopup');
             const popupLinkDisplay = document.getElementById('popupLinkDisplay');
             const closePopupBtn = document.getElementById('closePopupBtn');
             const copyLinkBtn = document.getElementById('copyLinkBtn');
             const openLinkBtn = document.getElementById('openLinkBtn');
 
-            let currentPopupLink = '';
-            let currentFileId = '';
-            let sliderInterval;
-            let currentSlide = 0;
-            let AdController = null;
-            let allFiles = [];
-            let timerDuration = 10;
-            let unlockDuration = 10;
-            let isAdInProgress = false;
-            
-            const unlockTimers = new Map();
-            const viewedFiles = new Set();
+            let currentPopupLink = '', currentFileId = '', sliderInterval, currentSlide = 0;
+            let AdController = null, allFiles = [], timerDuration = 10, unlockDuration = 10;
+            let isAdInProgress = false, currentProcessingButton = null;
+            const unlockTimers = new Map(), fileCooldowns = new Map(), viewedFiles = new Set();
 
             function showToast(message) {
                 const toast = document.getElementById('toast');
                 document.getElementById('toast-message').textContent = message;
                 toast.classList.remove('opacity-0', 'translate-y-10');
-                setTimeout(function() {
-                    toast.classList.add('opacity-0', 'translate-y-10');
-                }, 2000);
+                setTimeout(function() { toast.classList.add('opacity-0', 'translate-y-10'); }, 2000);
             }
 
             async function trackFileView(fileId) {
                 if (!fileId || viewedFiles.has(fileId)) return;
-                try {
-                    const fileRef = db.collection("files").doc(fileId);
-                    await fileRef.update({
-                        views: firebase.firestore.FieldValue.increment(1)
-                    });
-                    viewedFiles.add(fileId);
-                    console.log(`✅ File view tracked: ${fileId}`);
-                } catch (error) {
-                    console.error('Error tracking file view:', error);
-                }
+                try { const fileRef = db.collection("files").doc(fileId); await fileRef.update({ views: firebase.firestore.FieldValue.increment(1) }); viewedFiles.add(fileId); } catch (error) {}
             }
 
             async function trackSliderView(sliderId) {
                 if (!sliderId) return;
-                try {
-                    const sliderRef = db.collection("sliders").doc(sliderId);
-                    await sliderRef.update({
-                        views: firebase.firestore.FieldValue.increment(1)
-                    });
-                    console.log(`✅ Slider view tracked: ${sliderId}`);
-                } catch (error) {
-                    console.error('Error tracking slider view:', error);
-                }
+                try { const sliderRef = db.collection("sliders").doc(sliderId); await sliderRef.update({ views: firebase.firestore.FieldValue.increment(1) }); } catch (error) {}
             }
 
             function showLinkPopup(link, fileId) {
                 if (!link) return;
-                currentPopupLink = link;
-                currentFileId = fileId;
-                popupLinkDisplay.textContent = link;
-                popupOverlay.classList.add('active');
+                currentPopupLink = link; currentFileId = fileId;
+                popupLinkDisplay.textContent = link; popupOverlay.classList.add('active');
                 if (fileId) trackFileView(fileId);
             }
 
-            function hidePopup() {
-                popupOverlay.classList.remove('active');
-                currentFileId = '';
-            }
+            function hidePopup() { popupOverlay.classList.remove('active'); currentFileId = ''; }
 
             function copyToClipboard(text) {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(text).then(function() {
-                        showToast('🔗 Link copied to clipboard');
-                    }).catch(function() {
-                        fallbackCopy(text);
-                    });
-                } else {
-                    fallbackCopy(text);
-                }
+                if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(function() { showToast('🔗 Link copied to clipboard'); }).catch(function() { fallbackCopy(text); }); }
+                else { fallbackCopy(text); }
             }
             
             function fallbackCopy(text) {
-                const textarea = document.createElement('textarea');
-                textarea.value = text;
-                textarea.style.position = 'fixed';
-                textarea.style.opacity = '0';
-                document.body.appendChild(textarea);
-                textarea.select();
-                try {
-                    document.execCommand('copy');
-                    showToast('🔗 Link copied to clipboard');
-                } catch (err) {
-                    showToast('❌ Failed to copy');
-                }
+                const textarea = document.createElement('textarea'); textarea.value = text; textarea.style.position = 'fixed'; textarea.style.opacity = '0';
+                document.body.appendChild(textarea); textarea.select();
+                try { document.execCommand('copy'); showToast('🔗 Link copied to clipboard'); } catch (err) { showToast('❌ Failed to copy'); }
                 document.body.removeChild(textarea);
             }
 
             function openLinkInBrowser(link) {
                 if (!link) return;
-                if (!link.startsWith('http://') && !link.startsWith('https://')) {
-                    link = 'https://' + link;
-                }
-                if (isTelegram) {
-                    window.location.href = link;
-                } else {
-                    window.open(link, '_blank');
-                }
+                if (!link.startsWith('http://') && !link.startsWith('https://')) link = 'https://' + link;
+                if (isTelegram) window.location.href = link; else window.open(link, '_blank');
             }
 
             closePopupBtn.addEventListener('click', hidePopup);
-            popupOverlay.addEventListener('click', function(e) {
-                if (e.target === popupOverlay) hidePopup();
-            });
-            
-            copyLinkBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (currentPopupLink) {
-                    copyToClipboard(currentPopupLink);
-                    hidePopup();
-                }
-            });
-            
-            openLinkBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (currentPopupLink) {
-                    openLinkInBrowser(currentPopupLink);
-                    hidePopup();
-                }
-            });
+            popupOverlay.addEventListener('click', function(e) { if (e.target === popupOverlay) hidePopup(); });
+            copyLinkBtn.addEventListener('click', function(e) { e.preventDefault(); if (currentPopupLink) { copyToClipboard(currentPopupLink); hidePopup(); } });
+            openLinkBtn.addEventListener('click', function(e) { e.preventDefault(); if (currentPopupLink) { openLinkInBrowser(currentPopupLink); hidePopup(); } });
 
-            // Initialize AdsGram with multiple block ID attempts
             function initAdsGram() {
                 if (typeof window.Adsgram !== 'undefined') {
-                    // Try different block ID formats
-                    const blockIds = ["21144", "int-21144", "int21144"];
-                    let success = false;
-                    
-                    for (const blockId of blockIds) {
-                        try {
-                            AdController = window.Adsgram.init({ blockId: blockId });
-                            console.log("✅ AdsGram initialized with blockId:", blockId);
-                            success = true;
-                            break;
-                        } catch (e) {
-                            console.log("⚠️ Failed with blockId:", blockId, e.message);
-                        }
-                    }
-                    
-                    if (!success) {
-                        try {
-                            // Try without blockId
-                            AdController = window.Adsgram.init();
-                            console.log("✅ AdsGram initialized without blockId");
-                        } catch (e) {
-                            console.log("❌ AdsGram init failed completely");
-                        }
-                    }
-                } else {
-                    console.log("⏳ AdsGram SDK not loaded, retrying...");
-                    setTimeout(initAdsGram, 500);
-                }
+                    AdController = window.Adsgram.init({ blockId: "int-21144" });
+                    console.log("✅ AdsGram initialized with blockId: int-21144");
+                } else { setTimeout(initAdsGram, 500); }
             }
 
             function checkUnlockExpiry(fileId) {
                 const unlockData = JSON.parse(localStorage.getItem('unlock_' + fileId) || '{}');
-                if (unlockData.expiryTime && Date.now() > unlockData.expiryTime) {
-                    localStorage.removeItem('adCount_' + fileId);
-                    localStorage.removeItem('unlock_' + fileId);
-                    return false;
-                }
+                if (unlockData.expiryTime && Date.now() > unlockData.expiryTime) { localStorage.removeItem('adCount_' + fileId); localStorage.removeItem('unlock_' + fileId); return false; }
                 return unlockData.expiryTime && Date.now() <= unlockData.expiryTime;
             }
 
             function startUnlockTimer(fileId, button) {
-                if (unlockTimers.has(fileId)) {
-                    clearInterval(unlockTimers.get(fileId));
-                    unlockTimers.delete(fileId);
-                }
-                
+                if (unlockTimers.has(fileId)) { clearInterval(unlockTimers.get(fileId)); unlockTimers.delete(fileId); }
                 const timer = setInterval(function() {
                     const unlockData = JSON.parse(localStorage.getItem('unlock_' + fileId) || '{}');
                     if (!unlockData.expiryTime || Date.now() > unlockData.expiryTime) {
-                        clearInterval(timer);
-                        unlockTimers.delete(fileId);
-                        localStorage.removeItem('adCount_' + fileId);
-                        localStorage.removeItem('unlock_' + fileId);
-                        updateButtonState(button);
-                        showToast('⏰ Unlock period expired');
-                        return;
+                        clearInterval(timer); unlockTimers.delete(fileId);
+                        localStorage.removeItem('adCount_' + fileId); localStorage.removeItem('unlock_' + fileId);
+                        updateButtonState(button); showToast('⏰ Unlock period expired'); return;
                     }
-
                     const timeLeft = unlockData.expiryTime - Date.now();
-                    const minutes = Math.floor(timeLeft / 60000);
-                    const seconds = Math.floor((timeLeft % 60000) / 1000);
-                    
+                    const minutes = Math.floor(timeLeft / 60000), seconds = Math.floor((timeLeft % 60000) / 1000);
                     const existingBadge = button.querySelector('.timer-badge');
-                    if (existingBadge) {
-                        existingBadge.textContent = minutes + 'm ' + seconds + 's';
-                    }
+                    if (existingBadge) existingBadge.textContent = minutes + 'm ' + seconds + 's';
                 }, 1000);
-
                 unlockTimers.set(fileId, timer);
             }
 
             function updateButtonState(button) {
-                const fileId = button.dataset.fileId;
-                const requiredCount = parseInt(button.dataset.requiredAds || 1);
-                const isUnlocked = checkUnlockExpiry(fileId);
-                const adCount = parseInt(localStorage.getItem('adCount_' + fileId) || 0);
-                
+                const fileId = button.dataset.fileId, requiredCount = parseInt(button.dataset.requiredAds || 1);
+                const isUnlocked = checkUnlockExpiry(fileId), adCount = parseInt(localStorage.getItem('adCount_' + fileId) || 0);
                 button.disabled = false;
-                
                 let existingBadge = button.querySelector('.timer-badge');
-                
                 if (isUnlocked) {
                     button.innerHTML = '<i class="fas fa-download"></i><span>Download</span>';
-                    button.classList.add('from-green-400', 'to-green-600');
-                    button.classList.remove('from-blue-500', 'to-purple-600');
-                    
-                    if (!existingBadge) {
-                        existingBadge = document.createElement('span');
-                        existingBadge.className = 'timer-badge';
-                        button.appendChild(existingBadge);
-                    }
+                    button.classList.add('from-green-400', 'to-green-600'); button.classList.remove('from-blue-500', 'to-purple-600');
+                    if (!existingBadge) { existingBadge = document.createElement('span'); existingBadge.className = 'timer-badge'; button.appendChild(existingBadge); }
                     existingBadge.style.display = 'inline-block';
-                    
                     startUnlockTimer(fileId, button);
                 } else {
                     button.innerHTML = '<i class="fas fa-lock"></i><span>Unlock (' + adCount + '/' + requiredCount + ')</span>';
-                    button.classList.add('from-blue-500', 'to-purple-600');
-                    button.classList.remove('from-green-400', 'to-green-600');
-                    
-                    if (existingBadge) {
-                        existingBadge.style.display = 'none';
-                    }
-                    
-                    if (unlockTimers.has(fileId)) {
-                        clearInterval(unlockTimers.get(fileId));
-                        unlockTimers.delete(fileId);
-                    }
+                    button.classList.add('from-blue-500', 'to-purple-600'); button.classList.remove('from-green-400', 'to-green-600');
+                    if (existingBadge) existingBadge.style.display = 'none';
+                    if (unlockTimers.has(fileId)) { clearInterval(unlockTimers.get(fileId)); unlockTimers.delete(fileId); }
                 }
             }
 
             function startCooldownTimer(button) {
-                const buttonTextEl = button.querySelector('span');
-                let countdown = timerDuration;
+                const buttonTextEl = button.querySelector('span'); let countdown = timerDuration;
                 buttonTextEl.textContent = 'Wait ' + countdown + 's';
-                button.disabled = true;
-                
                 const timerInterval = setInterval(function() {
                     countdown--;
-                    if (countdown > 0) {
-                        buttonTextEl.textContent = 'Wait ' + countdown + 's';
-                    } else {
-                        clearInterval(timerInterval);
-                        button.disabled = false;
-                        updateButtonState(button);
-                    }
+                    if (countdown > 0) buttonTextEl.textContent = 'Wait ' + countdown + 's';
+                    else { clearInterval(timerInterval); button.disabled = false; updateButtonState(button); }
                 }, 1000);
             }
 
             function showInterstitialAd(button) {
-                if (!AdController) {
-                    console.error('AdsGram not initialized');
-                    showToast('❌ Ad service unavailable - trying to reinitialize...');
-                    initAdsGram();
-                    updateButtonState(button);
-                    return;
-                }
-                
-                isAdInProgress = true;
-                
-                const buttonTextEl = button.querySelector('span');
-                const originalText = buttonTextEl.textContent;
+                if (!AdController) { console.error('AdsGram not initialized'); showToast('❌ Ad service unavailable'); updateButtonState(button); return; }
+                isAdInProgress = true; currentProcessingButton = button;
+                const buttonTextEl = button.querySelector('span'), originalText = buttonTextEl.textContent;
                 buttonTextEl.textContent = 'Loading Ad...';
-                button.disabled = true;
-                
-                console.log('📢 Showing ad with AdsGram...');
-                
-                // Set timeout for ad loading
-                const adTimeout = setTimeout(function() {
-                    console.log('⏱️ Ad timeout - continuing anyway');
-                    handleAdCompletion(button, true);
-                }, 8000);
-                
                 AdController.show().then(function(result) {
-                    clearTimeout(adTimeout);
-                    console.log('Ad result:', result);
-                    handleAdCompletion(button, result && result.done);
+                    if (result.done) {
+                        const fileId = button.dataset.fileId, requiredCount = parseInt(button.dataset.requiredAds || 1);
+                        let adCount = parseInt(localStorage.getItem('adCount_' + fileId) || 0);
+                        adCount++; localStorage.setItem('adCount_' + fileId, adCount);
+                        showToast('✅ Ad completed! Progress: ' + adCount + '/' + requiredCount);
+                        if (adCount >= requiredCount) {
+                            const expiryTime = Date.now() + (unlockDuration * 60 * 1000);
+                            localStorage.setItem('unlock_' + fileId, JSON.stringify({ expiryTime: expiryTime }));
+                            showToast('🎉 Unlocked for ' + unlockDuration + ' minutes!');
+                            updateButtonState(button);
+                            const url = button.dataset.url; if (url) showLinkPopup(url, fileId);
+                        } else { updateButtonState(button); startCooldownTimer(button); }
+                    } else { showToast('⏭️ Ad skipped. Watch full ad for progress.'); updateButtonState(button); }
+                    isAdInProgress = false; currentProcessingButton = null;
                 }).catch(function(error) {
-                    clearTimeout(adTimeout);
-                    console.error('Ad error:', error);
-                    // Still count as progress even if ad fails
-                    handleAdCompletion(button, true);
+                    console.error('Ad error:', error); showToast('❌ Ad error. Try again.');
+                    updateButtonState(button); isAdInProgress = false; currentProcessingButton = null;
                 });
-            }
-            
-            function handleAdCompletion(button, adCompleted) {
-                const fileId = button.dataset.fileId;
-                const requiredCount = parseInt(button.dataset.requiredAds || 1);
-                let adCount = parseInt(localStorage.getItem('adCount_' + fileId) || 0);
-                
-                if (adCompleted) {
-                    adCount++;
-                    localStorage.setItem('adCount_' + fileId, adCount);
-                    showToast('✅ Progress: ' + adCount + '/' + requiredCount);
-                } else {
-                    showToast('⏭️ Ad skipped. Watch full ad for progress.');
-                }
-                
-                if (adCount >= requiredCount) {
-                    const expiryTime = Date.now() + (unlockDuration * 60 * 1000);
-                    localStorage.setItem('unlock_' + fileId, JSON.stringify({ expiryTime: expiryTime }));
-                    showToast('🎉 Unlocked for ' + unlockDuration + ' minutes!');
-                    updateButtonState(button);
-                    
-                    const url = button.dataset.url;
-                    if (url) {
-                        showLinkPopup(url, fileId);
-                    }
-                } else {
-                    updateButtonState(button);
-                    startCooldownTimer(button);
-                }
-                
-                isAdInProgress = false;
             }
 
             function handleAccessClick(button) {
                 if (button.disabled || isAdInProgress) return;
-                
-                const fileId = button.dataset.fileId;
-                const isUnlocked = checkUnlockExpiry(fileId);
-                
-                if (isUnlocked) {
-                    const url = button.dataset.url;
-                    if (url) {
-                        showLinkPopup(url, fileId);
-                    }
-                    return;
-                }
-                
-                showInterstitialAd(button);
+                const fileId = button.dataset.fileId, isUnlocked = checkUnlockExpiry(fileId);
+                if (isUnlocked) { const url = button.dataset.url; if (url) showLinkPopup(url, fileId); return; }
+                button.disabled = true; showInterstitialAd(button);
             }
 
             function attachButtonListeners() {
                 document.querySelectorAll('.access-btn').forEach(function(btn) {
-                    const newBtn = btn.cloneNode(true);
-                    btn.parentNode.replaceChild(newBtn, btn);
-                    
-                    newBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleAccessClick(this);
-                    });
+                    const newBtn = btn.cloneNode(true); btn.parentNode.replaceChild(newBtn, btn);
+                    newBtn.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); handleAccessClick(this); });
                 });
             }
 
             function loadSettings() {
                 return db.collection("settings").doc("general").get().then(function(docSnap) {
-                    if (docSnap.exists) {
-                        timerDuration = docSnap.data().timerDuration || 10;
-                        unlockDuration = docSnap.data().unlockDuration || 10;
-                    }
-                }).catch(function(error) {
-                    console.error("Error loading settings:", error);
-                });
+                    if (docSnap.exists) { timerDuration = docSnap.data().timerDuration || 10; unlockDuration = docSnap.data().unlockDuration || 10; }
+                }).catch(function(error) { console.error("Error loading settings:", error); });
             }
 
             function loadAllData() {
                 loadSettings().then(function() {
-                    return Promise.all([
-                        db.collection("sliders").orderBy("createdAt", "desc").limit(10).get(),
-                        db.collection("files").orderBy("createdAt", "desc").limit(50).get()
-                    ]);
-                }).then(function(results) {
-                    renderSliders(results[0]);
-                    renderFiles(results[1]);
-                    setTimeout(attachButtonListeners, 100);
-                }).catch(function(error) {
-                    console.error("Error loading:", error);
-                    filesGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">Loading content...</p>';
-                });
+                    return Promise.all([ db.collection("sliders").orderBy("createdAt", "desc").limit(10).get(), db.collection("files").orderBy("createdAt", "desc").limit(50).get() ]);
+                }).then(function(results) { renderSliders(results[0]); renderFiles(results[1]); setTimeout(attachButtonListeners, 100); })
+                .catch(function(error) { console.error("Error loading:", error); filesGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">Loading content...</p>'; });
             }
 
             function renderSliders(sliderSnapshot) {
-                sliderWrapper.innerHTML = '';
-                sliderDotsContainer.innerHTML = '';
-                const slides = [];
-                const sliderIds = [];
-                
-                sliderSnapshot.forEach(function(doc) {
-                    slides.push(doc.data());
-                    sliderIds.push(doc.id);
-                });
-                
+                sliderWrapper.innerHTML = ''; sliderDotsContainer.innerHTML = ''; const slides = [], sliderIds = [];
+                sliderSnapshot.forEach(function(doc) { slides.push(doc.data()); sliderIds.push(doc.id); });
                 if (slides.length > 0) {
                     slides.forEach(function(slide, index) {
-                        const slideEl = document.createElement('div');
-                        slideEl.className = 'slider-item';
-                        slideEl.dataset.sliderId = sliderIds[index];
-                        
-                        if (slide.linkUrl) {
-                            slideEl.innerHTML = '<a href="' + slide.linkUrl + '" target="_blank" class="slider-link" data-slider-id="' + sliderIds[index] + '"><img src="' + slide.imageUrl + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/1280x400/e5e7eb/6b7280?text=File\'"></a>';
-                        } else {
-                            slideEl.innerHTML = '<img src="' + slide.imageUrl + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/1280x400/e5e7eb/6b7280?text=File\'">';
-                        }
+                        const slideEl = document.createElement('div'); slideEl.className = 'slider-item'; slideEl.dataset.sliderId = sliderIds[index];
+                        if (slide.linkUrl) slideEl.innerHTML = '<a href="' + slide.linkUrl + '" target="_blank" class="slider-link" data-slider-id="' + sliderIds[index] + '"><img src="' + slide.imageUrl + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/1280x400/e5e7eb/6b7280?text=File\'"></a>';
+                        else slideEl.innerHTML = '<img src="' + slide.imageUrl + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/1280x400/e5e7eb/6b7280?text=File\'">';
                         sliderWrapper.appendChild(slideEl);
-                        
-                        const dotEl = document.createElement('div');
-                        dotEl.className = 'slider-dot';
-                        dotEl.dataset.index = index;
-                        sliderDotsContainer.appendChild(dotEl);
+                        const dotEl = document.createElement('div'); dotEl.className = 'slider-dot'; dotEl.dataset.index = index; sliderDotsContainer.appendChild(dotEl);
                     });
-                    
-                    document.querySelectorAll('.slider-link').forEach(function(link) {
-                        link.addEventListener('click', function(e) {
-                            const sliderId = this.dataset.sliderId;
-                            if (sliderId) trackSliderView(sliderId);
-                        });
-                    });
-                    
+                    document.querySelectorAll('.slider-link').forEach(function(link) { link.addEventListener('click', function(e) { const sliderId = this.dataset.sliderId; if (sliderId) trackSliderView(sliderId); }); });
                     setupSlider(slides.length);
                 }
             }
 
             function renderFiles(filesSnapshot) {
-                filesGrid.innerHTML = '';
-                allFiles = [];
-                
-                if (filesSnapshot.empty) {
-                    filesGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">No files available.</p>';
-                    return;
-                }
-                
-                filesSnapshot.forEach(function(doc) {
-                    allFiles.push(Object.assign({ id: doc.id }, doc.data()));
-                });
-                
+                filesGrid.innerHTML = ''; allFiles = [];
+                if (filesSnapshot.empty) { filesGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">No files available.</p>'; return; }
+                filesSnapshot.forEach(function(doc) { allFiles.push(Object.assign({ id: doc.id }, doc.data())); });
                 allFiles.forEach(function(file) {
                     const card = document.createElement('div');
                     card.className = 'file-card glass-card rounded-xl overflow-hidden card-hover border border-gray-200';
-                    card.dataset.title = file.title.toLowerCase();
-                    card.dataset.description = (file.description || '').toLowerCase();
-                    card.id = 'card-' + file.id;
-                    
-                    const requiredAds = file.requiredAds || 1;
-                    const isUnlocked = checkUnlockExpiry(file.id);
-                    const adCount = parseInt(localStorage.getItem('adCount_' + file.id) || 0);
-                    
+                    card.dataset.title = file.title.toLowerCase(); card.dataset.description = (file.description || '').toLowerCase(); card.id = 'card-' + file.id;
+                    const requiredAds = file.requiredAds || 1, isUnlocked = checkUnlockExpiry(file.id), adCount = parseInt(localStorage.getItem('adCount_' + file.id) || 0);
                     let html = '<div class="relative aspect-video overflow-hidden">';
                     html += '<img src="' + file.thumbnailUrl + '" alt="' + file.title + '" class="w-full h-full object-cover" onerror="this.src=\'https://placehold.co/400x225/e5e7eb/6b7280?text=File\'">';
                     html += '<div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>';
-                    html += '<div class="absolute top-3 left-3">';
-                    html += '<span class="bg-gradient-to-r from-blue-500/90 to-purple-600/90 backdrop-blur-sm px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide text-white">';
-                    html += '<i class="fas fa-file mr-1"></i>FILE</span></div></div>';
-                    html += '<div class="p-4">';
-                    html += '<h3 class="text-base font-bold text-gray-800 truncate mb-1">' + file.title + '</h3>';
-                    html += '<p class="text-gray-500 text-xs line-clamp-2 mb-4 h-8">' + (file.description || 'Click to unlock and download') + '</p>';
-                    html += '<div class="mt-2">';
+                    html += '<div class="absolute top-3 left-3"><span class="bg-gradient-to-r from-blue-500/90 to-purple-600/90 backdrop-blur-sm px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide text-white"><i class="fas fa-file mr-1"></i>FILE</span></div></div>';
+                    html += '<div class="p-4"><h3 class="text-base font-bold text-gray-800 truncate mb-1">' + file.title + '</h3>';
+                    html += '<p class="text-gray-500 text-xs line-clamp-2 mb-4 h-8">' + (file.description || 'Click to unlock and download') + '</p><div class="mt-2">';
                     html += '<button data-file-id="' + file.id + '" data-url="' + file.downloadUrl + '" data-required-ads="' + requiredAds + '" class="access-btn w-full py-3 px-4 rounded-xl text-white text-sm font-bold premium-gradient flex items-center justify-center gap-2 shadow-lg">';
-                    
-                    if (isUnlocked) {
-                        html += '<i class="fas fa-download"></i><span>Download</span>';
-                    } else {
-                        html += '<i class="fas fa-lock"></i><span>Unlock (' + adCount + '/' + requiredAds + ')</span>';
-                    }
-                    
+                    if (isUnlocked) html += '<i class="fas fa-download"></i><span>Download</span>';
+                    else html += '<i class="fas fa-lock"></i><span>Unlock (' + adCount + '/' + requiredAds + ')</span>';
                     html += '</button></div></div>';
-                    
-                    card.innerHTML = html;
-                    filesGrid.appendChild(card);
-                    
+                    card.innerHTML = html; filesGrid.appendChild(card);
                     const button = card.querySelector('.access-btn');
-                    
-                    if (isUnlocked) {
-                        const badge = document.createElement('span');
-                        badge.className = 'timer-badge';
-                        button.appendChild(badge);
-                        startUnlockTimer(file.id, button);
-                    }
+                    if (isUnlocked) { const badge = document.createElement('span'); badge.className = 'timer-badge'; button.appendChild(badge); startUnlockTimer(file.id, button); }
                 });
             }
 
             function setupSlider(slideCount) {
-                if (slideCount <= 1) {
-                    if (slideCount === 1) {
-                        const dot = document.querySelector('.slider-dot');
-                        if (dot) dot.classList.add('active');
-                    }
-                    return;
-                }
-                
+                if (slideCount <= 1) { if (slideCount === 1) { const dot = document.querySelector('.slider-dot'); if (dot) dot.classList.add('active'); } return; }
                 const dots = document.querySelectorAll('.slider-dot');
-                
                 function goToSlide(index) {
                     currentSlide = (index + slideCount) % slideCount;
                     sliderWrapper.style.transform = 'translateX(-' + (currentSlide * 100) + '%)';
-                    dots.forEach(function(dot) {
-                        dot.classList.remove('active');
-                    });
+                    dots.forEach(function(dot) { dot.classList.remove('active'); });
                     if (dots[currentSlide]) dots[currentSlide].classList.add('active');
                 }
-                
                 if (sliderInterval) clearInterval(sliderInterval);
-                sliderInterval = setInterval(function() {
-                    goToSlide(currentSlide + 1);
-                }, 3000);
-                
-                dots.forEach(function(dot) {
-                    dot.addEventListener('click', function(e) {
-                        goToSlide(parseInt(e.target.dataset.index));
-                    });
-                });
-                
+                sliderInterval = setInterval(function() { goToSlide(currentSlide + 1); }, 3000);
+                dots.forEach(function(dot) { dot.addEventListener('click', function(e) { goToSlide(parseInt(e.target.dataset.index)); }); });
                 goToSlide(0);
             }
 
             function handleSearch() {
-                const term = searchInput.value.toLowerCase();
-                let visible = 0;
-                
+                const term = searchInput.value.toLowerCase(); let visible = 0;
                 document.querySelectorAll('.file-card').forEach(function(card) {
-                    const title = card.dataset.title;
-                    const desc = card.dataset.description;
-                    if (title.includes(term) || desc.includes(term)) {
-                        card.style.display = 'block';
-                        visible++;
-                    } else {
-                        card.style.display = 'none';
-                    }
+                    const title = card.dataset.title, desc = card.dataset.description;
+                    if (title.includes(term) || desc.includes(term)) { card.style.display = 'block'; visible++; }
+                    else { card.style.display = 'none'; }
                 });
-                
-                if (noResultsMessage) {
-                    noResultsMessage.classList.toggle('hidden', visible > 0);
-                }
+                if (noResultsMessage) noResultsMessage.classList.toggle('hidden', visible > 0);
             }
 
             searchInput.addEventListener('input', handleSearch);
-
-            // Start loading
             loadAllData();
             initAdsGram();
-            // Retry initialization
-            setTimeout(initAdsGram, 1000);
-            setTimeout(initAdsGram, 2000);
-            
-            // Debug function
-            window.testAd = function() {
-                console.log("AdController:", AdController);
-                if (AdController) {
-                    AdController.show().then(r => console.log("Test ad result:", r)).catch(e => console.error("Test ad error:", e));
-                } else {
-                    console.log("AdController not initialized");
-                }
-            };
         })();
     </script>
 </body>
