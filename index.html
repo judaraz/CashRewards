@@ -9,7 +9,6 @@
 
     <!-- Load critical CSS first -->
     <style>
-        /* Critical CSS to prevent white screen */
         body {
             background: #f9fafb;
             min-height: 100vh;
@@ -526,7 +525,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <script>
-        // Show app after a short delay to ensure everything is loaded
+        // Show app after a short delay
         setTimeout(function() {
             document.getElementById('initialLoading').style.display = 'none';
             document.getElementById('app').style.display = 'block';
@@ -565,7 +564,7 @@
             const openLinkBtn = document.getElementById('openLinkBtn');
 
             let currentPopupLink = '';
-            let currentFileId = ''; // Track current file ID for view counting
+            let currentFileId = '';
             let sliderInterval;
             let currentSlide = 0;
             let AdController = null;
@@ -573,12 +572,8 @@
             let timerDuration = 10;
             let unlockDuration = 10;
             let isAdInProgress = false;
-            let currentProcessingButton = null;
             
             const unlockTimers = new Map();
-            const fileCooldowns = new Map();
-            
-            // Track viewed files to avoid double counting
             const viewedFiles = new Set();
 
             function showToast(message) {
@@ -590,10 +585,8 @@
                 }, 2000);
             }
 
-            // Track file view in Firebase
             async function trackFileView(fileId) {
                 if (!fileId || viewedFiles.has(fileId)) return;
-                
                 try {
                     const fileRef = db.collection("files").doc(fileId);
                     await fileRef.update({
@@ -606,10 +599,8 @@
                 }
             }
 
-            // Track slider view in Firebase
             async function trackSliderView(sliderId) {
                 if (!sliderId) return;
-                
                 try {
                     const sliderRef = db.collection("sliders").doc(sliderId);
                     await sliderRef.update({
@@ -627,11 +618,7 @@
                 currentFileId = fileId;
                 popupLinkDisplay.textContent = link;
                 popupOverlay.classList.add('active');
-                
-                // Track file view when popup is shown
-                if (fileId) {
-                    trackFileView(fileId);
-                }
+                if (fileId) trackFileView(fileId);
             }
 
             function hidePopup() {
@@ -669,11 +656,9 @@
 
             function openLinkInBrowser(link) {
                 if (!link) return;
-                
                 if (!link.startsWith('http://') && !link.startsWith('https://')) {
                     link = 'https://' + link;
                 }
-                
                 if (isTelegram) {
                     window.location.href = link;
                 } else {
@@ -681,7 +666,6 @@
                 }
             }
 
-            // Popup event listeners
             closePopupBtn.addEventListener('click', hidePopup);
             popupOverlay.addEventListener('click', function(e) {
                 if (e.target === popupOverlay) hidePopup();
@@ -703,12 +687,35 @@
                 }
             });
 
-            // Initialize AdsGram with block ID 21144
+            // Initialize AdsGram with multiple block ID attempts
             function initAdsGram() {
                 if (typeof window.Adsgram !== 'undefined') {
-                    AdController = window.Adsgram.init({ blockId: "21144" });
-                    console.log("✅ AdsGram initialized with blockId: 21144");
+                    // Try different block ID formats
+                    const blockIds = ["21144", "int-21144", "int21144"];
+                    let success = false;
+                    
+                    for (const blockId of blockIds) {
+                        try {
+                            AdController = window.Adsgram.init({ blockId: blockId });
+                            console.log("✅ AdsGram initialized with blockId:", blockId);
+                            success = true;
+                            break;
+                        } catch (e) {
+                            console.log("⚠️ Failed with blockId:", blockId, e.message);
+                        }
+                    }
+                    
+                    if (!success) {
+                        try {
+                            // Try without blockId
+                            AdController = window.Adsgram.init();
+                            console.log("✅ AdsGram initialized without blockId");
+                        } catch (e) {
+                            console.log("❌ AdsGram init failed completely");
+                        }
+                    }
                 } else {
+                    console.log("⏳ AdsGram SDK not loaded, retrying...");
                     setTimeout(initAdsGram, 500);
                 }
             }
@@ -797,6 +804,7 @@
                 const buttonTextEl = button.querySelector('span');
                 let countdown = timerDuration;
                 buttonTextEl.textContent = 'Wait ' + countdown + 's';
+                button.disabled = true;
                 
                 const timerInterval = setInterval(function() {
                     countdown--;
@@ -813,60 +821,68 @@
             function showInterstitialAd(button) {
                 if (!AdController) {
                     console.error('AdsGram not initialized');
-                    showToast('❌ Ad service unavailable');
+                    showToast('❌ Ad service unavailable - trying to reinitialize...');
+                    initAdsGram();
                     updateButtonState(button);
                     return;
                 }
                 
                 isAdInProgress = true;
-                currentProcessingButton = button;
                 
                 const buttonTextEl = button.querySelector('span');
                 const originalText = buttonTextEl.textContent;
                 buttonTextEl.textContent = 'Loading Ad...';
+                button.disabled = true;
+                
+                console.log('📢 Showing ad with AdsGram...');
+                
+                // Set timeout for ad loading
+                const adTimeout = setTimeout(function() {
+                    console.log('⏱️ Ad timeout - continuing anyway');
+                    handleAdCompletion(button, true);
+                }, 8000);
                 
                 AdController.show().then(function(result) {
+                    clearTimeout(adTimeout);
                     console.log('Ad result:', result);
-                    
-                    if (result.done) {
-                        const fileId = button.dataset.fileId;
-                        const requiredCount = parseInt(button.dataset.requiredAds || 1);
-                        let adCount = parseInt(localStorage.getItem('adCount_' + fileId) || 0);
-                        
-                        adCount++;
-                        localStorage.setItem('adCount_' + fileId, adCount);
-                        
-                        showToast('✅ Ad completed! Progress: ' + adCount + '/' + requiredCount);
-                        
-                        if (adCount >= requiredCount) {
-                            const expiryTime = Date.now() + (unlockDuration * 60 * 1000);
-                            localStorage.setItem('unlock_' + fileId, JSON.stringify({ expiryTime: expiryTime }));
-                            showToast('🎉 Unlocked for ' + unlockDuration + ' minutes!');
-                            updateButtonState(button);
-                            
-                            // Show the link popup and track view
-                            const url = button.dataset.url;
-                            if (url) {
-                                showLinkPopup(url, fileId);
-                            }
-                        } else {
-                            updateButtonState(button);
-                            startCooldownTimer(button);
-                        }
-                    } else {
-                        showToast('⏭️ Ad skipped. Watch full ad for progress.');
-                        updateButtonState(button);
-                    }
-                    
-                    isAdInProgress = false;
-                    currentProcessingButton = null;
+                    handleAdCompletion(button, result && result.done);
                 }).catch(function(error) {
+                    clearTimeout(adTimeout);
                     console.error('Ad error:', error);
-                    showToast('❌ Ad error. Try again.');
-                    updateButtonState(button);
-                    isAdInProgress = false;
-                    currentProcessingButton = null;
+                    // Still count as progress even if ad fails
+                    handleAdCompletion(button, true);
                 });
+            }
+            
+            function handleAdCompletion(button, adCompleted) {
+                const fileId = button.dataset.fileId;
+                const requiredCount = parseInt(button.dataset.requiredAds || 1);
+                let adCount = parseInt(localStorage.getItem('adCount_' + fileId) || 0);
+                
+                if (adCompleted) {
+                    adCount++;
+                    localStorage.setItem('adCount_' + fileId, adCount);
+                    showToast('✅ Progress: ' + adCount + '/' + requiredCount);
+                } else {
+                    showToast('⏭️ Ad skipped. Watch full ad for progress.');
+                }
+                
+                if (adCount >= requiredCount) {
+                    const expiryTime = Date.now() + (unlockDuration * 60 * 1000);
+                    localStorage.setItem('unlock_' + fileId, JSON.stringify({ expiryTime: expiryTime }));
+                    showToast('🎉 Unlocked for ' + unlockDuration + ' minutes!');
+                    updateButtonState(button);
+                    
+                    const url = button.dataset.url;
+                    if (url) {
+                        showLinkPopup(url, fileId);
+                    }
+                } else {
+                    updateButtonState(button);
+                    startCooldownTimer(button);
+                }
+                
+                isAdInProgress = false;
             }
 
             function handleAccessClick(button) {
@@ -883,7 +899,6 @@
                     return;
                 }
                 
-                button.disabled = true;
                 showInterstitialAd(button);
             }
 
@@ -957,13 +972,10 @@
                         sliderDotsContainer.appendChild(dotEl);
                     });
                     
-                    // Add click listeners to slider links for tracking
                     document.querySelectorAll('.slider-link').forEach(function(link) {
                         link.addEventListener('click', function(e) {
                             const sliderId = this.dataset.sliderId;
-                            if (sliderId) {
-                                trackSliderView(sliderId);
-                            }
+                            if (sliderId) trackSliderView(sliderId);
                         });
                     });
                     
@@ -1088,6 +1100,19 @@
             // Start loading
             loadAllData();
             initAdsGram();
+            // Retry initialization
+            setTimeout(initAdsGram, 1000);
+            setTimeout(initAdsGram, 2000);
+            
+            // Debug function
+            window.testAd = function() {
+                console.log("AdController:", AdController);
+                if (AdController) {
+                    AdController.show().then(r => console.log("Test ad result:", r)).catch(e => console.error("Test ad error:", e));
+                } else {
+                    console.log("AdController not initialized");
+                }
+            };
         })();
     </script>
 </body>
