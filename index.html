@@ -1,3 +1,5 @@
+Can you add push style ads on below code, and try to show ads in every 5 second.  Give. Me full updated code. 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,161 +7,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Downloader</title>
 
-    <!-- ==================== TELEGRAM ADS SCRIPTS ==================== -->
-    <!-- Main Telegram Web App Script -->
-    <script src="https://richinfo.co/richpartners/telegram/js/telegram-web-app.js"></script>
-    <!-- Telegram Ads Helper Script -->
+<script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', () => {
+        const adexiumWidget = new AdexiumWidget({wid: '30015b9a-df1e-4895-be7b-c5bc1b148fcf', adFormat: 'push-like'});
+        adexiumWidget.autoMode();
+    });
+</script>
+<script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', () => {
+        const adexiumWidget = new AdexiumWidget({wid: 'd29f2549-2e28-4016-8b89-f36b11f66244', adFormat: 'push-like'});
+        adexiumWidget.autoMode();
+    });
+</script>
+<script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', () => {
+        const adexiumWidget = new AdexiumWidget({wid: 'f2c903be-ac1d-4f6b-b0c7-8a281363517e', adFormat: 'interstitial'});
+        adexiumWidget.autoMode();
+    });
+</script>
+<script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', () => {
+        const adexiumWidget = new AdexiumWidget({wid: 'ea6d4501-c121-4dac-ad81-e14d853e1c43', adFormat: 'interstitial'});
+        adexiumWidget.autoMode();
+    });
+</script>
     <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
+          <script>
+            window.TelegramAdsController = new TelegramAdsController();
+            window.TelegramAdsController.initialize({
+              pubId: "1007802",
+              appId: "7116",
+            });
+          </script>
+
+
+
     
-    <script>
-        // Initialize Telegram Ads Controller
-        window.TelegramAdsController = new TelegramAdsController();
-        window.TelegramAdsController.initialize({
-            pubId: "1007802",
-            appId: "7116",
-        });
-        
-        // Push Ad Configuration
-        let pushAdInterval = null;
-        let pushAdCounter = 0;
-        const MAX_PUSH_ADS = 10; // Maximum push ads per session
-        const PUSH_AD_INTERVAL = 5000; // 5 seconds in milliseconds
-        
-        // Function to show push-style ad
-        function showTelegramPushAd() {
-            if (typeof window.TelegramAdsController !== 'undefined' && window.TelegramAdsController) {
-                try {
-                    // Check if push ad method exists and call it
-                    if (typeof window.TelegramAdsController.showPushAd === 'function') {
-                        window.TelegramAdsController.showPushAd();
-                        console.log(`📱 Telegram Push Ad #${pushAdCounter + 1} displayed`);
-                        
-                        // Update counter and display
-                        pushAdCounter++;
-                        updateAdCounterDisplay();
-                        
-                        // Stop interval if max ads reached
-                        if (pushAdCounter >= MAX_PUSH_ADS) {
-                            stopPushAdInterval();
-                            console.log('✅ Maximum push ads limit reached');
-                            showToast('ad_limit_reached', { max: MAX_PUSH_ADS });
-                        }
-                    } else {
-                        // Alternative: Try using the widget ID method
-                        window.TelegramAdsController.showWidget('push-ad-widget');
-                        console.log(`📱 Telegram Push Ad #${pushAdCounter + 1} displayed (widget method)`);
-                        pushAdCounter++;
-                        updateAdCounterDisplay();
-                        
-                        if (pushAdCounter >= MAX_PUSH_ADS) {
-                            stopPushAdInterval();
-                        }
-                    }
-                } catch (e) {
-                    console.warn('⚠️ Push ad error:', e.message);
-                }
-            } else {
-                console.warn('⚠️ TelegramAdsController not initialized');
-            }
-        }
-        
-        // Update the ad counter display
-        function updateAdCounterDisplay() {
-            const displayElement = document.getElementById('ad-count-display');
-            const indicatorElement = document.getElementById('ad-indicator');
-            
-            if (displayElement) {
-                displayElement.textContent = `${pushAdCounter}/${MAX_PUSH_ADS} ads shown`;
-            }
-            
-            if (indicatorElement) {
-                indicatorElement.style.display = 'flex';
-            }
-        }
-        
-        // Start push ad interval
-        function startPushAdInterval() {
-            // Clear any existing interval first
-            stopPushAdInterval();
-            
-            console.log(`🔄 Starting push ads - will show every ${PUSH_AD_INTERVAL/1000} seconds`);
-            
-            // Start new interval
-            pushAdInterval = setInterval(() => {
-                showTelegramPushAd();
-            }, PUSH_AD_INTERVAL);
-        }
-        
-        // Stop push ad interval
-        function stopPushAdInterval() {
-            if (pushAdInterval) {
-                clearInterval(pushAdInterval);
-                pushAdInterval = null;
-                console.log('⏹️ Push ad interval stopped');
-            }
-        }
-        
-        // Initialize push ads on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            // Small delay before starting ads
-            setTimeout(() => {
-                startPushAdInterval();
-            }, 2000);
-            
-            // Show ad indicator
-            const indicator = document.getElementById('ad-indicator');
-            if (indicator) {
-                indicator.style.display = 'flex';
-                updateAdCounterDisplay();
-            }
-        });
-        
-        // Clean up on page unload
-        window.addEventListener('beforeunload', () => {
-            stopPushAdInterval();
-        });
-    </script>
-
-    <!-- Existing ad scripts (kept for compatibility) -->
-    <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
-    <script type="text/javascript">
-        document.addEventListener('DOMContentLoaded', () => {
-            const adexiumWidget = new AdexiumWidget({wid: '30015b9a-df1e-4895-be7b-c5bc1b148fcf', adFormat: 'push-like'});
-            adexiumWidget.autoMode();
-        });
-    </script>
-    <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
-    <script type="text/javascript">
-        document.addEventListener('DOMContentLoaded', () => {
-            const adexiumWidget = new AdexiumWidget({wid: 'd29f2549-2e28-4016-8b89-f36b11f66244', adFormat: 'push-like'});
-            adexiumWidget.autoMode();
-        });
-    </script>
-    <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
-    <script type="text/javascript">
-        document.addEventListener('DOMContentLoaded', () => {
-            const adexiumWidget = new AdexiumWidget({wid: 'f2c903be-ac1d-4f6b-b0c7-8a281363517e', adFormat: 'interstitial'});
-            adexiumWidget.autoMode();
-        });
-    </script>
-    <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
-    <script type="text/javascript">
-        document.addEventListener('DOMContentLoaded', () => {
-            const adexiumWidget = new AdexiumWidget({wid: 'ea6d4501-c121-4dac-ad81-e14d853e1c43', adFormat: 'interstitial'});
-            adexiumWidget.autoMode();
-        });
-    </script>
-
-    <!-- Telegram Push Ad Widget Container -->
-    <div id="push-ad-widget" style="display: none;"></div>
-
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- AdsGram SDK -->
+    <!-- AdsGram SDK - Correct URL from documentation -->
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
-    
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         /* Custom styles for animations and aesthetics */
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -184,45 +79,9 @@
             border-radius: 9999px;
             margin-left: 0.5rem;
         }
-        
-        /* Push ad indicator */
-        .ad-indicator {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: rgba(59, 130, 246, 0.9);
-            color: white;
-            padding: 8px 15px;
-            border-radius: 25px;
-            font-size: 12px;
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(5px);
-        }
-        
-        .ad-indicator i {
-            color: #ffd700;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans">
-
-    <!-- Ad Status Indicator -->
-    <div id="ad-indicator" class="ad-indicator" style="display: none;">
-        <i class="fas fa-ad"></i>
-        <span id="ad-count-display">0/10 ads shown</span>
-        <i class="fas fa-clock"></i>
-        <span>Every 5s</span>
-    </div>
 
     <div id="app" class="container mx-auto p-4 max-w-7xl">
         <!-- Header -->
@@ -251,6 +110,7 @@
         <!-- Ad Slot 2 -->
         <div id="ad-container-2" class="my-6 flex justify-center min-h-[50px]"></div>
 
+
         <!-- Files Section -->
         <div class="slide-up animation-delay-400">
             <h2 data-key="available_files" class="text-3xl font-bold text-gray-800 mb-6 border-b-4 border-blue-500 pb-2">Available Files</h2>
@@ -277,24 +137,25 @@
         </div>
     </footer>
 
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyCPJR-Zkkkh4Y-aQQ8H1J7N2Edo0HWM14k",
-            authDomain: "download-cce9e.firebaseapp.com",
-            projectId: "download-cce9e",
-            storageBucket: "download-cce9e.firebasestorage.app",
-            messagingSenderId: "510020310830",
-            appId: "1:510020310830:web:eb41a23de415924c2f8cbf",
-            measurementId: "G-TYT03595HP"
-        };
+                apiKey: "AIzaSyCPJR-Zkkkh4Y-aQQ8H1J7N2Edo0HWM14k",
+                authDomain: "download-cce9e.firebaseapp.com",
+                projectId: "download-cce9e",
+                storageBucket: "download-cce9e.firebasestorage.app",
+                messagingSenderId: "510020310830",
+                appId: "1:510020310830:web:eb41a23de415924c2f8cbf",
+                measurementId: "G-TYT03595HP"
+            };
         
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Enable offline persistence
+        // Enable offline persistence for better Telegram compatibility
         try {
             enableIndexedDbPersistence(db).catch((err) => {
                 if (err.code === 'failed-precondition') {
@@ -356,8 +217,7 @@
                 unlocked_time_remaining: "Unlocked: {minutes}m {seconds}s left",
                 toast_expired: "Unlock period expired. Please watch ads again to unlock.",
                 ad_completed: "Ad completed! Progress saved.",
-                ad_skipped: "Ad was skipped. Watch full ad to get progress.",
-                ad_limit_reached: "Maximum {max} ads shown this session."
+                ad_skipped: "Ad was skipped. Watch full ad to get progress."
             },
             hi: { 
                 main_title: "वेबऐप सीखो", 
@@ -368,20 +228,19 @@
                 no_slides: "कोई प्रचार स्लाइड उपलब्ध नहीं है।", 
                 slides_error: "स्लाइड लोड नहीं हो सकीं।", 
                 no_files_uploaded: "अभी तक कोई फ़ाइल अपलोड नहीं की गई है।", 
-                files_error: "फ़ाइलें लोड नहीं हो सकीं।", 
+                files_error: "फ़ाइलें लोड नहीं हो सकीं। कृपया बाद में पुनः प्रयास करें।", 
                 unlock_button: "अनलॉक ({adCount}/{requiredCount})", 
                 download_now_button: "अभी डाउनलोड करें", 
                 toast_download_starting: "आपका डाउनलोड शुरू हो रहा है...", 
                 toast_progress: "प्रगति: {adCount}/{requiredCount}", 
                 toast_unlocked: "{minutes} मिनट के लिए डाउनलोड अनलॉक हो गया!", 
-                toast_ad_error: "विज्ञापन लोड नहीं हो सका।", 
+                toast_ad_error: "विज्ञापन लोड नहीं हो सका। कृपया पुनः प्रयास करें।", 
                 loading_ad: "विज्ञापन लोड हो रहा है...", 
                 verifying_button: "कृपया प्रतीक्षा करें... {countdown}s",
                 unlocked_time_remaining: "अनलॉक: {minutes}मि {seconds}से बाकी",
                 toast_expired: "अनलॉक अवधि समाप्त हो गई।",
                 ad_completed: "विज्ञापन पूरा हुआ! प्रगति सहेजी गई।",
-                ad_skipped: "विज्ञापन छोड़ दिया गया। प्रगति के लिए पूरा विज्ञापन देखें।",
-                ad_limit_reached: "इस सत्र में अधिकतम {max} विज्ञापन दिखाए गए।"
+                ad_skipped: "विज्ञापन छोड़ दिया गया। प्रगति के लिए पूरा विज्ञापन देखें।"
             },
             bn: { 
                 main_title: "ওয়েবঅ্যাপ শিখুন", 
@@ -404,12 +263,11 @@
                 unlocked_time_remaining: "আনলক: {minutes}মি {seconds}সে বাকি",
                 toast_expired: "আনলকের সময় শেষ হয়েছে।",
                 ad_completed: "বিজ্ঞাপন সম্পন্ন! অগ্রগতি সংরক্ষিত।",
-                ad_skipped: "বিজ্ঞাপন স্কিপ করা হয়েছে। অগ্রগতির জন্য সম্পূর্ণ বিজ্ঞাপন দেখুন।",
-                ad_limit_reached: "এই সেশনে সর্বাধিক {max}টি বিজ্ঞাপন দেখানো হয়েছে।"
+                ad_skipped: "বিজ্ঞাপন স্কিপ করা হয়েছে। অগ্রগতির জন্য সম্পূর্ণ বিজ্ঞাপন দেখুন।"
             }
         };
 
-        // Initialize AdsGram
+        // Initialize AdsGram with correct method
         function initAdsGram() {
             if (typeof window.Adsgram !== 'undefined') {
                 AdController = window.Adsgram.init({ blockId: "int-21144" });
@@ -448,9 +306,6 @@
                 toast.classList.add('opacity-0', 'translate-y-10');
             }, 3000);
         }
-
-        // Make showToast globally available for ad functions
-        window.showToast = showToast;
 
         function renderAd(containerId, adCode) {
             if (!adCode) return;
@@ -524,6 +379,7 @@
             
             try {
                 console.log('Fetching files from Firestore...');
+                // Use a simpler query without orderBy first to test
                 const filesRef = collection(db, "files");
                 const filesSnapshot = await getDocs(filesRef);
                 console.log('Files fetched:', filesSnapshot.size);
@@ -534,6 +390,7 @@
                 }
                 const files = [];
                 filesSnapshot.forEach(doc => files.push({ id: doc.id, ...doc.data() }));
+                // Sort manually if needed
                 files.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 
                 files.forEach(file => {
@@ -663,6 +520,7 @@
             
             if (isUnlocked) {
                 showToast('toast_download_starting');
+                // Use Telegram openLink if available
                 if (tg && tg.openLink) {
                     tg.openLink(downloadUrl);
                 } else {
@@ -759,10 +617,12 @@
         window.addEventListener('load', () => {
             initAdsGram();
             
+            // Set theme based on Telegram
             if (tg) {
                 if (tg.colorScheme === 'dark') {
                     document.body.classList.add('dark');
                 }
+                // Set language from Telegram if available
                 const userLang = tg.initDataUnsafe?.user?.language_code || 'en';
                 if (translations[userLang]) {
                     applyLanguage(userLang);
@@ -783,6 +643,7 @@
                 }
             }
             
+            // Load data with a slight delay to ensure Firebase is ready
             setTimeout(() => {
                 loadUserPageData();
             }, 100);
